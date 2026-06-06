@@ -64,6 +64,16 @@ function fmtEur(v) {
 }
 
 // ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
+// Logos que o Parqet não tem por símbolo — fontes alternativas confirmadas
+const LOGO_OVERRIDE = {
+  RHM:  "https://assets.parqet.com/logos/isin/DE0007030009?format=svg",
+  SRP:  "https://assets.parqet.com/logos/isin/GB0007973794?format=svg",
+  NOS:  "https://www.google.com/s2/favicons?domain=nos.pt&sz=64",
+  GALP: "https://www.google.com/s2/favicons?domain=galp.com&sz=64",
+  CSG:  "https://www.google.com/s2/favicons?domain=czechoslovakgroup.com&sz=64",
+  EGL:  "https://www.google.com/s2/favicons?domain=mota-engil.com&sz=64",
+};
+
 function LogoImg({ ticker, sector, flag, size = 20 }) {
   const [err, setErr] = useState(false);
   const col = SECTOR_COLORS[sector] || "#6B7280";
@@ -75,9 +85,10 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
       {flag || initial}
     </div>
   );
+  const src = LOGO_OVERRIDE[ticker] || `https://assets.parqet.com/logos/symbol/${ticker}?format=svg`;
   return (
     <img
-      src={`https://assets.parqet.com/logos/symbol/${ticker}?format=svg`}
+      src={src}
       width={size} height={size}
       style={{borderRadius:"5px",objectFit:"contain",background:"#F9FAFB",flexShrink:0}}
       onError={() => setErr(true)}
