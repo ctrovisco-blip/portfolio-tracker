@@ -20,10 +20,53 @@ body{background:#060A12;font-family:'Inter',sans-serif;}
 .row:hover{background:#0C1420!important;}
 .pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
 select{appearance:none;-webkit-appearance:none;cursor:pointer;}
+
+/* ── Grelha da tabela de posições (desktop) ───────────────────────── */
+.pos-grid{
+  display:grid;
+  grid-template-columns:20px 1fr 68px 76px 76px 70px;
+  gap:4px;
+  align-items:center;
+}
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
 @media(max-width:768px){
+  /* Layout geral */
   .main-grid{grid-template-columns:1fr!important;}
-  .right-col{border-left:none!important;border-top:1px solid #1A2535;}
-  .chart-wrap{height:180px!important;}
+  .chart-wrap{height:160px!important;}
+
+  /* Header: esconder texto secundário */
+  .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
+
+  /* Painel direito: overlay full-screen (abaixo do header) */
+  .right-col{
+    display:none;
+    position:fixed;
+    top:42px;left:0;right:0;bottom:0;
+    z-index:50;
+    overflow-y:auto;
+    background:#080C14;
+    border-left:none!important;
+  }
+  .right-col.open{display:block;}
+
+  /* Tabela: 4 colunas no mobile (esconder Preço e Investido) */
+  .pos-grid{grid-template-columns:20px 1fr 64px 74px!important;}
+  .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
+
+  /* Barra de filtros: scroll horizontal sem scrollbar visível */
+  .filter-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap!important;}
+  .filter-bar::-webkit-scrollbar{display:none;}
+
+  /* Controlos do gráfico: permitir wrap */
+  .chart-controls{flex-wrap:wrap!important;gap:4px!important;}
+
+  /* Dimensões mínimas de toque */
+  .pos-row{min-height:46px;}
+
+  /* Summary bar: scroll horizontal */
+  .summary-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .summary-bar::-webkit-scrollbar{display:none;}
 }
 </style>
 </head>
@@ -394,7 +437,7 @@ function ChartPanel({ sel, positions }) {
         </div>
 
         {/* Right: value + controls */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"5px",flexShrink:0,marginLeft:"8px"}}>
+        <div className="chart-controls" style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"5px",flexShrink:0,marginLeft:"8px"}}>
           {/* Return value */}
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",
@@ -457,7 +500,7 @@ function Summary({ positions }) {
   );
 
   return (
-    <div style={{display:"flex",alignItems:"stretch",background:"#080C14",
+    <div className="summary-bar" style={{display:"flex",alignItems:"stretch",background:"#080C14",
       borderBottom:"1px solid #1A2535",height:"58px",overflowX:"auto",flexShrink:0}}>
       <Stat label="POSIÇÕES"  value={positions.length}    sub="em carteira"   color="#9CA3AF"/>
       <Stat label="P&L TOTAL" value={(totalPpl>=0?"+":"")+totalPpl.toFixed(0)+"€"} sub="aprox. multicurrency" color={totalPpl>=0?"#10B981":"#EF4444"}/>
@@ -476,9 +519,8 @@ function PositionRow({ p, selected, onClick }) {
   const costEur = toEur(p.qty * p.avgPrice, p.cur);
   const valEur  = toEur(p.qty * p.curPrice, p.cur);
   return (
-    <div className="row cb" onClick={onClick}
-      style={{display:"grid",gridTemplateColumns:"20px 1fr 68px 76px 76px 70px",gap:"4px",
-        alignItems:"center",padding:"5px 12px",
+    <div className="pos-grid pos-row row cb" onClick={onClick}
+      style={{padding:"5px 12px",
         borderBottom:"1px solid #0A0F1A",
         background: selected ? "#0D1828" : "transparent",
         borderLeft: selected ? `2px solid ${col}` : "2px solid transparent",
@@ -491,7 +533,7 @@ function PositionRow({ p, selected, onClick }) {
         <div style={{fontSize:"8px",color:"#374151",marginTop:"1px"}}>{p.ticker}</div>
       </div>
       {/* Preço actual */}
-      <div style={{textAlign:"right"}}>
+      <div className="col-price" style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
           {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
         </div>
@@ -500,7 +542,7 @@ function PositionRow({ p, selected, onClick }) {
         </div>
       </div>
       {/* Total Investido */}
-      <div style={{textAlign:"right"}}>
+      <div className="col-invested" style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",fontWeight:"500",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
           {fmtEur(costEur)}
         </div>
@@ -1000,11 +1042,11 @@ function App() {
         display:"flex",alignItems:"center",gap:"10px",height:"42px",flexShrink:0}}>
         <span style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",
           color:"#F0F6FC",letterSpacing:"-0.3px"}}>Portfolio Tracker</span>
-        <div style={{width:"1px",height:"16px",background:"#1A2535"}}/>
-        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"12px",fontWeight:"700",
+        <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#1A2535"}}/>
+        <span className="hdr-name" style={{fontFamily:"'Syne',sans-serif",fontSize:"12px",fontWeight:"700",
           color:"#4B5563",letterSpacing:"-0.2px"}}>Cláudio Trovisco</span>
-        <div style={{width:"1px",height:"16px",background:"#1A2535"}}/>
-        <span style={{fontSize:"8px",color:"#374151",letterSpacing:"1.5px"}}>
+        <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#1A2535"}}/>
+        <span className="hdr-live" style={{fontSize:"8px",color:"#374151",letterSpacing:"1.5px"}}>
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
@@ -1020,7 +1062,7 @@ function App() {
       </div>
 
       {/* ── Summary bar ── */}
-      <Summary positions={positions}/>
+      <Summary positions={positions} className="summary-bar"/>
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
       <div className="main-grid" style={{display:"grid",gridTemplateColumns:"1fr 310px",flex:1,minHeight:0}}>
@@ -1034,7 +1076,7 @@ function App() {
           </div>
 
           {/* Filter bar */}
-          <div style={{padding:"6px 12px",borderBottom:"1px solid #1A2535",
+          <div className="filter-bar" style={{padding:"6px 12px",borderBottom:"1px solid #1A2535",
             display:"flex",gap:"4px",alignItems:"center",flexShrink:0,background:"#0A0F1A"}}>
 
             <div style={{display:"flex",gap:"3px"}}>
@@ -1069,11 +1111,14 @@ function App() {
           </div>
 
           {/* Table header */}
-          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 68px 76px 76px 70px",gap:"4px",
-            padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
-            {[["","left"],["EMPRESA","left"],["PREÇO","right"],["INVESTIDO","right"],["VALOR","right"],["RETORNO","right"]].map(([h,a],i) => (
-              <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:a}}>{h}</div>
-            ))}
+          <div className="pos-grid" style={{padding:"5px 12px",background:"#0A0F1A",
+            borderBottom:"1px solid #0F1520",flexShrink:0}}>
+            <div style={{fontSize:"8px",color:"#4B5563"}}></div>
+            <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>EMPRESA</div>
+            <div className="col-price-hdr" style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
+            <div className="col-invested-hdr" style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
+            <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
+            <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
           </div>
 
           {/* Rows */}
@@ -1086,9 +1131,9 @@ function App() {
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: Detail (full height) ── */}
-        <div className="right-col" style={{overflowY:"auto",background:"#080C14",
-          borderLeft:"1px solid #1A2535"}}>
+        {/* ── RIGHT COLUMN: Detail (full height; overlay no mobile) ── */}
+        <div className={`right-col${selPos ? " open" : ""}`}
+          style={{overflowY:"auto",background:"#080C14",borderLeft:"1px solid #1A2535"}}>
           {selPos
             ? <Detail p={selPos}/>
             : <PortfolioOverview positions={positions} onSelect={setSel}/>
