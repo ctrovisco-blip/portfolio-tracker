@@ -32,6 +32,9 @@ jobs:
           T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
         run: python fetch_positions.py
 
+      - name: Fetch FX rates
+        run: python fetch_fx.py
+
       - name: Fetch chart data (Yahoo Finance)
         run: python fetch_chart_data.py
 

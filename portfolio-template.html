@@ -31,6 +31,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 <div id="root"></div>
 <script>
 const CHART_DATA = /*__CHART_DATA__*/;
+const FX_RATES   = /*__FX_RATES__*/;
 </script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
@@ -54,6 +55,12 @@ const SECTOR_COLORS = {
 };
 
 function pctReturn(p) { return (p.curPrice - p.avgPrice) / p.avgPrice * 100; }
+function toEur(amount, cur) { return amount * (FX_RATES[cur] ?? 1); }
+function fmtEur(v) {
+  if (Math.abs(v) >= 1e6) return "€" + (v/1e6).toFixed(2) + "M";
+  if (Math.abs(v) >= 1e3) return "€" + (v/1e3).toFixed(1) + "k";
+  return "€" + v.toFixed(0);
+}
 
 // ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
 function LogoImg({ ticker, sector, flag, size = 20 }) {
@@ -422,7 +429,7 @@ function ChartPanel({ sel, positions }) {
 
 // ─── SUMMARY BAR ─────────────────────────────────────────────────────────────
 function Summary({ positions }) {
-  const totalPpl = positions.reduce((s,p) => s + p.ppl, 0);
+  const totalPpl = positions.reduce((s,p) => s + toEur(p.ppl, p.cur), 0);
   const gainers  = positions.filter(p => p.ppl > 0).length;
   const losers   = positions.filter(p => p.ppl < 0).length;
   const best     = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
@@ -605,12 +612,14 @@ function PortfolioOverview({ positions, onSelect }) {
   const sorted   = [...positions].sort((a,b) => pctReturn(b) - pctReturn(a));
   const top3     = sorted.slice(0, 3);
   const bot3     = sorted.slice(-3).reverse();
-  const totalVal = positions.reduce((s,p) => s + p.qty * p.curPrice, 0);
+  const totalVal  = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur), 0);
+  const totalCost = positions.reduce((s,p) => s + toEur(p.qty * p.avgPrice, p.cur), 0);
+  const totalPnl  = totalVal - totalCost;
 
-  // Sector allocation
+  // Sector allocation (in EUR)
   const sectorMap = {};
   positions.forEach(p => {
-    const v = p.qty * p.curPrice;
+    const v = toEur(p.qty * p.curPrice, p.cur);
     sectorMap[p.sector] = (sectorMap[p.sector] || 0) + v;
   });
   const sectorList = Object.entries(sectorMap)
@@ -636,7 +645,7 @@ function PortfolioOverview({ positions, onSelect }) {
             {ret>=0?"+":""}{ret.toFixed(1)}%
           </div>
           <div style={{fontSize:"8px",color:ret>=0?"#238636":"#DA3633",fontVariantNumeric:"tabular-nums"}}>
-            {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
+            {p.ppl>=0?"+":""}{fmtEur(toEur(p.ppl, p.cur)).replace("€","")}€
           </div>
         </div>
       </div>
@@ -655,12 +664,13 @@ function PortfolioOverview({ positions, onSelect }) {
         <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Visão Geral</div>
         <div style={{display:"flex",gap:"6px"}}>
           {[
-            { l:"Total investido", v: positions.reduce((s,p)=>s+p.qty*p.avgPrice,0).toFixed(0)+"€" },
-            { l:"Valor actual",    v: totalVal.toFixed(0)+"€" },
-          ].map(({l,v}) => (
+            { l:"Total investido", v: fmtEur(totalCost),                                    c:"#C9D1D9" },
+            { l:"Valor actual",    v: fmtEur(totalVal),                                     c:"#C9D1D9" },
+            { l:"P&L total",       v: (totalPnl>=0?"+":"")+fmtEur(totalPnl).replace("€","")+"€", c: totalPnl>=0?"#3FB950":"#F85149" },
+          ].map(({l,v,c}) => (
             <div key={l} style={{flex:1,background:"#0A0F1A",borderRadius:"5px",padding:"6px 8px",border:"1px solid #161D2B"}}>
               <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.3px"}}>{l}</div>
-              <div style={{fontSize:"11px",fontWeight:"700",color:"#C9D1D9",fontFamily:"'Syne',sans-serif"}}>{v}</div>
+              <div style={{fontSize:"11px",fontWeight:"700",color:c,fontFamily:"'Syne',sans-serif"}}>{v}</div>
             </div>
           ))}
         </div>
