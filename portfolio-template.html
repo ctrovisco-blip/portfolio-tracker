@@ -460,34 +460,47 @@ function Summary({ positions }) {
 
 // ─── POSITION ROW ─────────────────────────────────────────────────────────────
 function PositionRow({ p, selected, onClick }) {
-  const ret      = pctReturn(p);
-  const col      = SECTOR_COLORS[p.sector] || "#6B7280";
-  const valEur   = toEur(p.qty * p.curPrice, p.cur);
-  const costEur  = toEur(p.qty * p.avgPrice, p.cur);
+  const ret     = pctReturn(p);
+  const col     = SECTOR_COLORS[p.sector] || "#6B7280";
+  const costEur = toEur(p.qty * p.avgPrice, p.cur);
+  const valEur  = toEur(p.qty * p.curPrice, p.cur);
   return (
     <div className="row cb" onClick={onClick}
-      style={{display:"grid",gridTemplateColumns:"20px 1fr 78px 62px",gap:"4px",
+      style={{display:"grid",gridTemplateColumns:"20px 1fr 68px 76px 76px 70px",gap:"4px",
         alignItems:"center",padding:"5px 12px",
         borderBottom:"1px solid #0A0F1A",
         background: selected ? "#0D1828" : "transparent",
         borderLeft: selected ? `2px solid ${col}` : "2px solid transparent",
         transition:"background 0.1s"}}>
       <LogoImg ticker={p.ticker} sector={p.sector} flag={p.flag} size={20}/>
+      {/* Empresa */}
       <div style={{minWidth:0}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#C9D1D9",
           whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-        <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>{p.ticker}</div>
+        <div style={{fontSize:"8px",color:"#374151",marginTop:"1px"}}>{p.ticker}</div>
       </div>
-      {/* Valor actual (cima) + Investido (baixo) */}
+      {/* Preço actual */}
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
+          {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
+        </div>
+        <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
+          avg {p.cur}{p.avgPrice >= 100 ? p.avgPrice.toFixed(0) : p.avgPrice.toFixed(2)}
+        </div>
+      </div>
+      {/* Total Investido */}
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",fontWeight:"500",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
+          {fmtEur(costEur)}
+        </div>
+      </div>
+      {/* Valor da Posição */}
       <div style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:"#C9D1D9",fontVariantNumeric:"tabular-nums"}}>
           {fmtEur(valEur)}
         </div>
-        <div style={{fontSize:"8px",color:"#4B5563",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
-          {fmtEur(costEur)}
-        </div>
       </div>
-      {/* Retorno % (cima) + P&L EUR (baixo) */}
+      {/* Retorno */}
       <div style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#3FB950":"#F85149",
           fontVariantNumeric:"tabular-nums"}}>
@@ -1051,18 +1064,11 @@ function App() {
           </div>
 
           {/* Table header */}
-          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 78px 62px",gap:"4px",
+          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 68px 76px 76px 70px",gap:"4px",
             padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
-            <div/>
-            <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>EMPRESA</div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>VALOR</div>
-              <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"0.4px",marginTop:"1px"}}>investido</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>RETORNO</div>
-              <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"0.4px",marginTop:"1px"}}>P&L €</div>
-            </div>
+            {[["","left"],["EMPRESA","left"],["PREÇO","right"],["INVESTIDO","right"],["VALOR","right"],["RETORNO","right"]].map(([h,a],i) => (
+              <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",textAlign:a}}>{h}</div>
+            ))}
           </div>
 
           {/* Rows */}
