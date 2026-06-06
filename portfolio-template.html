@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8"/>
@@ -7,14 +7,18 @@
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#060A12;}
-::-webkit-scrollbar{width:3px;height:3px;}
-::-webkit-scrollbar-thumb{background:#374151;}
-.cb{cursor:pointer;transition:all 0.15s;}
-.row:hover{background:#0D1520!important;}
+body{background:#060A12;font-family:'Inter',sans-serif;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:#0A0F1A;}
+::-webkit-scrollbar-thumb{background:#1F2937;border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:#374151;}
+.cb{cursor:pointer;transition:background 0.12s, color 0.12s, opacity 0.12s;}
+.row:hover{background:#0C1420!important;}
+.pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
+select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -23,69 +27,66 @@ body{background:#060A12;}
 const CHART_DATA = /*__CHART_DATA__*/;
 </script>
 <script type="text/babel">
-const { useState, useMemo, useRef, useCallback } = React;
+const { useState, useMemo, useRef } = React;
 
 const positions = /*__POSITIONS__*/;
-
 const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
 
 const SECTOR_COLORS = {
   "ETF / ETC":             "#6366F1",
-  "Tech & AI":             "#00A4EF",
-  "Healthcare":            "#10B981",
-  "Consumer Staples":      "#F59E0B",
-  "Energia":               "#F97316",
-  "Defesa & Aeroespacial": "#EF4444",
-  "REIT":                  "#A78BFA",
-  "Portuguesa":            "#34D399",
-  "Luxo & Automóvel":      "#FBBF24",
+  "Tech & AI":             "#38BDF8",
+  "Healthcare":            "#34D399",
+  "Consumer Staples":      "#FBBF24",
+  "Energia":               "#FB923C",
+  "Defesa & Aeroespacial": "#F87171",
+  "REIT":                  "#C084FC",
+  "Portuguesa":            "#4ADE80",
+  "Luxo & Automóvel":      "#FDE68A",
   "Retalho":               "#60A5FA",
   "Telecomunicações":      "#94A3B8",
   "Outro":                 "#6B7280",
 };
 
-function pctReturn(p) { return ((p.curPrice - p.avgPrice) / p.avgPrice * 100); }
+function pctReturn(p) { return (p.curPrice - p.avgPrice) / p.avgPrice * 100; }
 
-// ─── CHART ───────────────────────────────────────────────────────────────────
+// ─── LINE CHART ───────────────────────────────────────────────────────────────
 function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
 
   const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
 
-  if (!entries.length) {
-    return (
-      <div style={{height:"200px",display:"flex",alignItems:"center",justifyContent:"center",
-        color:"#4B5563",fontSize:"11px"}}>
-        Sem dados históricos disponíveis
-      </div>
-    );
-  }
+  if (!entries.length) return (
+    <div style={{height:"160px",display:"flex",alignItems:"center",justifyContent:"center",color:"#374151",fontSize:"11px"}}>
+      Sem dados históricos disponíveis
+    </div>
+  );
 
-  const W = 700, H = 200;
-  const PAD = { top:24, right:55, bottom:32, left:46 };
+  const W = 700, H = 170;
+  const PAD = { top:20, right:60, bottom:28, left:48 };
   const cW = W - PAD.left - PAD.right;
-  const cH = H - PAD.top - PAD.bottom;
+  const cH = H - PAD.top  - PAD.bottom;
 
   const values = entries.map(([,v]) => v);
   const dates  = entries.map(([d]) => d);
   const minV   = Math.min(...values, -1);
-  const maxV   = Math.max(...values, 1);
+  const maxV   = Math.max(...values,  1);
   const range  = maxV - minV || 1;
 
-  const xS = i  => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
-  const yS = v  => PAD.top  + cH - ((v - minV) / range) * cH;
-  const zeroY   = yS(0);
+  const xS = i => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
+  const yS = v => PAD.top  + cH - ((v - minV) / range) * cH;
+  const zeroY = yS(0);
 
-  const pts     = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
-  const linePath= `M${pts.join(" L")}`;
-  const areaPath= `M${xS(0).toFixed(1)},${zeroY.toFixed(1)} L${pts.join(" L")} L${xS(entries.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
+  const pts      = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
+  const linePath = `M${pts.join(" L")}`;
+  const areaPath = `M${xS(0).toFixed(1)},${zeroY.toFixed(1)} L${pts.join(" L")} L${xS(entries.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
 
-  const lastV = values[values.length - 1];
-  const isPos = lastV >= 0;
+  const lastV  = values[values.length - 1];
+  const isPos  = lastV >= 0;
   const lineCol = color || (isPos ? "#10B981" : "#EF4444");
+  const safeId  = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
 
-  // X labels — show ~6 evenly spaced
+  // X labels
   const xLabels = [];
   const step = Math.max(1, Math.floor(entries.length / 6));
   for (let i = 0; i < entries.length; i += step) {
@@ -100,25 +101,30 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
     yTicks.push({ y: yS(v), label: (v >= 0 ? "+" : "") + v.toFixed(1) + "%" });
   }
 
-  const hov = hoverIdx !== null ? hoverIdx : null;
-  // Sanitize label for use in SVG IDs (no hyphens, spaces, etc.)
-  const safeId = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
-
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const scaleX = W / rect.width;
-    const mouseX = (e.clientX - rect.left) * scaleX - PAD.left;
+    const mouseX = (e.clientX - rect.left) * (W / rect.width) - PAD.left;
     const idx = Math.round((mouseX / cW) * (entries.length - 1));
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
   };
 
+  const hov = hoverIdx;
+
+  // Last label: position to left if near right edge
+  const lastX = xS(entries.length - 1);
+  const lastY = yS(lastV);
+  const labelText = `${lastV >= 0 ? "+" : ""}${lastV.toFixed(2)}%`;
+  const labelAnchor = "end";
+  const labelOffX = -8;
+
   return (
     <div style={{position:"relative",userSelect:"none"}}>
-      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`}
+        style={{display:"block",overflow:"hidden"}}
         onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.25":"0.2"}/>
+            <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.22":"0.18"}/>
             <stop offset="100%" stopColor={lineCol} stopOpacity="0.01"/>
           </linearGradient>
           <clipPath id={`clip_${safeId}`}>
@@ -126,86 +132,81 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
           </clipPath>
         </defs>
 
-        {/* Grid lines */}
-        {yTicks.map((t,i) => (
+        {/* Zero line */}
+        <line x1={PAD.left} y1={zeroY} x2={PAD.left+cW} y2={zeroY}
+          stroke="#2D3748" strokeWidth="1" strokeDasharray="4,3"/>
+
+        {/* Grid */}
+        {yTicks.filter(t => Math.abs(t.y - zeroY) > 4).map((t,i) => (
           <line key={i} x1={PAD.left} y1={t.y} x2={PAD.left+cW} y2={t.y}
-            stroke={t.label.startsWith("+0") || t.label==="0.0%" ? "#2D3748" : "#1A2535"} strokeWidth={t.label.includes("+0.0") || t.label==="0.0%"?"1.5":"0.5"} strokeDasharray={t.label.startsWith("+0.0")||t.label==="0.0%"?"":"3,3"}/>
+            stroke="#111827" strokeWidth="0.5"/>
         ))}
 
-        {/* Area */}
+        {/* Area + Line */}
         <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
+        <path d={linePath} fill="none" stroke={lineCol} strokeWidth="1.6"
+          clipPath={`url(#clip_${safeId})`}/>
 
-        {/* Line */}
-        <path d={linePath} fill="none" stroke={lineCol} strokeWidth="1.8" clipPath={`url(#clip_${safeId})`}/>
-
-        {/* Y axis labels */}
+        {/* Y labels */}
         {yTicks.map((t,i) => (
-          <text key={i} x={PAD.left-5} y={t.y+3} textAnchor="end" fill="#4B5563" fontSize="8">{t.label}</text>
+          <text key={i} x={PAD.left-6} y={t.y+3} textAnchor="end"
+            fill="#374151" fontSize="7.5">{t.label}</text>
         ))}
 
-        {/* X axis labels */}
+        {/* X labels */}
         {xLabels.map((l,i) => (
-          <text key={i} x={l.x} y={H-6} textAnchor="middle" fill="#4B5563" fontSize="8">{l.label}</text>
+          <text key={i} x={l.x} y={H-5} textAnchor="middle"
+            fill="#374151" fontSize="7.5">{l.label}</text>
         ))}
 
-        {/* Last value dot + label */}
-        <circle cx={xS(entries.length-1)} cy={yS(lastV)} r="3.5" fill={lineCol}/>
-        <text x={xS(entries.length-1)+6} y={yS(lastV)+4} fill={lineCol} fontSize="9.5" fontWeight="bold">
-          {lastV>=0?"+":""}{lastV.toFixed(2)}%
-        </text>
+        {/* Last value dot + label (anchored to left of dot) */}
+        <circle cx={lastX} cy={lastY} r="3.5" fill={lineCol}/>
+        <text x={lastX+labelOffX} y={lastY+4} textAnchor={labelAnchor}
+          fill={lineCol} fontSize="9" fontWeight="700">{labelText}</text>
 
-        {/* Entry markers (one per buy date) */}
+        {/* Entry markers */}
         {(buyDates || []).map((bd, bi) => {
-          let entryIdx = dates.findIndex(d => d >= bd);
-          if (entryIdx < 0) entryIdx = dates.length - 1;
-          if (entryIdx < 0) return null;
-          const ex = xS(entryIdx);
-          const ey = yS(values[entryIdx]);
-          // Alternate label position to avoid overlap when entries are close
+          let idx = dates.findIndex(d => d >= bd);
+          if (idx < 0) idx = dates.length - 1;
+          if (idx < 0) return null;
+          const ex = xS(idx);
+          const ey = yS(values[idx]);
           const labelAbove = ey > PAD.top + 44;
-          const labelY = labelAbove ? ey - 30 : ey + 10;
-          const isFirst = bi === 0;
+          const labelY = labelAbove ? ey - 28 : ey + 10;
           const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-          const dateObj = new Date(bd + "T12:00:00Z");
-          const dateLabel = dateObj.getDate() + " " + months[dateObj.getMonth()];
+          const dt = new Date(bd + "T12:00:00Z");
+          const dlabel = dt.getDate() + " " + months[dt.getMonth()];
           return (
             <g key={bd}>
-              {/* Vertical dashed line */}
               <line x1={ex} y1={PAD.top} x2={ex} y2={PAD.top+cH}
-                stroke="#FBBF24" strokeWidth="1" strokeDasharray="3,2" opacity={isFirst ? 0.8 : 0.5}/>
-              {/* Diamond marker */}
-              <polygon
-                points={`${ex},${ey-5} ${ex+4},${ey} ${ex},${ey+5} ${ex-4},${ey}`}
-                fill="#FBBF24" stroke="#060A12" strokeWidth="1" opacity={isFirst ? 1 : 0.75}/>
-              {/* Label box */}
-              <rect x={ex-18} y={labelY} width="36" height="14" rx="2"
-                fill="#111827" stroke="#FBBF24" strokeWidth="0.7" opacity="0.92"/>
-              <text x={ex} y={labelY+10} textAnchor="middle" fill="#FBBF24" fontSize="7" fontWeight="600">{dateLabel}</text>
+                stroke="#FBBF24" strokeWidth="1" strokeDasharray="3,2"
+                opacity={bi===0?0.8:0.45}/>
+              <polygon points={`${ex},${ey-5} ${ex+4},${ey} ${ex},${ey+5} ${ex-4},${ey}`}
+                fill="#FBBF24" stroke="#060A12" strokeWidth="1" opacity={bi===0?1:0.7}/>
+              <rect x={ex-17} y={labelY} width="34" height="13" rx="2"
+                fill="#0D1117" stroke="#FBBF24" strokeWidth="0.6" opacity="0.93"/>
+              <text x={ex} y={labelY+9.5} textAnchor="middle"
+                fill="#FBBF24" fontSize="6.5" fontWeight="600">{dlabel}</text>
             </g>
           );
         })}
 
-        {/* Axes */}
-        <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
-        <line x1={PAD.left} y1={PAD.top+cH} x2={PAD.left+cW} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
-
-        {/* Hover */}
-        {hov !== null && (
-          <>
-            <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
-              stroke="#374151" strokeWidth="1" strokeDasharray="3,3"/>
-            <circle cx={xS(hov)} cy={yS(values[hov])} r="4" fill={lineCol} stroke="#060A12" strokeWidth="1.5"/>
-          </>
-        )}
+        {/* Hover crosshair */}
+        {hov !== null && (<>
+          <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
+            stroke="#374151" strokeWidth="1" strokeDasharray="3,3"/>
+          <circle cx={xS(hov)} cy={yS(values[hov])} r="4"
+            fill={lineCol} stroke="#060A12" strokeWidth="1.5"/>
+        </>)}
       </svg>
 
       {/* Hover tooltip */}
       {hov !== null && (
-        <div style={{position:"absolute",top:"4px",left:"50px",background:"#111827",
-          border:`1px solid ${lineCol}40`,borderRadius:"5px",padding:"6px 10px",
-          fontSize:"9px",pointerEvents:"none",zIndex:10}}>
-          <div style={{color:"#6B7280",marginBottom:"2px"}}>{dates[hov]}</div>
-          <div style={{color:lineCol,fontWeight:"700",fontSize:"12px"}}>
+        <div style={{position:"absolute",top:"4px",left:"56px",background:"#0D1117",
+          border:`1px solid ${lineCol}35`,borderRadius:"6px",padding:"5px 10px",
+          pointerEvents:"none",zIndex:10}}>
+          <div style={{color:"#4B5563",fontSize:"9px",marginBottom:"2px"}}>{dates[hov]}</div>
+          <div style={{color:lineCol,fontWeight:"700",fontSize:"13px",fontFamily:"'Syne',sans-serif"}}>
             {values[hov]>=0?"+":""}{values[hov].toFixed(2)}%
           </div>
         </div>
@@ -217,44 +218,41 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
 // ─── CHART PANEL ─────────────────────────────────────────────────────────────
 function ChartPanel({ sel, positions }) {
   const isTotal = !sel || sel === "__total__";
-  const pos = positions.find(p => p.ticker === sel);
-  const col = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
-  const isPos = pos ? pctReturn(pos) >= 0 : (CHART_DATA.portfolio[Object.keys(CHART_DATA.portfolio).pop()] || 0) >= 0;
+  const pos     = positions.find(p => p.ticker === sel);
+  const col     = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
+  const lastPortVal = CHART_DATA.portfolio[Object.keys(CHART_DATA.portfolio).pop()] || 0;
+  const isPos   = pos ? pctReturn(pos) >= 0 : lastPortVal >= 0;
   const lineCol = isTotal ? (isPos ? "#10B981" : "#EF4444") : col;
 
-  const seriesData = isTotal
-    ? CHART_DATA.portfolio
-    : (CHART_DATA.stocks[sel] || {});
-
-  const label = isTotal ? "portfolio" : (sel || "stock");
-  const lastVal = Object.values(seriesData).pop() || 0;
+  const seriesData = isTotal ? CHART_DATA.portfolio : (CHART_DATA.stocks[sel] || {});
+  const label      = isTotal ? "portfolio" : (sel || "stock");
+  const lastVal    = Object.values(seriesData).pop() || 0;
 
   return (
-    <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"0"}}>
-      {/* Chart header */}
+    <div style={{background:"#080C14",borderBottom:"1px solid #1A2535"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"10px 14px 6px",borderBottom:"1px solid #0D1520"}}>
+        padding:"10px 16px 6px"}}>
         <div>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px"}}>
             {isTotal ? "Portfolio Total" : pos?.name}
           </div>
-          <div style={{fontSize:"9px",color:"#4B5563",marginTop:"1px"}}>
-            {isTotal ? "Retorno ponderado por peso da carteira · 12 meses" : `Retorno vs preço médio de compra · ${pos?.exchange}`}
+          <div style={{fontSize:"9px",color:"#374151",marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
+            {isTotal ? "Retorno ponderado · últimos 12 meses" : `vs preço médio de compra · ${pos?.exchange}`}
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"18px",fontWeight:"800",
-            color: lastVal >= 0 ? "#10B981" : "#EF4444"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"20px",fontWeight:"800",
+            color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.5px"}}>
             {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
           </div>
           {!isTotal && pos && (
-            <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444"}}>
+            <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444",fontWeight:"500"}}>
               {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur} P&L
             </div>
           )}
         </div>
       </div>
-      <div style={{padding:"8px 10px 4px"}}>
+      <div style={{padding:"4px 10px 6px"}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
           buyDates={!isTotal ? pos?.buyDates : null}
           avgPrice={!isTotal ? pos?.avgPrice : null}
@@ -264,32 +262,32 @@ function ChartPanel({ sel, positions }) {
   );
 }
 
-// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+// ─── SUMMARY BAR ─────────────────────────────────────────────────────────────
 function Summary({ positions }) {
-  const totalPpl  = positions.reduce((s,p) => s + p.ppl, 0);
-  const gainers   = positions.filter(p => p.ppl > 0).length;
-  const losers    = positions.filter(p => p.ppl < 0).length;
-  const best      = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
-  const worst     = [...positions].sort((a,b) => pctReturn(a)-pctReturn(b))[0];
+  const totalPpl = positions.reduce((s,p) => s + p.ppl, 0);
+  const gainers  = positions.filter(p => p.ppl > 0).length;
+  const losers   = positions.filter(p => p.ppl < 0).length;
+  const best     = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
+  const worst    = [...positions].sort((a,b) => pctReturn(a)-pctReturn(b))[0];
 
-  const cards = [
-    { l:"Posições",   v:positions.length,  s:"total",               c:"#6B7280" },
-    { l:"P&L Total",  v:(totalPpl>=0?"+":"")+totalPpl.toFixed(2)+"€*", s:"multicurrency", c:totalPpl>=0?"#10B981":"#EF4444" },
-    { l:"Em Ganho",   v:gainers,            s:"positivas",           c:"#10B981" },
-    { l:"Em Perda",   v:losers,             s:"negativas",           c:"#EF4444" },
-    { l:"Melhor",     v:best.ticker,        s:"+"+(pctReturn(best)).toFixed(1)+"%", c:"#10B981" },
-    { l:"Pior",       v:worst.ticker,       s:(pctReturn(worst)).toFixed(1)+"%",   c:"#EF4444" },
-  ];
+  const Stat = ({label, value, sub, color, border}) => (
+    <div style={{display:"flex",flexDirection:"column",justifyContent:"center",
+      padding:"0 16px",borderRight:`1px solid ${border||"#1A2535"}`,minWidth:0}}>
+      <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.8px",marginBottom:"2px",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",color:color||"#F9FAFB",whiteSpace:"nowrap",lineHeight:1.1}}>{value}</div>
+      {sub && <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",whiteSpace:"nowrap"}}>{sub}</div>}
+    </div>
+  );
 
   return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"6px",padding:"10px 12px",background:"#080C14",borderBottom:"1px solid #1F2937"}}>
-      {cards.map((c,i)=>(
-        <div key={i} style={{background:"#0D1117",border:`1px solid ${c.c}25`,borderTop:`2px solid ${c.c}`,borderRadius:"5px",padding:"8px 10px"}}>
-          <div style={{fontSize:"8px",color:"#6B7280",letterSpacing:"1px",marginBottom:"3px"}}>{c.l}</div>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:c.c}}>{c.v}</div>
-          <div style={{fontSize:"8px",color:"#2D3748",marginTop:"1px"}}>{c.s}</div>
-        </div>
-      ))}
+    <div style={{display:"flex",alignItems:"stretch",background:"#080C14",
+      borderBottom:"1px solid #1A2535",height:"52px",overflowX:"auto"}}>
+      <Stat label="POSIÇÕES"  value={positions.length}    sub="em carteira"   color="#9CA3AF"/>
+      <Stat label="P&L TOTAL" value={(totalPpl>=0?"+":"")+totalPpl.toFixed(0)+"€"} sub="aprox. multicurrency" color={totalPpl>=0?"#10B981":"#EF4444"}/>
+      <Stat label="EM GANHO"  value={gainers}             sub={`${((gainers/positions.length)*100).toFixed(0)}% das posições`} color="#10B981"/>
+      <Stat label="EM PERDA"  value={losers}              sub={`${((losers/positions.length)*100).toFixed(0)}% das posições`}  color="#EF4444"/>
+      <Stat label="MELHOR"    value={best.ticker}         sub={`+${pctReturn(best).toFixed(1)}%`} color="#10B981"/>
+      <Stat label="PIOR"      value={worst.ticker}        sub={`${pctReturn(worst).toFixed(1)}%`} color="#EF4444" border="transparent"/>
     </div>
   );
 }
@@ -300,37 +298,37 @@ function PositionRow({ p, selected, onClick }) {
   const col = SECTOR_COLORS[p.sector] || "#6B7280";
   return (
     <div className="row cb" onClick={onClick}
-      style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",alignItems:"center",
-        padding:"7px 10px",borderBottom:"1px solid #0A0F1A",
-        background: selected ? "#0F1824" : "transparent",
-        borderLeft: selected ? `3px solid ${col}` : "3px solid transparent"}}>
-      <span style={{fontSize:"12px"}}>{p.flag}</span>
-      <div>
-        <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#D1D5DB",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-        <div style={{fontSize:"8px",color:"#374151"}}>{p.ticker}</div>
+      style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
+        alignItems:"center",padding:"7px 12px",
+        borderBottom:"1px solid #0A0F1A",
+        background: selected ? "#0D1828" : "transparent",
+        borderLeft: selected ? `2px solid ${col}` : "2px solid transparent",
+        transition:"background 0.1s"}}>
+      <span style={{fontSize:"13px"}}>{p.flag}</span>
+      <div style={{minWidth:0}}>
+        <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#C9D1D9",
+          whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+        <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>{p.ticker}</div>
       </div>
       <div style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",color:"#D1D5DB"}}>{p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}</div>
+        <div style={{fontSize:"10px",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
+          {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
+        </div>
       </div>
       <div style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#10B981":"#EF4444"}}>
+        <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#3FB950":"#F85149",
+          fontVariantNumeric:"tabular-nums"}}>
           {ret>=0?"+":""}{ret.toFixed(1)}%
         </div>
-        <div style={{fontSize:"8px",color:ret>=0?"#10B981":"#EF4444"}}>
+        <div style={{fontSize:"8px",color:ret>=0?"#238636":"#DA3633",fontVariantNumeric:"tabular-nums"}}>
           {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
         </div>
-      </div>
-      <div style={{textAlign:"center"}}>
-        <span style={{fontSize:"7px",padding:"2px 4px",borderRadius:"3px",background:`${col}20`,color:col,
-          display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-          {p.sector.split(" ")[0]}
-        </span>
       </div>
     </div>
   );
 }
 
-// ─── DETAIL ──────────────────────────────────────────────────────────────────
+// ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
 function Detail({ p }) {
   const ret = pctReturn(p);
   const col = SECTOR_COLORS[p.sector] || "#6B7280";
@@ -342,99 +340,102 @@ function Detail({ p }) {
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
   const fmtStr = (v) => v == null ? "—" : String(v);
 
-  const yieldCol  = (v) => v == null ? "#6B7280" : v >= 5 ? "#10B981" : v >= 2 ? "#D1D5DB" : "#9CA3AF";
-  const peCol     = (v) => v == null ? "#6B7280" : v < 0 ? "#EF4444" : v < 15 ? "#10B981" : v < 25 ? "#D1D5DB" : v < 40 ? "#F59E0B" : "#EF4444";
-  const cagrCol   = (v) => v == null ? "#6B7280" : v > 10 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
-  const payoutCol = (v) => v == null ? "#6B7280" : v < 50 ? "#10B981" : v < 80 ? "#F59E0B" : "#EF4444";
-  const marginCol = (v) => v == null ? "#6B7280" : v > 50 ? "#10B981" : v > 25 ? "#D1D5DB" : "#F59E0B";
-  const fcfCol    = (v) => v == null ? "#6B7280" : v > 15 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
+  const yieldCol  = v => v==null?"#4B5563":v>=5?"#3FB950":v>=2?"#C9D1D9":"#6B7280";
+  const peCol     = v => v==null?"#4B5563":v<0?"#F85149":v<15?"#3FB950":v<25?"#C9D1D9":v<40?"#F0883E":"#F85149";
+  const cagrCol   = v => v==null?"#4B5563":v>10?"#3FB950":v>0?"#C9D1D9":"#F85149";
+  const payoutCol = v => v==null?"#4B5563":v<50?"#3FB950":v<80?"#F0883E":"#F85149";
+  const marginCol = v => v==null?"#4B5563":v>50?"#3FB950":v>25?"#C9D1D9":"#F0883E";
+  const fcfCol    = v => v==null?"#4B5563":v>15?"#3FB950":v>0?"#C9D1D9":"#F85149";
 
   const Card = ({label, value, color}) => (
-    <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"6px 8px",border:"1px solid #1A2535"}}>
-      <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.4px"}}>{label}</div>
-      <div style={{fontSize:"11px",color:color||"#D1D5DB",fontWeight:"600"}}>{value}</div>
+    <div style={{background:"#0A0F1A",borderRadius:"5px",padding:"7px 9px",border:"1px solid #161D2B"}}>
+      <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:"11px",color:color||"#C9D1D9",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
     </div>
   );
 
   const Section = ({title}) => (
-    <div style={{fontSize:"7px",color:"#374151",letterSpacing:"1.5px",margin:"8px 0 4px 2px"}}>{title}</div>
+    <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
   );
 
   return (
-    <div style={{padding:"10px"}}>
+    <div style={{padding:"12px"}}>
       {/* Header */}
-      <div style={{borderLeft:`3px solid ${col}`,paddingLeft:"10px",marginBottom:"10px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div>
-            <div style={{fontSize:"8px",color:"#6B7280"}}>{p.exchange} · {p.ticker}</div>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:"#F9FAFB"}}>{p.name}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"16px",fontWeight:"800",color:col}}>{p.cur}{p.curPrice.toFixed(2)}</div>
-            <div style={{fontSize:"10px",color:ret>=0?"#10B981":"#EF4444",fontWeight:"600"}}>{ret>=0?"+":""}{ret.toFixed(2)}% | {p.ppl>=0?"+":""}{p.ppl.toFixed(2)}{p.cur}</div>
-          </div>
+      <div style={{borderLeft:`3px solid ${col}`,paddingLeft:"10px",marginBottom:"12px"}}>
+        <div style={{fontSize:"8px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.3px"}}>
+          {p.exchange} · <span style={{color:col}}>{p.ticker}</span>
+        </div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",color:"#F0F6FC",letterSpacing:"-0.3px"}}>{p.name}</div>
+        <div style={{display:"flex",gap:"12px",marginTop:"4px",alignItems:"baseline"}}>
+          <span style={{fontFamily:"'Syne',sans-serif",fontSize:"17px",fontWeight:"800",color:col}}>{p.cur}{p.curPrice.toFixed(2)}</span>
+          <span style={{fontSize:"11px",color:ret>=0?"#3FB950":"#F85149",fontWeight:"600"}}>
+            {ret>=0?"+":""}{ret.toFixed(2)}%
+          </span>
+          <span style={{fontSize:"10px",color:ret>=0?"#238636":"#DA3633"}}>
+            {p.ppl>=0?"+":""}{p.ppl.toFixed(2)}{p.cur}
+          </span>
         </div>
       </div>
 
       {/* Position */}
-      <Section title="POSIÇÃO"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-        <Card label="Preço Atual"   value={`${p.cur}${p.curPrice.toFixed(2)}`} color={col}/>
-        <Card label="Preço Médio"   value={`${p.cur}${p.avgPrice.toFixed(2)}`} color="#9CA3AF"/>
-        <Card label="Quantidade"    value={p.qty.toFixed(4)} color="#D1D5DB"/>
-        <Card label="Valor Posição" value={`${p.cur}${posValue.toFixed(2)}`} color="#D1D5DB"/>
-        <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`} color="#6B7280"/>
-        <Card label="Setor"         value={p.sector} color={col}/>
+      <Section title="Posição"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+        <Card label="Preço Atual"   value={`${p.cur}${p.curPrice.toFixed(2)}`}  color={col}/>
+        <Card label="Preço Médio"   value={`${p.cur}${p.avgPrice.toFixed(2)}`}  color="#8B949E"/>
+        <Card label="Valor Posição" value={`${p.cur}${posValue.toFixed(2)}`}    color="#C9D1D9"/>
+        <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`}   color="#6B7280"/>
+        <Card label="Quantidade"    value={p.qty.toFixed(4)}                    color="#6B7280"/>
+        <Card label="Setor"         value={p.sector}                            color={col}/>
       </div>
 
       {/* Fundamentals */}
       {f ? (<>
-        <Section title="AVALIAÇÃO"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"5px"}}>
-          <Card label="Market Cap"   value={fmtStr(f.marketCap)}    color="#D1D5DB"/>
-          <Card label="Total Debt"   value={fmtStr(f.totalDebt)}    color={f.totalDebt ? "#F59E0B" : "#6B7280"}/>
-          <Card label="P/E Ratio"    value={fmtNum(f.pe)}           color={peCol(f.pe)}/>
+        <Section title="Avaliação"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
+          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#C9D1D9"/>
+          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#4B5563"}/>
+          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
         </div>
 
-        <Section title="MARGENS"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+        <Section title="Margens"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
           <Card label="Gross Margin"  value={fmtPct(f.grossMargin)} color={marginCol(f.grossMargin)}/>
           <Card label="FCF / Revenue" value={fmtPct(f.fcfRatio)}    color={fcfCol(f.fcfRatio)}/>
         </div>
 
-        <Section title="RETORNO AO ACIONISTA"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-          <Card label="Dividend Yield"     value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
-          <Card label="Buyback Yield"      value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
-          <Card label="Shareholder Yield"  value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
-          <Card label="Payout Ratio"       value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
+        <Section title="Retorno ao Acionista"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
+          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
+          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
+          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
         </div>
 
-        <Section title="CRESCIMENTO DO DIVIDENDO"/>
-        <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"8px 10px",border:"1px solid #1A2535",
+        <Section title="Crescimento do Dividendo"/>
+        <div style={{background:"#0A0F1A",borderRadius:"5px",padding:"9px 11px",border:"1px solid #161D2B",
           display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:"7px",color:"#4B5563"}}>Div CAGR · 5 anos</div>
-          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-            <div style={{fontSize:"14px",color:cagrCol(f.divCagr5y),fontWeight:"700"}}>
-              {f.divCagr5y != null ? `${f.divCagr5y > 0 ? "+" : ""}${f.divCagr5y.toFixed(1)}%` : "—"}
+          <div style={{fontSize:"7px",color:"#4B5563",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
+          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+            <div style={{fontSize:"15px",color:cagrCol(f.divCagr5y),fontWeight:"700",fontFamily:"'Syne',sans-serif"}}>
+              {f.divCagr5y != null ? `${f.divCagr5y>0?"+":""}${f.divCagr5y.toFixed(1)}%` : "—"}
             </div>
             {f.divCagr5y != null && (
-              <div style={{position:"relative",width:"64px",height:"5px",borderRadius:"3px",background:"#1A2535"}}>
+              <div style={{position:"relative",width:"60px",height:"4px",borderRadius:"2px",background:"#161D2B"}}>
+                <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#30363D"}}/>
                 <div style={{
-                  position:"absolute",height:"100%",borderRadius:"3px",
-                  width:`${Math.min(100, Math.abs(f.divCagr5y) * 2.5)}%`,
+                  position:"absolute",height:"100%",borderRadius:"2px",
                   background:cagrCol(f.divCagr5y),
-                  left: f.divCagr5y >= 0 ? "50%" : `${Math.max(0, 50 - Math.min(50, Math.abs(f.divCagr5y)*1.25))}%`,
-                  transform: f.divCagr5y >= 0 ? "none" : "none"
+                  left:  f.divCagr5y>=0 ? "50%" : `${Math.max(0,50-Math.min(50,Math.abs(f.divCagr5y)*1.5))}%`,
+                  width: `${Math.min(50,Math.abs(f.divCagr5y)*1.5)}%`,
                 }}/>
-                <div style={{position:"absolute",left:"50%",top:"-1px",width:"1px",height:"7px",background:"#374151"}}/>
               </div>
             )}
           </div>
         </div>
       </>) : (
-        <div style={{textAlign:"center",padding:"16px 0",color:"#374151",fontSize:"9px"}}>
-          Dados fundamentais não disponíveis para este instrumento
+        <div style={{marginTop:"16px",padding:"16px",background:"#0A0F1A",borderRadius:"5px",
+          border:"1px solid #161D2B",textAlign:"center",color:"#374151",fontSize:"9px"}}>
+          Dados fundamentais não disponíveis
         </div>
       )}
     </div>
@@ -443,119 +444,144 @@ function Detail({ p }) {
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
-  const [sel, setSel]     = useState(null);
+  const [sel, setSel]       = useState(null);
   const [filter, setFilter] = useState("all");
-  const [sort, setSort]   = useState("ppl");
+  const [sector, setSector] = useState("all");
+  const [sort, setSort]     = useState("ppl");
 
-  const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))], []);
+  const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))].sort(), []);
 
   const filtered = useMemo(() => {
     let list = [...positions];
-    if (filter === "ganhos")  list = list.filter(p => p.ppl > 0);
+    if (filter === "ganhos") list = list.filter(p => p.ppl > 0);
     else if (filter === "perdas") list = list.filter(p => p.ppl < 0);
-    else if (sectors.includes(filter)) list = list.filter(p => p.sector === filter);
+    if (sector !== "all") list = list.filter(p => p.sector === sector);
     if (sort === "ppl")   list.sort((a,b) => b.ppl - a.ppl);
     if (sort === "pct")   list.sort((a,b) => pctReturn(b) - pctReturn(a));
-    if (sort === "value") list.sort((a,b) => (b.qty*b.curPrice)-(a.qty*a.curPrice));
+    if (sort === "value") list.sort((a,b) => (b.qty*b.curPrice) - (a.qty*a.curPrice));
     if (sort === "name")  list.sort((a,b) => a.name.localeCompare(b.name));
     return list;
-  }, [filter, sort]);
+  }, [filter, sector, sort]);
 
   const selPos = sel ? positions.find(p => p.ticker === sel) : null;
 
-  const filterBtns = [
-    {k:"all",    l:"Todas"},
-    {k:"ganhos", l:"✅ Ganhos"},
-    {k:"perdas", l:"❌ Perdas"},
-    ...sectors.map(s=>({k:s,l:s})),
-  ];
+  const pillStyle = (active) => ({
+    padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"500",
+    border: active ? "1px solid #30363D" : "1px solid transparent",
+    background: active ? "#161D2B" : "transparent",
+    color: active ? "#C9D1D9" : "#4B5563",
+    cursor:"pointer",transition:"all 0.12s",whiteSpace:"nowrap",
+  });
 
   return (
-    <div style={{background:"#060A12",minHeight:"100vh",fontFamily:"'Courier New',monospace",color:"#D1D5DB",fontSize:"11px"}}>
+    <div style={{background:"#060A12",height:"100vh",display:"flex",flexDirection:"column",
+      fontFamily:"'Inter',sans-serif",color:"#C9D1D9",fontSize:"11px",overflow:"hidden"}}>
 
-      {/* Header */}
-      <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"10px 14px",
-        display:"flex",alignItems:"center",gap:"8px"}}>
-        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",color:"#F9FAFB"}}>Portfolio Tracker</span>
-        <span style={{flex:1,height:"1px",background:"#1F2937"}}/>
-        <span style={{fontSize:"8px",color:"#4B5563",letterSpacing:"2px"}}>TRADING212 · LIVE · {positions.length} POSIÇÕES · __UPDATED__</span>
+      {/* ── Header ── */}
+      <div style={{background:"#0D1117",borderBottom:"1px solid #1A2535",padding:"0 16px",
+        display:"flex",alignItems:"center",gap:"10px",height:"42px",flexShrink:0}}>
+        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",
+          color:"#F0F6FC",letterSpacing:"-0.3px"}}>Portfolio Tracker</span>
+        <div style={{width:"1px",height:"16px",background:"#1A2535"}}/>
+        <span style={{fontSize:"8px",color:"#374151",letterSpacing:"1.5px"}}>
+          TRADING212 · LIVE · {positions.length} POSIÇÕES
+        </span>
+        <div style={{flex:1}}/>
+        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>__UPDATED__</span>
         {sel && (
           <button className="cb" onClick={()=>setSel(null)}
-            style={{fontSize:"8px",color:"#6B7280",background:"#111827",border:"1px solid #1F2937",
-              borderRadius:"4px",padding:"3px 8px"}}>
-            ← Portfolio Total
+            style={{fontSize:"9px",color:"#8B949E",background:"#161D2B",
+              border:"1px solid #30363D",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
+            ← Portfolio
           </button>
         )}
       </div>
 
-      {/* Summary */}
+      {/* ── Summary bar ── */}
       <Summary positions={positions}/>
 
-      {/* Chart */}
+      {/* ── Chart ── */}
       <ChartPanel sel={sel} positions={positions}/>
 
-      {/* Main layout */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",height:"calc(100vh - 370px)"}}>
+      {/* ── Bottom: list + detail ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 272px",flex:1,minHeight:0}}>
 
-        {/* Left: list */}
-        <div style={{borderRight:"1px solid #1F2937",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* List column */}
+        <div style={{borderRight:"1px solid #1A2535",display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
-          {/* Filters */}
-          <div style={{padding:"6px 10px",borderBottom:"1px solid #1F2937",display:"flex",gap:"3px",flexWrap:"wrap",
-            alignItems:"center",flexShrink:0}}>
-            <div style={{display:"flex",gap:"2px",flexWrap:"wrap",flex:1}}>
-              {filterBtns.map(b=>(
-                <button key={b.k} className="cb" onClick={()=>setFilter(b.k)}
-                  style={{padding:"2px 6px",fontSize:"8px",borderRadius:"3px",border:"none",
-                    background:filter===b.k?"#1F2937":"transparent",
-                    color:filter===b.k?"#F9FAFB":"#6B7280"}}>
-                  {b.l}
-                </button>
+          {/* Filter bar */}
+          <div style={{padding:"6px 12px",borderBottom:"1px solid #1A2535",
+            display:"flex",gap:"4px",alignItems:"center",flexShrink:0,background:"#0A0F1A"}}>
+
+            {/* Todas / Ganhos / Perdas */}
+            <div style={{display:"flex",gap:"3px"}}>
+              {[["all","Todas"],["ganhos","✦ Ganhos"],["perdas","✦ Perdas"]].map(([k,l]) => (
+                <button key={k} className="cb" style={pillStyle(filter===k)}
+                  onClick={() => setFilter(k)}>{l}</button>
               ))}
             </div>
-            <div style={{display:"flex",gap:"2px",alignItems:"center",flexShrink:0}}>
-              <span style={{fontSize:"8px",color:"#374151"}}>sort:</span>
-              {[["ppl","P&L€"],["pct","P&L%"],["value","Val"],["name","A-Z"]].map(([k,l])=>(
-                <button key={k} className="cb" onClick={()=>setSort(k)}
-                  style={{padding:"2px 5px",fontSize:"8px",borderRadius:"3px",border:"none",
-                    background:sort===k?"#1F2937":"transparent",
-                    color:sort===k?"#F9FAFB":"#6B7280"}}>
-                  {l}
-                </button>
+
+            <div style={{width:"1px",height:"14px",background:"#1A2535",margin:"0 2px"}}/>
+
+            {/* Sector dropdown */}
+            <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+              <select value={sector} onChange={e=>setSector(e.target.value)}
+                style={{background:"#0A0F1A",border:"1px solid #1A2535",borderRadius:"20px",
+                  color:sector!=="all"?"#C9D1D9":"#4B5563",fontSize:"10px",fontWeight:"500",
+                  padding:"3px 22px 3px 10px",fontFamily:"'Inter',sans-serif",outline:"none"}}>
+                <option value="all">Sector</option>
+                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <span style={{position:"absolute",right:"8px",color:"#4B5563",fontSize:"8px",pointerEvents:"none"}}>▾</span>
+            </div>
+
+            <div style={{flex:1}}/>
+
+            {/* Sort */}
+            <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
+              <span style={{fontSize:"8px",color:"#30363D",marginRight:"2px"}}>ordenar</span>
+              {[["ppl","P&L€"],["pct","P&L%"],["value","Valor"],["name","A-Z"]].map(([k,l]) => (
+                <button key={k} className="cb" style={pillStyle(sort===k)}
+                  onClick={() => setSort(k)}>{l}</button>
               ))}
             </div>
           </div>
 
           {/* Table header */}
-          <div style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",
-            padding:"5px 10px",background:"#080C14",flexShrink:0}}>
-            {["","Empresa","Preço","Retorno","Setor"].map((h,i)=>(
-              <div key={i} style={{fontSize:"8px",color:"#2D3748",textAlign:i>=2?"right":"left",
-                ...(i===4?{textAlign:"center"}:{})}}>{h}</div>
+          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
+            padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
+            {["","Empresa","Preço","Retorno"].map((h,i) => (
+              <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",
+                textAlign:i>=2?"right":"left"}}>{h.toUpperCase()}</div>
             ))}
           </div>
 
           {/* Rows */}
           <div style={{overflowY:"auto",flex:1}}>
-            {filtered.map(p=>(
+            {filtered.map(p => (
               <PositionRow key={p.ticker} p={p}
                 selected={sel===p.ticker}
-                onClick={()=>setSel(sel===p.ticker ? null : p.ticker)}/>
+                onClick={() => setSel(sel===p.ticker ? null : p.ticker)}/>
             ))}
-            <div style={{padding:"6px 10px",fontSize:"8px",color:"#1F2937"}}>
-              * P&L em moeda local (€/$/ pence) — sem conversão cambial
+            <div style={{padding:"8px 12px",fontSize:"8px",color:"#21262D",fontStyle:"italic"}}>
+              * P&L em moeda local — sem conversão cambial
             </div>
           </div>
         </div>
 
-        {/* Right: detail */}
-        <div style={{overflowY:"auto",background:"#06090F"}}>
+        {/* Detail column */}
+        <div style={{overflowY:"auto",background:"#080C14"}}>
           {selPos
             ? <Detail p={selPos}/>
             : (
-              <div style={{padding:"20px 14px",color:"#2D3748",fontSize:"10px",textAlign:"center",marginTop:"30px"}}>
-                <div style={{fontSize:"24px",marginBottom:"8px"}}>👆</div>
-                Clica numa posição<br/>para ver o detalhe
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",height:"100%",gap:"8px",color:"#21262D"}}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#21262D" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                </svg>
+                <div style={{fontSize:"10px",textAlign:"center",lineHeight:1.6}}>
+                  Selecciona uma posição<br/>para ver detalhes
+                </div>
               </div>
             )
           }
