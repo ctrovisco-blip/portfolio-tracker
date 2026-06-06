@@ -62,8 +62,8 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
     </div>
   );
 
-  const W = 700, H = 170;
-  const PAD = { top:20, right:60, bottom:28, left:48 };
+  const W = 700, H = 140;
+  const PAD = { top:16, right:58, bottom:26, left:48 };
   const cW = W - PAD.left - PAD.right;
   const cH = H - PAD.top  - PAD.bottom;
 
@@ -231,7 +231,7 @@ function ChartPanel({ sel, positions }) {
   return (
     <div style={{background:"#080C14",borderBottom:"1px solid #1A2535"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"10px 16px 6px"}}>
+        padding:"8px 14px 4px"}}>
         <div>
           <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px"}}>
             {isTotal ? "Portfolio Total" : pos?.name}
@@ -241,8 +241,8 @@ function ChartPanel({ sel, positions }) {
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"20px",fontWeight:"800",
-            color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.5px"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",
+            color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.3px"}}>
             {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
           </div>
           {!isTotal && pos && (
@@ -252,7 +252,7 @@ function ChartPanel({ sel, positions }) {
           )}
         </div>
       </div>
-      <div style={{padding:"4px 10px 6px"}}>
+      <div style={{padding:"2px 10px 4px"}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
           buyDates={!isTotal ? pos?.buyDates : null}
           avgPrice={!isTotal ? pos?.avgPrice : null}
@@ -487,7 +487,7 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
-        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>2026-06-06 15:08 UTC</span>
+        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>2026-06-06 15:17 UTC</span>
         {sel && (
           <button className="cb" onClick={()=>setSel(null)}
             style={{fontSize:"9px",color:"#8B949E",background:"#161D2B",
