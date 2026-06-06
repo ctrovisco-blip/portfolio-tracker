@@ -532,6 +532,8 @@ function Detail({ p }) {
   const payoutCol = v => v==null?"#4B5563":v<50?"#3FB950":v<80?"#F0883E":"#F85149";
   const marginCol = v => v==null?"#4B5563":v>50?"#3FB950":v>25?"#C9D1D9":"#F0883E";
   const fcfCol    = v => v==null?"#4B5563":v>15?"#3FB950":v>0?"#C9D1D9":"#F85149";
+  const roeCol    = v => v==null?"#4B5563":v>20?"#3FB950":v>10?"#C9D1D9":v>0?"#F0883E":"#F85149";
+  const growthCol = v => v==null?"#4B5563":v>15?"#3FB950":v>5?"#C9D1D9":v>0?"#F0883E":"#F85149";
 
   const Card = ({label, value, color}) => (
     <div style={{background:"#0A0F1A",borderRadius:"5px",padding:"7px 9px",border:"1px solid #161D2B"}}>
@@ -583,10 +585,15 @@ function Detail({ p }) {
           <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
         </div>
 
-        <Section title="Margens"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-          <Card label="Gross Margin"  value={fmtPct(f.grossMargin)} color={marginCol(f.grossMargin)}/>
-          <Card label="FCF Yield"     value={fmtPct(f.fcfYield)}    color={fcfCol(f.fcfYield)}/>
+        <Section title="Rentabilidade"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
+          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)}/>
+          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}/>
+          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
+          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}/>
+          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)}/>
         </div>
 
         <Section title="Retorno ao Acionista"/>

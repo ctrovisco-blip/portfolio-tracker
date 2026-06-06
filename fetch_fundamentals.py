@@ -86,17 +86,36 @@ for p in positions:
         rev = info.get("totalRevenue")
         bb = buyback_yield(t, mkt_cap)
         sh = sr((div_yield or 0)+(bb or 0)) if (div_yield or bb) else None
+        # Revenue Growth YoY: comparar últimos dois anos de receita via financials
+        rev_growth = None
+        try:
+            fin = t.financials
+            if fin is not None and not fin.empty:
+                rev_rows = [r for r in fin.index if "Revenue" in str(r) or "revenue" in str(r)]
+                if rev_rows:
+                    row = fin.loc[rev_rows[0]]
+                    cols = [c for c in row.index if row[c] and str(row[c]) != "nan"]
+                    if len(cols) >= 2:
+                        r1, r0 = float(row[cols[0]]), float(row[cols[1]])
+                        if r0 and r0 > 0:
+                            rev_growth = round((r1/r0 - 1)*100, 2)
+        except Exception:
+            pass
+
         results[ticker] = {
             "marketCap":        fmt_large(mkt_cap),
             "totalDebt":        fmt_large(info.get("totalDebt")),
             "grossMargin":      pct_dec(info.get("grossMargins")),
+            "netMargin":        pct_dec(info.get("profitMargins")),
             "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
+            "roe":              pct_dec(info.get("returnOnEquity")),
             "divYield":         div_yield,
             "buybackYield":     bb,
             "shareholderYield": sh,
             "payoutRatio":      pct_dec(info.get("payoutRatio")),
             "fcfYield":         sr(fcf/mkt_cap*100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "divCagr5y":        div_cagr_5y(t),
+            "revenueGrowth":    rev_growth,
         }
         print(f"  PE={results[ticker][chr(112)+chr(101)]} div={results[ticker][chr(100)+chr(105)+chr(118)+chr(89)+chr(105)+chr(101)+chr(108)+chr(100)]}%")
     except Exception as e:
