@@ -64,14 +64,14 @@ function fmtEur(v) {
 }
 
 // ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
-// Logos que o Parqet não tem por símbolo — fontes alternativas confirmadas
+// Logos que o Parqet não tem pelo ticker simples — usar símbolo com sufixo de bolsa
 const LOGO_OVERRIDE = {
-  RHM:  "https://assets.parqet.com/logos/isin/DE0007030009?format=svg",
-  SRP:  "https://assets.parqet.com/logos/isin/GB0007973794?format=svg",
-  NOS:  "https://www.google.com/s2/favicons?domain=nos.pt&sz=64",
-  GALP: "https://www.google.com/s2/favicons?domain=galp.com&sz=64",
-  CSG:  "https://www.google.com/s2/favicons?domain=czechoslovakgroup.com&sz=64",
-  EGL:  "https://www.google.com/s2/favicons?domain=mota-engil.com&sz=64",
+  RHM:  "https://assets.parqet.com/logos/symbol/RHM.DE?format=svg",
+  EGL:  "https://assets.parqet.com/logos/symbol/EGL.LS?format=svg",
+  NOS:  "https://assets.parqet.com/logos/symbol/NOS.LS?format=svg",
+  GALP: "https://assets.parqet.com/logos/symbol/GALP.LS?format=svg",
+  SRP:  "https://assets.parqet.com/logos/symbol/SRP.L?format=svg",
+  CSG:  "https://assets.parqet.com/logos/symbol/CSG.F?format=svg",
 };
 
 function LogoImg({ ticker, sector, flag, size = 20 }) {
