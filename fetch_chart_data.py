@@ -75,7 +75,31 @@ for ticker, d in chart_data.items():
     stock_series[ticker] = dict(items)
 
 ptrim = dict(sorted(portfolio_series.items())[-252:])
+
+# ── Benchmark indices (normalised to % from first available price) ──────────
+INDEXES = {
+    "SP500":   "^GSPC",
+    "FTSE100": "^FTSE",
+    "DAX":     "^GDAXI",
+    "NASDAQ":  "^IXIC",
+}
+index_series = {}
+print("Fetching benchmark indices...")
+for name, sym in INDEXES.items():
+    print(f"  {name} ({sym})...")
+    raw = fetch_yf(sym)
+    if not raw:
+        index_series[name] = {}
+        continue
+    items = sorted(raw.items())[-252:]
+    base = items[0][1]
+    if base and base > 0:
+        index_series[name] = {d: round((v/base - 1)*100, 4) for d, v in items}
+    else:
+        index_series[name] = {}
+    time.sleep(0.3)
+
 os.makedirs("data", exist_ok=True)
 with open("data/chart_data.json", "w") as f:
-    json.dump({"portfolio": ptrim, "stocks": stock_series}, f)
-print(f"Done! Portfolio: {len(ptrim)} days")
+    json.dump({"portfolio": ptrim, "stocks": stock_series, "indexes": index_series}, f)
+print(f"Done! Portfolio: {len(ptrim)} days, Indexes: {list(index_series.keys())}")

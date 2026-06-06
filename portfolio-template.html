@@ -78,7 +78,7 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
 }
 
 // ─── LINE CHART ───────────────────────────────────────────────────────────────
-function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
+function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays=[] }) {
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
 
@@ -97,8 +97,12 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
 
   const values = entries.map(([,v]) => v);
   const dates  = entries.map(([d]) => d);
-  const minV   = Math.min(...values, -1);
-  const maxV   = Math.max(...values,  1);
+
+  // Include overlay values in min/max so they don't clip
+  const allVals = [...values];
+  overlays.forEach(ov => { if(ov.entries) allVals.push(...ov.entries.map(([,v])=>v)); });
+  const minV   = Math.min(...allVals, -1);
+  const maxV   = Math.max(...allVals,  1);
   const range  = maxV - minV || 1;
 
   const xS = i => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
@@ -170,6 +174,30 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
           <line key={i} x1={PAD.left} y1={t.y} x2={PAD.left+cW} y2={t.y}
             stroke="#111827" strokeWidth="0.5"/>
         ))}
+
+        {/* Overlay index lines */}
+        {overlays.map(ov => {
+          if (!ov.entries || !ov.entries.length) return null;
+          const oPts = ov.entries.map(([,v],i) => {
+            const xi = PAD.left + (i / Math.max(ov.entries.length-1,1)) * cW;
+            const yi = PAD.top + cH - ((v - minV) / range) * cH;
+            return `${xi.toFixed(1)},${yi.toFixed(1)}`;
+          });
+          const lastOv = ov.entries[ov.entries.length-1][1];
+          const lastOvX = PAD.left + cW;
+          const lastOvY = PAD.top + cH - ((lastOv - minV) / range) * cH;
+          return (
+            <g key={ov.label}>
+              <polyline points={oPts.join(" ")} fill="none" stroke={ov.color}
+                strokeWidth="1.2" strokeDasharray="5,3" opacity="0.7"
+                clipPath={`url(#clip_${safeId})`}/>
+              <text x={lastOvX+4} y={lastOvY+3.5} fill={ov.color} fontSize="7" fontWeight="600"
+                textAnchor="start">{ov.label}</text>
+              <text x={lastOvX+4} y={lastOvY+12} fill={ov.color} fontSize="6.5" opacity="0.8"
+                textAnchor="start">{lastOv>=0?"+":""}{lastOv.toFixed(1)}%</text>
+            </g>
+          );
+        })}
 
         {/* Area + Line */}
         <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
@@ -254,7 +282,17 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
 }
 
 // ─── CHART PANEL ─────────────────────────────────────────────────────────────
+const IDX_META = {
+  SP500:   { label:"S&P 500", color:"#818CF8" },
+  FTSE100: { label:"FTSE",    color:"#F59E0B" },
+  DAX:     { label:"DAX",     color:"#EC4899" },
+  NASDAQ:  { label:"Nasdaq",  color:"#38BDF8" },
+};
+
 function ChartPanel({ sel, positions }) {
+  const [activeIdxs, setActiveIdxs] = useState([]);
+  const toggleIdx = k => setActiveIdxs(p => p.includes(k) ? p.filter(x=>x!==k) : [...p, k]);
+
   const isTotal = !sel || sel === "__total__";
   const pos     = positions.find(p => p.ticker === sel);
   const col     = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
@@ -266,41 +304,69 @@ function ChartPanel({ sel, positions }) {
   const label      = isTotal ? "portfolio" : (sel || "stock");
   const lastVal    = Object.values(seriesData).pop() || 0;
 
+  const overlays = activeIdxs.map(k => {
+    const idxData = (CHART_DATA.indexes || {})[k] || {};
+    return {
+      label: IDX_META[k].label,
+      color: IDX_META[k].color,
+      entries: Object.entries(idxData).sort((a,b)=>a[0]>b[0]?1:-1),
+    };
+  });
+
+  const idxPillStyle = (k) => ({
+    padding:"2px 8px", borderRadius:"20px", fontSize:"9px", fontWeight:"500",
+    border:`1px solid ${activeIdxs.includes(k) ? IDX_META[k].color : "#1A2535"}`,
+    background: activeIdxs.includes(k) ? IDX_META[k].color+"22" : "transparent",
+    color: activeIdxs.includes(k) ? IDX_META[k].color : "#4B5563",
+    cursor:"pointer", transition:"all 0.12s", whiteSpace:"nowrap",
+  });
+
   return (
     <div style={{background:"#080C14",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"8px 14px 4px",flexShrink:0}}>
+        padding:"6px 14px 3px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
           {!isTotal && pos && (
-            <LogoImg ticker={pos.ticker} sector={pos.sector} flag={pos.flag} size={28}/>
+            <LogoImg ticker={pos.ticker} sector={pos.sector} flag={pos.flag} size={26}/>
           )}
           <div style={{minWidth:0}}>
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px",
               whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {isTotal ? "Portfolio Total" : pos?.name}
             </div>
-            <div style={{fontSize:"9px",color:"#374151",marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
+            <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
               {isTotal ? "Retorno ponderado · últimos 12 meses" : `vs preço médio de compra · ${pos?.exchange}`}
             </div>
           </div>
         </div>
-        <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",
-            color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.3px"}}>
-            {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
-          </div>
-          {!isTotal && pos && (
-            <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444",fontWeight:"500"}}>
-              {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur} P&L
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",
+              color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.3px"}}>
+              {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
             </div>
-          )}
+            {!isTotal && pos && (
+              <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444",fontWeight:"500"}}>
+                {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur}
+              </div>
+            )}
+          </div>
+          {/* Index toggles */}
+          <div style={{display:"flex",gap:"3px"}}>
+            {Object.keys(IDX_META).map(k => (
+              <button key={k} className="cb" style={idxPillStyle(k)} onClick={()=>toggleIdx(k)}>
+                {IDX_META[k].label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-      <div style={{padding:"2px 10px 4px",flex:1,minHeight:0}}>
+      <div style={{padding:"0 10px 4px",flex:1,minHeight:0}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
           buyDates={!isTotal ? pos?.buyDates : null}
           avgPrice={!isTotal ? pos?.avgPrice : null}
-          cur={!isTotal ? pos?.cur : null}/>
+          cur={!isTotal ? pos?.cur : null}
+          overlays={overlays}/>
       </div>
     </div>
   );
@@ -343,7 +409,7 @@ function PositionRow({ p, selected, onClick }) {
   return (
     <div className="row cb" onClick={onClick}
       style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
-        alignItems:"center",padding:"7px 12px",
+        alignItems:"center",padding:"5px 12px",
         borderBottom:"1px solid #0A0F1A",
         background: selected ? "#0D1828" : "transparent",
         borderLeft: selected ? `2px solid ${col}` : "2px solid transparent",
@@ -580,9 +646,155 @@ function PortfolioOverview({ positions, onSelect }) {
   );
 }
 
+// ─── SEARCH PANEL ────────────────────────────────────────────────────────────
+function SearchPanel() {
+  const [query, setQuery]   = useState("");
+  const [loading, setLoad]  = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError]   = useState(null);
+
+  const PROXY = "https://corsproxy.io/?";
+
+  const search = async () => {
+    const sym = query.trim().toUpperCase();
+    if (!sym) return;
+    setLoad(true); setError(null); setResult(null);
+    try {
+      // Fetch chart for current price + name
+      const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
+      const chartRes = await fetch(PROXY + encodeURIComponent(chartUrl));
+      if (!chartRes.ok) throw new Error("Ticker não encontrado");
+      const chartJson = await chartRes.json();
+      const meta = chartJson?.chart?.result?.[0]?.meta;
+      if (!meta) throw new Error("Sem dados para este ticker");
+
+      // Fetch fundamentals
+      const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=price%2CsummaryDetail%2CfinancialData%2CdefaultKeyStatistics`;
+      let info = {};
+      try {
+        const sumRes = await fetch(PROXY + encodeURIComponent(summaryUrl));
+        const sumJson = await sumRes.json();
+        const r = sumJson?.quoteSummary?.result?.[0];
+        info = {
+          marketCap:   r?.price?.marketCap?.fmt,
+          pe:          r?.summaryDetail?.trailingPE?.fmt || r?.defaultKeyStatistics?.forwardPE?.fmt,
+          divYield:    r?.summaryDetail?.dividendYield?.fmt,
+          grossMargin: r?.financialData?.grossMargins?.fmt,
+          totalDebt:   r?.financialData?.totalDebt?.fmt,
+          fcfYield:    (() => {
+            const fcf = r?.financialData?.freeCashflow?.raw;
+            const mc  = r?.price?.marketCap?.raw;
+            return fcf && mc ? (fcf/mc*100).toFixed(2)+"%" : null;
+          })(),
+          payoutRatio: r?.summaryDetail?.payoutRatio?.fmt,
+          roe:         r?.financialData?.returnOnEquity?.fmt,
+          sector:      r?.financialData?.sector || "—",
+          name:        r?.price?.longName || meta.longName || sym,
+        };
+      } catch(_) {}
+
+      const prices = chartJson.chart.result[0].indicators.quote[0].close.filter(Boolean);
+      const base   = prices[0];
+      const pctChg = base ? ((prices[prices.length-1]/base - 1)*100).toFixed(2) : null;
+
+      setResult({ sym, meta, info, pctChg });
+    } catch(e) {
+      setError(e.message || "Erro ao procurar");
+    }
+    setLoad(false);
+  };
+
+  const FRow = ({label, value, color}) => (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",
+      padding:"5px 0",borderBottom:"1px solid #0D1117"}}>
+      <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.3px",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:"10px",fontWeight:"600",color:color||"#C9D1D9",textAlign:"right"}}>{value||"—"}</div>
+    </div>
+  );
+
+  return (
+    <div style={{padding:"12px"}}>
+      <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"8px"}}>
+        Pesquisar Acção
+      </div>
+
+      {/* Input */}
+      <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
+        <input value={query} onChange={e=>setQuery(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&search()}
+          placeholder="Ex: AAPL, TSLA, NVDA..."
+          style={{flex:1,background:"#0A0F1A",border:"1px solid #1A2535",borderRadius:"6px",
+            padding:"6px 10px",color:"#C9D1D9",fontSize:"11px",fontFamily:"'Inter',sans-serif",outline:"none"}}/>
+        <button className="cb" onClick={search}
+          style={{background:"#161D2B",border:"1px solid #30363D",borderRadius:"6px",
+            padding:"6px 12px",color:"#8B949E",fontSize:"10px",fontFamily:"'Inter',sans-serif"}}>
+          {loading ? "..." : "↵"}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{padding:"10px",background:"#F8514922",borderRadius:"6px",border:"1px solid #F8514944",
+          fontSize:"10px",color:"#F85149",textAlign:"center"}}>{error}</div>
+      )}
+
+      {result && (() => {
+        const {sym, meta, info, pctChg} = result;
+        const isPos = parseFloat(pctChg) >= 0;
+        return (
+          <div>
+            {/* Header */}
+            <div style={{borderLeft:"3px solid #6366F1",paddingLeft:"10px",marginBottom:"12px"}}>
+              <div style={{fontSize:"8px",color:"#4B5563",marginBottom:"3px"}}>
+                {meta.exchangeName} · <span style={{color:"#6366F1"}}>{sym}</span>
+              </div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:"#F0F6FC",
+                letterSpacing:"-0.3px",lineHeight:1.2}}>{info.name}</div>
+              <div style={{display:"flex",gap:"10px",marginTop:"5px",alignItems:"baseline"}}>
+                <span style={{fontFamily:"'Syne',sans-serif",fontSize:"16px",fontWeight:"800",color:"#6366F1"}}>
+                  {meta.currency} {meta.regularMarketPrice?.toFixed(2)}
+                </span>
+                {pctChg && (
+                  <span style={{fontSize:"11px",color:isPos?"#3FB950":"#F85149",fontWeight:"600"}}>
+                    {isPos?"+":""}{pctChg}% <span style={{fontSize:"8px",fontWeight:"400",color:"#4B5563"}}>12m</span>
+                  </span>
+                )}
+              </div>
+              {info.sector && info.sector !== "—" &&
+                <div style={{fontSize:"9px",color:"#4B5563",marginTop:"3px"}}>{info.sector}</div>}
+            </div>
+
+            {/* Fundamentals */}
+            <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Fundamentais</div>
+            <FRow label="Market Cap"    value={info.marketCap}/>
+            <FRow label="Dívida Total"  value={info.totalDebt}/>
+            <FRow label="P/E Ratio"     value={info.pe}/>
+            <FRow label="Gross Margin"  value={info.grossMargin}/>
+            <FRow label="FCF Yield"     value={info.fcfYield} color={info.fcfYield&&parseFloat(info.fcfYield)>5?"#3FB950":undefined}/>
+            <FRow label="Div Yield"     value={info.divYield} color={info.divYield&&parseFloat(info.divYield)>3?"#3FB950":undefined}/>
+            <FRow label="Payout Ratio"  value={info.payoutRatio}/>
+            <div style={{marginTop:"10px",padding:"6px 8px",background:"#0A0F1A",borderRadius:"5px",
+              border:"1px solid #161D2B",fontSize:"8px",color:"#374151",textAlign:"center"}}>
+              Dados via Yahoo Finance · apenas informativos
+            </div>
+          </div>
+        );
+      })()}
+
+      {!result && !loading && !error && (
+        <div style={{textAlign:"center",color:"#21262D",fontSize:"9px",marginTop:"20px",lineHeight:1.8}}>
+          Introduz o ticker de qualquer acção<br/>
+          cotada mundialmente para ver<br/>
+          os seus indicadores fundamentais
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [sel, setSel]       = useState(null);
+  const [searchMode, setSearchMode] = useState(false);
   const [filter, setFilter] = useState("all");
   const [sector, setSector] = useState("all");
   const [sort, setSort]     = useState("ppl");
@@ -629,7 +841,14 @@ function App() {
         </span>
         <div style={{flex:1}}/>
         <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>__UPDATED__</span>
-        {sel && (
+        <button className="cb" onClick={()=>setSearchMode(s=>!s)}
+          style={{fontSize:"9px",color:searchMode?"#6366F1":"#8B949E",
+            background:searchMode?"#161D2B":"transparent",
+            border:`1px solid ${searchMode?"#6366F1":"#30363D"}`,
+            borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
+          {searchMode ? "✕ Fechar" : "🔍 Pesquisar"}
+        </button>
+        {sel && !searchMode && (
           <button className="cb" onClick={()=>setSel(null)}
             style={{fontSize:"9px",color:"#8B949E",background:"#161D2B",
               border:"1px solid #30363D",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
@@ -648,7 +867,7 @@ function App() {
         <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #1A2535",overflow:"hidden"}}>
 
           {/* Chart */}
-          <div className="chart-wrap" style={{flexShrink:0,height:"148px",borderBottom:"1px solid #1A2535"}}>
+          <div className="chart-wrap" style={{flexShrink:0,height:"185px",borderBottom:"1px solid #1A2535"}}>
             <ChartPanel sel={sel} positions={positions}/>
           </div>
 
@@ -709,11 +928,14 @@ function App() {
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: Detail (full height) ── */}
-        <div className="right-col" style={{overflowY:"auto",background:"#080C14"}}>
-          {selPos
-            ? <Detail p={selPos}/>
-            : <PortfolioOverview positions={positions} onSelect={setSel}/>
+        {/* ── RIGHT COLUMN: Detail / Search (full height) ── */}
+        <div className="right-col" style={{overflowY:"auto",background:"#080C14",
+          borderLeft:"1px solid #1A2535"}}>
+          {searchMode
+            ? <SearchPanel/>
+            : selPos
+              ? <Detail p={selPos}/>
+              : <PortfolioOverview positions={positions} onSelect={setSel}/>
           }
         </div>
 
