@@ -416,12 +416,12 @@ function Detail({ p }) {
         <div style={{background:"#0A0F1A",borderRadius:"5px",padding:"9px 11px",border:"1px solid #161D2B",
           display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{fontSize:"7px",color:"#4B5563",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
-          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{fontSize:"15px",color:cagrCol(f.divCagr5y),fontWeight:"700",fontFamily:"'Syne',sans-serif"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
+            <div style={{fontSize:"15px",color:cagrCol(f.divCagr5y),fontWeight:"700",fontFamily:"'Syne',sans-serif",minWidth:"52px",textAlign:"right"}}>
               {f.divCagr5y != null ? `${f.divCagr5y>0?"+":""}${f.divCagr5y.toFixed(1)}%` : "—"}
             </div>
             {f.divCagr5y != null && (
-              <div style={{position:"relative",width:"60px",height:"4px",borderRadius:"2px",background:"#161D2B"}}>
+              <div style={{position:"relative",width:"50px",height:"4px",borderRadius:"2px",background:"#161D2B",flexShrink:0}}>
                 <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#30363D"}}/>
                 <div style={{
                   position:"absolute",height:"100%",borderRadius:"2px",
@@ -439,6 +439,100 @@ function Detail({ p }) {
           Dados fundamentais não disponíveis
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── PORTFOLIO OVERVIEW PANEL ────────────────────────────────────────────────
+function PortfolioOverview({ positions, onSelect }) {
+  const sorted   = [...positions].sort((a,b) => pctReturn(b) - pctReturn(a));
+  const top3     = sorted.slice(0, 3);
+  const bot3     = sorted.slice(-3).reverse();
+  const totalVal = positions.reduce((s,p) => s + p.qty * p.curPrice, 0);
+
+  // Sector allocation
+  const sectorMap = {};
+  positions.forEach(p => {
+    const v = p.qty * p.curPrice;
+    sectorMap[p.sector] = (sectorMap[p.sector] || 0) + v;
+  });
+  const sectorList = Object.entries(sectorMap)
+    .map(([s, v]) => ({ s, v, pct: (v / totalVal) * 100 }))
+    .sort((a, b) => b.v - a.v);
+
+  const MiniRow = ({ p, rank }) => {
+    const ret = pctReturn(p);
+    const col = ret >= 0 ? "#3FB950" : "#F85149";
+    return (
+      <div onClick={() => onSelect(p.ticker)}
+        style={{display:"flex",alignItems:"center",gap:"8px",padding:"5px 8px",
+          borderRadius:"4px",cursor:"pointer",transition:"background 0.1s"}}
+        onMouseEnter={e=>e.currentTarget.style.background="#0F1520"}
+        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+        <div style={{fontSize:"9px",color:"#30363D",width:"14px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{rank}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:"10px",fontWeight:"600",color:"#C9D1D9",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+          <div style={{fontSize:"8px",color:"#4B5563"}}>{p.ticker}</div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontSize:"11px",fontWeight:"700",color:col,fontVariantNumeric:"tabular-nums"}}>
+            {ret>=0?"+":""}{ret.toFixed(1)}%
+          </div>
+          <div style={{fontSize:"8px",color:ret>=0?"#238636":"#DA3633",fontVariantNumeric:"tabular-nums"}}>
+            {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SectionLabel = ({title}) => (
+    <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",textTransform:"uppercase",
+      padding:"8px 8px 4px",borderTop:"1px solid #0F1520",marginTop:"2px"}}>{title}</div>
+  );
+
+  return (
+    <div style={{padding:"10px 4px 16px"}}>
+      {/* Header */}
+      <div style={{padding:"2px 8px 10px",borderBottom:"1px solid #0F1520"}}>
+        <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Visão Geral</div>
+        <div style={{display:"flex",gap:"6px"}}>
+          {[
+            { l:"Total investido", v: positions.reduce((s,p)=>s+p.qty*p.avgPrice,0).toFixed(0)+"€" },
+            { l:"Valor actual",    v: totalVal.toFixed(0)+"€" },
+          ].map(({l,v}) => (
+            <div key={l} style={{flex:1,background:"#0A0F1A",borderRadius:"5px",padding:"6px 8px",border:"1px solid #161D2B"}}>
+              <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.3px"}}>{l}</div>
+              <div style={{fontSize:"11px",fontWeight:"700",color:"#C9D1D9",fontFamily:"'Syne',sans-serif"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top 3 gainers */}
+      <SectionLabel title="▲  Maiores Ganhos"/>
+      {top3.map((p,i) => <MiniRow key={p.ticker} p={p} rank={i+1}/>)}
+
+      {/* Top 3 losers */}
+      <SectionLabel title="▼  Maiores Perdas"/>
+      {bot3.map((p,i) => <MiniRow key={p.ticker} p={p} rank={i+1}/>)}
+
+      {/* Sector allocation */}
+      <SectionLabel title="Alocação por Sector"/>
+      <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"5px"}}>
+        {sectorList.map(({s, pct}) => (
+          <div key={s}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
+              <div style={{fontSize:"9px",color:"#8B949E",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"65%"}}>{s}</div>
+              <div style={{fontSize:"9px",color:"#4B5563",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
+            </div>
+            <div style={{height:"3px",borderRadius:"2px",background:"#161D2B"}}>
+              <div style={{height:"100%",borderRadius:"2px",background:SECTOR_COLORS[s]||"#6B7280",
+                width:`${pct}%`,transition:"width 0.3s"}}/>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -573,17 +667,7 @@ function App() {
         <div style={{overflowY:"auto",background:"#080C14"}}>
           {selPos
             ? <Detail p={selPos}/>
-            : (
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                justifyContent:"center",height:"100%",gap:"8px",color:"#21262D"}}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#21262D" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-                </svg>
-                <div style={{fontSize:"10px",textAlign:"center",lineHeight:1.6}}>
-                  Selecciona uma posição<br/>para ver detalhes
-                </div>
-              </div>
-            )
+            : <PortfolioOverview positions={positions} onSelect={setSel}/>
           }
         </div>
 
