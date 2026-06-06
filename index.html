@@ -768,42 +768,67 @@ function SearchPanel() {
     }, 350);
   };
 
+  // ── Obtém crumb de sessão do Yahoo Finance (necessário para v10/quoteSummary) ─
+  const getCrumb = async () => {
+    try {
+      // Primeiro visitar a página de cookies do Yahoo Finance
+      await fetch(PROXY + encodeURIComponent("https://fc.yahoo.com"), { mode:"cors" }).catch(()=>{});
+      const r = await fetch(PROXY + encodeURIComponent("https://query1.finance.yahoo.com/v1/test/getcrumb"));
+      const text = await r.text();
+      if (text && text.length < 50 && !text.includes("<")) return text.trim();
+    } catch(_) {}
+    return null;
+  };
+
   // ── Fetch completo dos dados de um ticker ───────────────────────────────────
   const fetchTicker = async (sym) => {
     setShowSugg(false);
     setQuery(sym);
     setLoad(true); setError(null); setResult(null);
     try {
-      const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
+      // Fetch chart (preço + série temporal)
+      const chartUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
       const chartRes = await fetch(PROXY + encodeURIComponent(chartUrl));
       if (!chartRes.ok) throw new Error("Ticker não encontrado");
       const chartJson = await chartRes.json();
       const meta = chartJson?.chart?.result?.[0]?.meta;
       if (!meta) throw new Error("Sem dados para este ticker");
 
-      const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=price%2CsummaryDetail%2CfinancialData%2CdefaultKeyStatistics`;
+      // Crumb para autenticar o quoteSummary
+      const crumb = await getCrumb();
+
+      // Fetch fundamentais via quoteSummary
       let info = {};
       try {
+        const crumbParam = crumb ? `&crumb=${encodeURIComponent(crumb)}` : "";
+        const summaryUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=price%2CsummaryDetail%2CfinancialData%2CdefaultKeyStatistics${crumbParam}`;
         const sumRes  = await fetch(PROXY + encodeURIComponent(summaryUrl));
         const sumJson = await sumRes.json();
         const r = sumJson?.quoteSummary?.result?.[0];
-        info = {
-          marketCap:   r?.price?.marketCap?.fmt,
-          pe:          r?.summaryDetail?.trailingPE?.fmt || r?.defaultKeyStatistics?.forwardPE?.fmt,
-          divYield:    r?.summaryDetail?.dividendYield?.fmt,
-          grossMargin: r?.financialData?.grossMargins?.fmt,
-          totalDebt:   r?.financialData?.totalDebt?.fmt,
-          fcfYield:    (() => {
-            const fcf = r?.financialData?.freeCashflow?.raw;
-            const mc  = r?.price?.marketCap?.raw;
-            return fcf && mc ? (fcf/mc*100).toFixed(2)+"%" : null;
-          })(),
-          payoutRatio: r?.summaryDetail?.payoutRatio?.fmt,
-          roe:         r?.financialData?.returnOnEquity?.fmt,
-          sector:      r?.financialData?.sector || "—",
-          name:        r?.price?.longName || meta.longName || sym,
-        };
-      } catch(_) {}
+        if (r) {
+          info = {
+            marketCap:   r?.price?.marketCap?.fmt,
+            pe:          r?.summaryDetail?.trailingPE?.fmt || r?.defaultKeyStatistics?.forwardPE?.fmt,
+            divYield:    r?.summaryDetail?.dividendYield?.fmt,
+            grossMargin: r?.financialData?.grossMargins?.fmt,
+            totalDebt:   r?.financialData?.totalDebt?.fmt,
+            fcfYield:    (() => {
+              const fcf = r?.financialData?.freeCashflow?.raw;
+              const mc  = r?.price?.marketCap?.raw;
+              return fcf && mc ? (fcf/mc*100).toFixed(2)+"%" : null;
+            })(),
+            payoutRatio: r?.summaryDetail?.payoutRatio?.fmt,
+            roe:         r?.financialData?.returnOnEquity?.fmt,
+            sector:      r?.financialData?.sector || "—",
+            name:        r?.price?.longName || meta.longName || sym,
+          };
+        } else {
+          // fallback: dados básicos do chart meta
+          info = { name: meta.longName || meta.shortName || sym };
+        }
+      } catch(_) {
+        info = { name: meta.longName || meta.shortName || sym };
+      }
 
       const prices = chartJson.chart.result[0].indicators.quote[0].close.filter(Boolean);
       const base   = prices[0];
@@ -1009,7 +1034,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #1A2535",
             fontSize:"8px",color:"#374151",letterSpacing:"0.3px"}}>
-            Build: 2026-06-06 16:41 UTC
+            Build: 2026-06-06 16:43 UTC
           </div>
         </div>
       )}
