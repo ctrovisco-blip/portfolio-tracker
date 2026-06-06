@@ -9,11 +9,3 @@ __pycache__/
 
 # IDE
 .vscode/
-
-# Claude Code: versionar skills/comandos, ignorar definições locais
-.claude/settings.local.json
-
-# Ficheiros locais temporários
-chart_data.json
-fundamentals.json
-fetch_chart_data_new.py

@@ -2,23 +2,10 @@ name: Update Portfolio Data
 
 on:
   schedule:
-    # ── Dias úteis ────────────────────────────────────────────────────────────
-    # 09:00 UTC → apanha fecho dos mercados asiáticos + abertura europeia
-    - cron: '0 9 * * 1-5'
-    # 21:30 UTC → 30 min após fecho de Wall Street (21:00 UTC)
-    - cron: '30 21 * * 1-5'
-    # ── Fim de semana ─────────────────────────────────────────────────────────
-    # Sábado 10:00 UTC → mantém dados frescos + recupera falhas da semana
-    - cron: '0 10 * * 6'
-
-  # Execução manual pelo botão "Run workflow" no GitHub
+    # Runs weekdays at 18:30 UTC (19:30 Lisboa hora de inverno, 20:30 verão)
+    - cron: '30 18 * * 1-5'
   workflow_dispatch:
-
-# Impede duas execuções simultâneas — a nova aguarda até a anterior terminar.
-# Sem isto, dois runs em paralelo causam rate limit 429 na API da Trading212.
-concurrency:
-  group: update-portfolio
-  cancel-in-progress: false
+    # Permite correr manualmente a qualquer momento pelo botão "Run workflow" no GitHub
 
 permissions:
   contents: write
@@ -30,8 +17,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,124 +26,23 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # ── Fetch sequencial: cada passo depende do anterior ──────────────────
-      # Ordem importa: auto_discover → positions → fx → charts → fundamentals
-      # charts lê positions.json e fx.json, por isso positions e fx têm de correr primeiro.
-
-      - name: Auto-discover new positions
-        id: discover
-        continue-on-error: true
-        env:
-          T212_API_KEY:    ${{ secrets.T212_API_KEY }}
-          T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
-        run: python auto_discover.py
-
       - name: Fetch positions from Trading212
-        id: positions
-        continue-on-error: true
         env:
           T212_API_KEY:    ${{ secrets.T212_API_KEY }}
           T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
         run: python fetch_positions.py
 
-      - name: Fetch FX rates
-        id: fx
-        continue-on-error: true
-        run: python fetch_fx.py
-
       - name: Fetch chart data (Yahoo Finance)
-        id: charts
-        continue-on-error: true
         run: python fetch_chart_data.py
 
       - name: Fetch fundamental data (yfinance)
-        id: fundamentals
-        continue-on-error: true
-        # Fundamentais mudam trimestralmente.
-        # Corre: manualmente, na execução das 21:30 UTC, e ao sábado.
-        # NÃO corre na execução matinal das 09:00 (dados intraday) para poupar tempo.
-        if: >-
-          github.event_name == 'workflow_dispatch' ||
-          github.event.schedule == '30 21 * * 1-5' ||
-          github.event.schedule == '0 10 * * 6'
         run: python fetch_fundamentals.py
-
-      - name: Fetch news (yfinance)
-        id: news
-        continue-on-error: true
-        run: python fetch_news.py
-
-      - name: Refresh screener watchlist
-        id: screener
-        continue-on-error: true
-        # Re-fetches all tickers already in screener.json so data stays fresh.
-        # Same schedule as fundamentals (not needed at 09:00 morning run).
-        if: >-
-          github.event_name == 'workflow_dispatch' ||
-          github.event.schedule == '30 21 * * 1-5' ||
-          github.event.schedule == '0 10 * * 6'
-        env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-        run: |
-          TICKERS=$(python - <<'EOF'
-          import json, os
-          path = "data/screener.json"
-          if os.path.exists(path):
-              with open(path) as f:
-                  tickers = list(json.load(f).keys())
-              print(",".join(tickers))
-          EOF
-          )
-          if [ -n "$TICKERS" ]; then
-            echo "Refreshing screener tickers: $TICKERS"
-            TICKERS="$TICKERS" MODE=replace python fetch_screener.py
-          else
-            echo "Screener watchlist is empty — nothing to refresh."
-          fi
-
-      - name: Log fetch results
-        run: |
-          echo "discover=${{ steps.discover.outcome }}"
-          echo "positions=${{ steps.positions.outcome }}"
-          echo "fx=${{ steps.fx.outcome }}"
-          echo "charts=${{ steps.charts.outcome }}"
-          echo "fundamentals=${{ steps.fundamentals.outcome }}"
-          # Falha o workflow se positions falhou — dados desatualizados são perigosos
-          if [ "${{ steps.positions.outcome }}" = "failure" ]; then
-            echo "::error::fetch_positions.py falhou — dados de posições podem estar desatualizados"
-            exit 1
-          fi
-
-      # ── Build sempre (mesmo que alguns fetches secundários tenham falhado) ──
 
       - name: Build HTML
         run: python build_html.py
 
-      - name: Build entry dashboard
-        run: python build_entry_dashboard.py
-
-      - name: Generate weekly report
-        # Corre ao sábado (após fetch completo) e em execuções manuais
-        if: >-
-          github.event.schedule == '0 10 * * 6' ||
-          github.event_name == 'workflow_dispatch'
-        run: python generate_report.py
-
-      # ── Push robusto: pull --rebase antes de push para evitar conflitos ──────
-
-      - name: Commit & push
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html entry_dashboard.html data/*.json metadata.json weekly_report.html
-          # Só commita se houver mudanças
-          if git diff --staged --quiet; then
-            echo "Sem alteracoes, nada a commitar."
-            exit 0
-          fi
-          git commit -m "chore: update portfolio data $(date -u +'%Y-%m-%d %H:%M UTC') [skip ci]"
-          # Rebase sobre origin/main; em conflito no index.html (sempre gerado),
-          # usa a versão deste commit (-X theirs)
-          git fetch origin main
-          git rebase -X theirs origin/main
-          git push origin main
+      - name: Commit & push updated files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update portfolio data [skip ci]"
+          file_pattern: "index.html data/*.json"

@@ -18,29 +18,46 @@ HEADERS = {
 
 BASE = "https://live.trading212.com"
 
-def get(path, retries=5):
-    delays = [10, 30, 60, 120, 180]
-    for attempt in range(retries):
-        req = urllib.request.Request(BASE + path, headers=HEADERS)
-        try:
-            with urllib.request.urlopen(req, timeout=15) as r:
-                return json.loads(r.read())
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt < retries - 1:
-                wait = delays[attempt]
-                print(f"  Rate limit (429), aguardando {wait}s antes de retry {attempt + 1}/{retries - 1}...")
-                time.sleep(wait)
-            else:
-                raise
+def get(path):
+    req = urllib.request.Request(BASE + path, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read())
 
 # Load static metadata
 with open("metadata.json", encoding="utf-8") as f:
     METADATA = json.load(f)
 
-# T212 internal ticker → display ticker mapping (lido de data/t212_map.json)
-# Actualizado automaticamente pelo auto_discover.py quando há novas posições
-with open("data/t212_map.json", encoding="utf-8") as f:
-    T212_TO_DISPLAY = json.load(f)
+# T212 internal ticker → display ticker mapping (built from metadata + known map)
+T212_TO_DISPLAY = {
+    "4GLDd_EQ":    "XETRA-GOLD",
+    "2FEd_EQ":     "RACE",
+    "EN3d_EQ":     "ENB",
+    "PTXd_EQ":     "PLTR",
+    "NVDd_EQ":     "NVDA",
+    "PHM7d_EQ":    "MO",
+    "RHMd_EQ":     "RHM",
+    "ALCC1_US_EQ": "OKLO",
+    "PEPd_EQ":     "PEP",
+    "EGL_PT_EQ":   "EGL",
+    "MNST_US_EQ":  "MNST",
+    "O_US_EQ":     "O",
+    "SRPl_EQ":     "SRP",
+    "NOS_PT_EQ":   "NOS",
+    "NVG_PT_EQ":   "NVG",
+    "CSGa_EQ":     "CSG",
+    "PG_US_EQ":    "PG",
+    "JNJd_EQ":     "JNJ",
+    "PFEd_EQ":     "PFE",
+    "VUAAm_EQ":    "VUAA",
+    "RRl_EQ":      "RR",
+    "GALP_PT_EQ":  "GALP",
+    "BACd_EQ":     "VZ",
+    "LOW_US_EQ":   "LOW",
+    "M4Id_EQ":     "MA",
+    "LOMd_EQ":     "LMT",
+    "CHVd_EQ":     "CVX",
+    "KMYd_EQ":     "KMB",
+}
 DISPLAY_TO_T212 = {v: k for k, v in T212_TO_DISPLAY.items()}
 
 print("Fetching portfolio positions...")
@@ -84,14 +101,6 @@ while path:
         time.sleep(0.3)
 
 print(f"  {len(all_orders)} total orders")
-
-# Save order history — só sobrescreve se obtivemos dados (evita apagar histórico com array vazio)
-if all_orders:
-    with open("data/orders.json", "w", encoding="utf-8") as f:
-        json.dump(all_orders, f, ensure_ascii=False)
-    print(f"  Saved {len(all_orders)} orders to data/orders.json")
-else:
-    print("  Sem ordens obtidas — orders.json não foi sobrescrito")
 
 # Build buy dates per ticker from filled buy orders
 buy_dates = {}  # display_ticker -> set of date strings

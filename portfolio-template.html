@@ -1,481 +1,124 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Portfolio Tracker | Cláudio Trovisco</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><polyline points='8,72 28,42 48,57 68,24 92,34' fill='none' stroke='%233FB950' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
+<title>Portfolio Tracker</title>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#131722;font-family:'Inter',sans-serif;}
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:#1a1f2e;}
-::-webkit-scrollbar-thumb{background:#1F2937;border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:#6b7280;}
-.cb{cursor:pointer;transition:background 0.12s, color 0.12s, opacity 0.12s;}
-.row:hover{background:#1e2438!important;}
-.pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
-select{appearance:none;-webkit-appearance:none;cursor:pointer;}
-
-/* ── Grelha da tabela de posições (desktop) ───────────────────────── */
-.pos-grid{
-  display:grid;
-  grid-template-columns:20px 1fr 68px 76px 76px 58px 130px;
-  gap:4px;
-  align-items:center;
-}
-
-/* ── Resizable dividers ───────────────────────────────────────────── */
-.divider-v{
-  width:4px;cursor:col-resize;background:transparent;flex-shrink:0;
-  position:relative;z-index:10;transition:background 0.15s;
-}
-.divider-v:hover,.divider-v.dragging{background:#3d4760;}
-.divider-h{
-  height:4px;cursor:row-resize;background:transparent;flex-shrink:0;
-  position:relative;z-index:10;transition:background 0.15s;
-}
-.divider-h:hover,.divider-h.dragging{background:#3d4760;}
-@media(max-width:768px){
-  .divider-v,.divider-h{display:none!important;}
-
-  /* Layout geral — main-grid é flex, anular override de grid */
-  .main-grid{overflow:hidden;}
-  .chart-wrap{height:200px!important;}
-
-  /* Header: esconder texto secundário e compactar */
-  .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
-.hdr-freshness-text{display:none!important;}
-
-  /* Painel direito: slide-in full-screen */
-  .right-col{
-    position:fixed!important;
-    top:0!important;left:0!important;right:0!important;bottom:0!important;
-    width:auto!important;
-    flex-shrink:0;
-    z-index:50;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    background:#131722;
-    border-left:none!important;
-    transform:translateX(100%);
-    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    will-change:transform;
-  }
-  .right-col.open{transform:translateX(0);}
-
-  /* Botão voltar mobile */
-  .mob-back{display:flex!important;}
-  /* Botão "Ver Indicadores" — só visível no mobile */
-  .mob-indicators-btn{display:block!important;}
-
-  /* Tabela: logo | empresa | valor+% | retorno */
-  .pos-grid{grid-template-columns:20px 1fr 76px 52px 90px!important;}
-  .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
-  .row-spark{display:none!important;}
-
-  /* Barra de filtros: 2 linhas */
-  .filter-bar{flex-wrap:wrap!important;gap:6px 4px!important;padding:8px 12px!important;}
-  .filter-row-sort{width:100%;border-top:1px solid #1e2438;padding-top:6px;margin-top:0;}
-  .filter-sep-v{display:none!important;}
-  .sort-label{display:none!important;}
-
-  /* Controlos do gráfico */
-  .chart-controls{flex-wrap:wrap!important;gap:4px!important;}
-
-  /* Alvos de toque maiores */
-  .pos-row{min-height:50px;}
-  .pill{padding:5px 12px!important;font-size:11px!important;}
-
-  /* Summary bar: grid 3x2 */
-  .summary-bar{
-    display:grid!important;
-    grid-template-columns:repeat(3,1fr)!important;
-    height:auto!important;
-    overflow-x:hidden!important;
-  }
-  .summary-bar > div{
-    padding:8px 12px!important;
-    border-right:1px solid #2a3042!important;
-    border-bottom:1px solid #2a3042!important;
-  }
-  .summary-bar > div:nth-child(3),
-  .summary-bar > div:nth-child(6){border-right:none!important;}
-  .summary-bar > div:nth-child(4),
-  .summary-bar > div:nth-child(5),
-  .summary-bar > div:nth-child(6){border-bottom:none!important;}
-  .summary-bar > div > div:nth-child(2){font-size:13px!important;}
-  .summary-bar > div > div:nth-child(3){font-size:9px!important;}
-
-  /* Botão Visão Geral — só mobile */
-  .mob-overview-btn{display:none!important;}
-  .mob-overview-sort{display:flex!important;}
-
-  /* Esconder botão Portfolio do header no mobile */
-  .hdr-back{display:none!important;}
-}
-
-/* ── Print / PDF export ─────────────────────────────────────────────────── */
-@media print {
-  @page { size: A4; margin: 12mm; }
-  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .no-print { display: none !important; }
-  .screener-print-header { display: block !important; }
-  .screener-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-    padding: 0 !important;
-  }
-  .screener-card { break-inside: avoid; page-break-inside: avoid; }
-}
+body{background:#060A12;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:#374151;}
+.cb{cursor:pointer;transition:all 0.15s;}
+.row:hover{background:#0D1520!important;}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-const CHART_DATA    = /*__CHART_DATA__*/;
-const FX_RATES      = /*__FX_RATES__*/;
-const SCREENER_DATA = /*__SCREENER_DATA__*/;
-const NEWS_DATA     = /*__NEWS_DATA__*/;
-const TIMESTAMPS    = /*__TIMESTAMPS__*/;
+const CHART_DATA = /*__CHART_DATA__*/;
 </script>
-<script type="text/babel" data-presets="react">
-const { useState, useMemo, useRef, useEffect } = React;
-
-// ── News read-state helpers ───────────────────────────────────────────────────
-const NEWS_READ_KEY = "news_read";
-const getReadUrls = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(NEWS_READ_KEY) || "[]")); }
-  catch { return new Set(); }
-};
-const markUrlRead = url => {
-  try {
-    const s = getReadUrls(); s.add(url);
-    localStorage.setItem(NEWS_READ_KEY, JSON.stringify([...s]));
-  } catch {}
-};
-
-function NewsButton({ ticker, label, bgColor }) {
-  const articles = (NEWS_DATA[ticker] || []).filter(a => {
-    if (!a.ts) return true;
-    return (Date.now() / 1000 - a.ts) < 48 * 3600;
-  });
-  const [open, setOpen] = useState(false);
-  const [readUrls, setReadUrls] = useState(getReadUrls);
-  const unread = articles.filter(a => !readUrls.has(a.url)).length;
-  const fmtAge = ts => {
-    if (!ts) return "";
-    const h = Math.floor((Date.now()/1000 - ts) / 3600);
-    return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h/24)}d`;
-  };
-  const handleClick = url => { markUrlRead(url); setReadUrls(getReadUrls()); };
-  return (<>
-    <button onClick={() => setOpen(true)} style={{
-      width:"100%",marginTop:"10px",padding:"10px",
-      background: bgColor || "#1a1f2e",border:"1px solid #2a2e39",borderRadius:"6px",
-      color:"#c8ccd4",fontSize:"11px",fontWeight:"600",cursor:"pointer",
-      display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-      letterSpacing:"0.3px",
-    }}>
-      📰 Notícias recentes
-      {unread > 0 && (
-        <span style={{background:"#2962ff",color:"#fff",borderRadius:"10px",
-          padding:"1px 7px",fontSize:"9px",fontWeight:"700"}}>
-          {unread}
-        </span>
-      )}
-    </button>
-    {open && (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
-        display:"flex",alignItems:"flex-end",justifyContent:"center"}}
-        onClick={() => setOpen(false)}>
-        <div style={{background:"#131722",borderRadius:"12px 12px 0 0",
-          width:"100%",maxWidth:"500px",maxHeight:"80vh",display:"flex",flexDirection:"column"}}
-          onClick={e => e.stopPropagation()}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-            padding:"14px 16px 10px",borderBottom:"1px solid #1e2438",flexShrink:0}}>
-            <div>
-              <div style={{fontSize:"10px",color:"#787b86"}}>{label}</div>
-              <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>Notícias recentes</div>
-            </div>
-            <button onClick={() => setOpen(false)}
-              style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"20px",padding:"4px"}}>✕</button>
-          </div>
-          <div style={{overflowY:"auto",padding:"8px 12px 16px"}}>
-            {articles.length === 0 ? (
-              <div style={{textAlign:"center",color:"#6b7280",fontSize:"11px",padding:"24px 0"}}>
-                Sem notícias nas últimas 48h
-              </div>
-            ) : articles.map((a, i) => {
-              const isRead = readUrls.has(a.url);
-              return (
-              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                onClick={() => handleClick(a.url)}
-                style={{display:"block",textDecoration:"none",
-                  padding:"10px 0",borderBottom:"1px solid #1e2438",
-                  opacity: isRead ? 0.45 : 1, transition:"opacity 0.2s"}}>
-                <div style={{fontSize:"11px",color: isRead ? "#6b7280" : "#d1d4dc",
-                  fontWeight: isRead ? "400" : "500",
-                  lineHeight:"1.4",marginBottom:"5px"}}>{a.title}</div>
-                <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-                  <span style={{fontSize:"9px",color:"#5a6478",fontWeight:"600",
-                    textTransform:"uppercase",letterSpacing:"0.4px"}}>{a.source}</span>
-                  {a.ts && <span style={{fontSize:"9px",color:"#3d4663"}}>·</span>}
-                  {a.ts && <span style={{fontSize:"9px",color:"#5a6478"}}>{fmtAge(a.ts)}</span>}
-                </div>
-              </a>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    )}
-  </>);
-}
+<script type="text/babel">
+const { useState, useMemo, useRef, useCallback } = React;
 
 const positions = /*__POSITIONS__*/;
+
 const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
 
 const SECTOR_COLORS = {
-  "ETF / ETC":             "#5b8af5",
-  "Tech & AI":             "#4a9ede",
-  "Healthcare":            "#3ba899",
-  "Consumer Staples":      "#9d8fca",
-  "Energia":               "#c07c3a",
-  "Defesa & Aeroespacial": "#b85c5c",
-  "REIT":                  "#7c6bba",
-  "Portuguesa":            "#3a9e7a",
-  "Luxo & Automóvel":      "#b0995a",
-  "Retalho":               "#5a8fc4",
-  "Telecomunicações":      "#6e8fa8",
-  "Outro":                 "#5a6478",
+  "ETF / ETC":             "#6366F1",
+  "Tech & AI":             "#00A4EF",
+  "Healthcare":            "#10B981",
+  "Consumer Staples":      "#F59E0B",
+  "Energia":               "#F97316",
+  "Defesa & Aeroespacial": "#EF4444",
+  "REIT":                  "#A78BFA",
+  "Portuguesa":            "#34D399",
+  "Luxo & Automóvel":      "#FBBF24",
+  "Retalho":               "#60A5FA",
+  "Telecomunicações":      "#94A3B8",
+  "Outro":                 "#6B7280",
 };
 
-function pctReturn(p) { return (p.curPrice - p.avgPrice) / p.avgPrice * 100; }
-function toEur(amount, cur) { return amount * (FX_RATES[cur] ?? 1); }
-function fmtEur(v) {
-  if (Math.abs(v) >= 1e6) return "€" + (v/1e6).toFixed(2) + "M";
-  if (Math.abs(v) >= 1e3) return "€" + (v/1e3).toFixed(1) + "k";
-  return "€" + v.toFixed(0);
-}
-// Totais globais do portfolio (usados em múltiplos componentes)
-const TOTAL_VAL_EUR  = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur), 0);
-const TOTAL_COST_EUR = positions.reduce((s,p) => s + toEur(p.qty * p.avgPrice, p.cur), 0);
+function pctReturn(p) { return ((p.curPrice - p.avgPrice) / p.avgPrice * 100); }
 
-// ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
-// Logos que o Parqet não tem pelo ticker simples — usar símbolo com sufixo de bolsa
-const LOGO_OVERRIDE = {
-  RHM:  "https://assets.parqet.com/logos/symbol/RHM.DE?format=svg",
-  EGL:  "https://assets.parqet.com/logos/symbol/EGL.LS?format=svg",
-  NOS:  "https://assets.parqet.com/logos/symbol/NOS.LS?format=svg",
-  GALP: "https://assets.parqet.com/logos/symbol/GALP.LS?format=svg",
-  SRP:  "https://assets.parqet.com/logos/symbol/SRP.L?format=svg",
-  CSG:  "https://assets.parqet.com/logos/symbol/CSG.F?format=svg",
-};
-
-function LogoImg({ ticker, sector, flag, size = 20 }) {
-  const [err, setErr] = useState(false);
-  const col = SECTOR_COLORS[sector] || "#5a6478";
-  const initial = (ticker || "?")[0].toUpperCase();
-  if (err) return (
-    <div style={{width:size,height:size,borderRadius:"5px",background:col+"22",
-      border:`1px solid ${col}44`,display:"flex",alignItems:"center",justifyContent:"center",
-      fontSize:size*0.44,fontWeight:"700",color:col,flexShrink:0,fontFamily:"'Inter',sans-serif"}}>
-      {flag || initial}
-    </div>
-  );
-  const src = LOGO_OVERRIDE[ticker] || `https://assets.parqet.com/logos/symbol/${ticker}?format=svg`;
-  return (
-    <img
-      src={src}
-      width={size} height={size}
-      style={{borderRadius:"5px",objectFit:"contain",background:"#d1d4dc",flexShrink:0}}
-      onError={() => setErr(true)}
-      alt={ticker}/>
-  );
-}
-
-// ─── LINE CHART ───────────────────────────────────────────────────────────────
-function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y" }) {
+// ─── CHART ───────────────────────────────────────────────────────────────────
+function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
   const [hoverIdx, setHoverIdx] = useState(null);
-  const [viewWindow, setViewWindow] = useState(null); // {start,end} | null = all
-  const [pinch, setPinch] = useState(null);           // {dist,start,end,anchorFrac}
-  const [panStart, setPanStart] = useState(null);     // {x,winStart,winEnd}
-  const lastTap = useRef(0);
   const svgRef = useRef(null);
 
-  const allEntries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
+  const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
 
-  // Reset zoom when data/range changes
-  useEffect(() => { setViewWindow(null); setHoverIdx(null); setPinch(null); }, [seriesData]);
+  if (!entries.length) {
+    return (
+      <div style={{height:"200px",display:"flex",alignItems:"center",justifyContent:"center",
+        color:"#4B5563",fontSize:"11px"}}>
+        Sem dados históricos disponíveis
+      </div>
+    );
+  }
 
-  if (!allEntries.length) return (
-    <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#6b7280",fontSize:"11px"}}>
-      Sem dados históricos disponíveis
-    </div>
-  );
-
-  const visStart = viewWindow?.start ?? 0;
-  const visEnd   = viewWindow?.end   ?? (allEntries.length - 1);
-  const entries  = allEntries.slice(visStart, visEnd + 1);
-  const isZoomed = visStart > 0 || visEnd < allEntries.length - 1;
-
-  const W = 700, H = 140;
-  const PAD = { top:16, right:58, bottom:26, left:48 };
+  const W = 700, H = 200;
+  const PAD = { top:24, right:55, bottom:32, left:46 };
   const cW = W - PAD.left - PAD.right;
-  const cH = H - PAD.top  - PAD.bottom;
+  const cH = H - PAD.top - PAD.bottom;
 
   const values = entries.map(([,v]) => v);
   const dates  = entries.map(([d]) => d);
+  const minV   = Math.min(...values, -1);
+  const maxV   = Math.max(...values, 1);
+  const range  = maxV - minV || 1;
 
-  // Include overlay values in min/max so they don't clip
-  const allVals = [...values];
-  overlays.forEach(ov => { if(ov.entries) allVals.push(...ov.entries.map(([,v])=>v)); });
-  const minV   = Math.min(...allVals, -1);
-  const maxV   = Math.max(...allVals,  1);
-  const cRange = maxV - minV || 1;
+  const xS = i  => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
+  const yS = v  => PAD.top  + cH - ((v - minV) / range) * cH;
+  const zeroY   = yS(0);
 
-  const xS = i => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
-  const yS = v => PAD.top  + cH - ((v - minV) / cRange) * cH;
-  const zeroY = yS(0);
+  const pts     = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
+  const linePath= `M${pts.join(" L")}`;
+  const areaPath= `M${xS(0).toFixed(1)},${zeroY.toFixed(1)} L${pts.join(" L")} L${xS(entries.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
 
-  const pts      = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
-  const linePath = `M${pts.join(" L")}`;
-  const areaPath = `M${xS(0).toFixed(1)},${zeroY.toFixed(1)} L${pts.join(" L")} L${xS(entries.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
+  const lastV = values[values.length - 1];
+  const isPos = lastV >= 0;
+  const lineCol = color || (isPos ? "#10B981" : "#EF4444");
 
-  const lastV  = values[values.length - 1];
-  const isPos  = lastV >= 0;
-  const lineCol = color || (isPos ? "#089981" : "#ef5350");
-  const safeId  = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
-
-  // X labels — time for 1D, date otherwise
+  // X labels — show ~6 evenly spaced
   const xLabels = [];
   const step = Math.max(1, Math.floor(entries.length / 6));
-  const isIntraday = range === "1d";
   for (let i = 0; i < entries.length; i += step) {
-    let lbl;
-    if (isIntraday) {
-      lbl = dates[i]; // already "HH:MM"
-    } else {
-      const d = new Date(dates[i] + "T12:00:00Z");
-      lbl = range === "5y"
-        ? d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"})
-        : d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"});
-    }
-    xLabels.push({ x: xS(i), label: lbl });
+    const d = new Date(dates[i] + "T12:00:00Z");
+    xLabels.push({ x: xS(i), label: d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"}) });
   }
 
   // Y ticks
   const yTicks = [];
   for (let i = 0; i <= 4; i++) {
-    const v = minV + (cRange / 4) * i;
+    const v = minV + (range / 4) * i;
     yTicks.push({ y: yS(v), label: (v >= 0 ? "+" : "") + v.toFixed(1) + "%" });
   }
 
+  const hov = hoverIdx !== null ? hoverIdx : null;
+  // Sanitize label for use in SVG IDs (no hyphens, spaces, etc.)
+  const safeId = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
+
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) * (W / rect.width) - PAD.left;
+    const scaleX = W / rect.width;
+    const mouseX = (e.clientX - rect.left) * scaleX - PAD.left;
     const idx = Math.round((mouseX / cW) * (entries.length - 1));
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
   };
-
-  const pinchDist = (t) => {
-    const dx = t[0].clientX - t[1].clientX;
-    const dy = t[0].clientY - t[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-  };
-
-  const handleTouchStart = (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const rect = svgRef.current?.getBoundingClientRect();
-      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const frac = rect ? Math.max(0, Math.min(1, (midX - rect.left) / rect.width)) : 0.5;
-      setPinch({ dist: pinchDist(e.touches), start: visStart, end: visEnd, anchorFrac: frac });
-      setPanStart(null);
-    } else if (e.touches.length === 1) {
-      setPanStart({ x: e.touches[0].clientX, winStart: visStart, winEnd: visEnd });
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    e.preventDefault();
-    if (e.touches.length === 2) {
-      if (!pinch) return;
-      const newDist = Math.max(1, pinchDist(e.touches));
-      const scale   = pinch.dist / newDist;
-      const span    = pinch.end - pinch.start;
-      const newSpan = Math.max(5, Math.round(span * scale));
-      // Anchor zoom to the original pinch midpoint fraction
-      const anchor  = pinch.start + pinch.anchorFrac * span;
-      const newStart = Math.max(0, Math.round(anchor - pinch.anchorFrac * newSpan));
-      const newEnd   = Math.min(allEntries.length - 1, newStart + newSpan);
-      if (newEnd - newStart >= 5) setViewWindow({ start: newStart, end: newEnd });
-      return;
-    }
-    // Single finger
-    const touch = e.touches[0];
-    const rect = svgRef.current?.getBoundingClientRect() || e.currentTarget.getBoundingClientRect();
-    // Pan when zoomed
-    if (isZoomed && panStart) {
-      const dxPx  = touch.clientX - panStart.x;
-      const span  = panStart.winEnd - panStart.winStart;
-      const shift = Math.round(-dxPx / rect.width * span);
-      const s = Math.max(0, Math.min(allEntries.length - 1 - span, panStart.winStart + shift));
-      setViewWindow({ start: s, end: Math.min(allEntries.length - 1, s + span) });
-    }
-    // Hover crosshair
-    const mouseX = (touch.clientX - rect.left) * (W / rect.width) - PAD.left;
-    const idx = Math.round((mouseX / cW) * (entries.length - 1));
-    setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
-  };
-
-  const handleTouchEnd = (e) => {
-    if (e.touches.length < 2) setPinch(null);
-    if (e.touches.length === 0) {
-      setPanStart(null);
-      setHoverIdx(null);
-      const now = Date.now();
-      if (now - lastTap.current < 300) setViewWindow(null);
-      lastTap.current = now;
-    }
-  };
-
-  const hov = hoverIdx;
-
-  // Last label: position to left if near right edge
-  const lastX = xS(entries.length - 1);
-  const lastY = yS(lastV);
-  const labelText = `${lastV >= 0 ? "+" : ""}${lastV.toFixed(2)}%`;
-  const labelAnchor = "end";
-  const labelOffX = -8;
 
   return (
-    <div style={{position:"relative",userSelect:"none",height:"100%"}}>
-      {isZoomed && (
-        <div onClick={() => setViewWindow(null)}
-          style={{position:"absolute",top:"4px",right:"4px",zIndex:20,
-            background:"#2962ff22",border:"1px solid #2962ff66",borderRadius:"4px",
-            padding:"2px 7px",fontSize:"9px",color:"#2962ff",cursor:"pointer",
-            lineHeight:"16px",letterSpacing:"0.3px"}}>
-          ⟳ repor zoom
-        </div>
-      )}
-      <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        style={{display:"block",touchAction:"none"}}
-        onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}>
+    <div style={{position:"relative",userSelect:"none"}}>
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}
+        onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.22":"0.18"}/>
+            <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.25":"0.2"}/>
             <stop offset="100%" stopColor={lineCol} stopOpacity="0.01"/>
           </linearGradient>
           <clipPath id={`clip_${safeId}`}>
@@ -483,1906 +126,315 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
           </clipPath>
         </defs>
 
-        {/* Zero line */}
-        <line x1={PAD.left} y1={zeroY} x2={PAD.left+cW} y2={zeroY}
-          stroke="#2D3748" strokeWidth="1" strokeDasharray="4,3"/>
-
-        {/* Grid */}
-        {yTicks.filter(t => Math.abs(t.y - zeroY) > 4).map((t,i) => (
-          <line key={i} x1={PAD.left} y1={t.y} x2={PAD.left+cW} y2={t.y}
-            stroke="#111827" strokeWidth="0.5"/>
-        ))}
-
-        {/* Overlay index lines — both series start at 0%, aligned by date/time */}
-        {(() => {
-          // Map key→x based on main series time span
-          const isIntra = range === "1d";
-          const toMs = k => isIntra
-            ? (parseInt(k.split(":")[0])*60 + parseInt(k.split(":")[1])) // minutes
-            : new Date(k+"T12:00:00Z").getTime();
-          const ms0 = toMs(dates[0]);
-          const ms1 = toMs(dates[dates.length-1]);
-          const msR = ms1 - ms0 || 1;
-          const keyToX = k => PAD.left + Math.max(0, Math.min(1, (toMs(k)-ms0)/msR)) * cW;
-
-          return overlays.map(ov => {
-            if (!ov.entries || !ov.entries.length) return null;
-            const pts = ov.entries
-              .map(([k,v]) => `${keyToX(k).toFixed(1)},${(PAD.top+cH-((v-minV)/cRange)*cH).toFixed(1)}`)
-              .join(" ");
-            const [lastK, lastV] = ov.entries[ov.entries.length-1];
-            const lastOvX = keyToX(lastK);
-            const lastOvY = PAD.top + cH - ((lastV-minV)/cRange)*cH;
-            return (
-              <g key={ov.label}>
-                <polyline points={pts} fill="none" stroke={ov.color}
-                  strokeWidth="1.4" strokeDasharray="5,3" opacity="0.8"
-                  clipPath={`url(#clip_${safeId})`}/>
-                <circle cx={lastOvX} cy={lastOvY} r="2.5" fill={ov.color} opacity="0.9"/>
-                <text x={lastOvX+5} y={lastOvY+3} fill={ov.color} fontSize="7.5" fontWeight="700">{ov.label}</text>
-                <text x={lastOvX+5} y={lastOvY+12} fill={ov.color} fontSize="7" opacity="0.85">
-                  {lastV>=0?"+":""}{lastV.toFixed(1)}%
-                </text>
-              </g>
-            );
-          });
-        })()}
-
-        {/* Area + Line */}
-        <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
-        <path d={linePath} fill="none" stroke={lineCol} strokeWidth="1.6"
-          clipPath={`url(#clip_${safeId})`}/>
-
-        {/* Y labels */}
+        {/* Grid lines */}
         {yTicks.map((t,i) => (
-          <text key={i} x={PAD.left-6} y={t.y+3} textAnchor="end"
-            fill="#6b7280" fontSize="7.5">{t.label}</text>
+          <line key={i} x1={PAD.left} y1={t.y} x2={PAD.left+cW} y2={t.y}
+            stroke={t.label.startsWith("+0") || t.label==="0.0%" ? "#2D3748" : "#1A2535"} strokeWidth={t.label.includes("+0.0") || t.label==="0.0%"?"1.5":"0.5"} strokeDasharray={t.label.startsWith("+0.0")||t.label==="0.0%"?"":"3,3"}/>
         ))}
 
-        {/* X labels */}
+        {/* Area */}
+        <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
+
+        {/* Line */}
+        <path d={linePath} fill="none" stroke={lineCol} strokeWidth="1.8" clipPath={`url(#clip_${safeId})`}/>
+
+        {/* Y axis labels */}
+        {yTicks.map((t,i) => (
+          <text key={i} x={PAD.left-5} y={t.y+3} textAnchor="end" fill="#4B5563" fontSize="8">{t.label}</text>
+        ))}
+
+        {/* X axis labels */}
         {xLabels.map((l,i) => (
-          <text key={i} x={l.x} y={H-5} textAnchor="middle"
-            fill="#6b7280" fontSize="7.5">{l.label}</text>
+          <text key={i} x={l.x} y={H-6} textAnchor="middle" fill="#4B5563" fontSize="8">{l.label}</text>
         ))}
 
-        {/* Last value dot + label (anchored to left of dot) */}
-        <circle cx={lastX} cy={lastY} r="3.5" fill={lineCol}/>
-        <text x={lastX+labelOffX} y={lastY+4} textAnchor={labelAnchor}
-          fill={lineCol} fontSize="9" fontWeight="700">{labelText}</text>
+        {/* Last value dot + label */}
+        <circle cx={xS(entries.length-1)} cy={yS(lastV)} r="3.5" fill={lineCol}/>
+        <text x={xS(entries.length-1)+6} y={yS(lastV)+4} fill={lineCol} fontSize="9.5" fontWeight="bold">
+          {lastV>=0?"+":""}{lastV.toFixed(2)}%
+        </text>
 
-        {/* Entry markers */}
+        {/* Entry markers (one per buy date) */}
         {(buyDates || []).map((bd, bi) => {
-          let idx = dates.findIndex(d => d >= bd);
-          if (idx < 0) idx = dates.length - 1;
-          if (idx < 0) return null;
-          const ex = xS(idx);
-          const ey = yS(values[idx]);
+          let entryIdx = dates.findIndex(d => d >= bd);
+          if (entryIdx < 0) entryIdx = dates.length - 1;
+          if (entryIdx < 0) return null;
+          const ex = xS(entryIdx);
+          const ey = yS(values[entryIdx]);
+          // Alternate label position to avoid overlap when entries are close
           const labelAbove = ey > PAD.top + 44;
-          const labelY = labelAbove ? ey - 28 : ey + 10;
+          const labelY = labelAbove ? ey - 30 : ey + 10;
+          const isFirst = bi === 0;
           const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-          const dt = new Date(bd + "T12:00:00Z");
-          const dlabel = dt.getDate() + " " + months[dt.getMonth()];
+          const dateObj = new Date(bd + "T12:00:00Z");
+          const dateLabel = dateObj.getDate() + " " + months[dateObj.getMonth()];
           return (
             <g key={bd}>
+              {/* Vertical dashed line */}
               <line x1={ex} y1={PAD.top} x2={ex} y2={PAD.top+cH}
-                stroke="#FBBF24" strokeWidth="1" strokeDasharray="3,2"
-                opacity={bi===0?0.8:0.45}/>
-              <polygon points={`${ex},${ey-5} ${ex+4},${ey} ${ex},${ey+5} ${ex-4},${ey}`}
-                fill="#FBBF24" stroke="#131722" strokeWidth="1" opacity={bi===0?1:0.7}/>
-              <rect x={ex-17} y={labelY} width="34" height="13" rx="2"
-                fill="#1a1f2e" stroke="#FBBF24" strokeWidth="0.6" opacity="0.93"/>
-              <text x={ex} y={labelY+9.5} textAnchor="middle"
-                fill="#FBBF24" fontSize="6.5" fontWeight="600">{dlabel}</text>
+                stroke="#FBBF24" strokeWidth="1" strokeDasharray="3,2" opacity={isFirst ? 0.8 : 0.5}/>
+              {/* Diamond marker */}
+              <polygon
+                points={`${ex},${ey-5} ${ex+4},${ey} ${ex},${ey+5} ${ex-4},${ey}`}
+                fill="#FBBF24" stroke="#060A12" strokeWidth="1" opacity={isFirst ? 1 : 0.75}/>
+              {/* Label box */}
+              <rect x={ex-18} y={labelY} width="36" height="14" rx="2"
+                fill="#111827" stroke="#FBBF24" strokeWidth="0.7" opacity="0.92"/>
+              <text x={ex} y={labelY+10} textAnchor="middle" fill="#FBBF24" fontSize="7" fontWeight="600">{dateLabel}</text>
             </g>
           );
         })}
 
-        {/* Hover crosshair */}
-        {hov !== null && (<>
-          <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
-            stroke="#6b7280" strokeWidth="1" strokeDasharray="3,3"/>
-          <circle cx={xS(hov)} cy={yS(values[hov])} r="4"
-            fill={lineCol} stroke="#131722" strokeWidth="1.5"/>
-        </>)}
+        {/* Axes */}
+        <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
+        <line x1={PAD.left} y1={PAD.top+cH} x2={PAD.left+cW} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
+
+        {/* Hover */}
+        {hov !== null && (
+          <>
+            <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
+              stroke="#374151" strokeWidth="1" strokeDasharray="3,3"/>
+            <circle cx={xS(hov)} cy={yS(values[hov])} r="4" fill={lineCol} stroke="#060A12" strokeWidth="1.5"/>
+          </>
+        )}
       </svg>
 
       {/* Hover tooltip */}
-      {hov !== null && (() => {
-        const d   = new Date(dates[hov] + "T12:00:00Z");
-        const dFmt = d.toLocaleDateString("pt-PT", {day:"numeric",month:"short",year:"numeric"});
-        const v   = values[hov];
-        const svgW = svgRef.current?.getBoundingClientRect().width || 700;
-        const xPx  = (xS(hov) / W) * svgW;
-        const toLeft = xPx > svgW * 0.6;
-        return (
-          <div style={{position:"absolute",top:"6px",
-            ...(toLeft ? {right: `${svgW - xPx + 12}px`} : {left:`${xPx + 12}px`}),
-            background:"#1a1f2e",border:`1px solid ${lineCol}50`,borderRadius:"7px",
-            padding:"6px 12px",pointerEvents:"none",zIndex:10,minWidth:"90px"}}>
-            <div style={{color:"#6b7280",fontSize:"8px",marginBottom:"3px",letterSpacing:"0.3px"}}>{dFmt}</div>
-            <div style={{color:lineCol,fontWeight:"700",fontSize:"13px"}}>
-              {v>=0?"+":""}{v.toFixed(2)}%
-            </div>
+      {hov !== null && (
+        <div style={{position:"absolute",top:"4px",left:"50px",background:"#111827",
+          border:`1px solid ${lineCol}40`,borderRadius:"5px",padding:"6px 10px",
+          fontSize:"9px",pointerEvents:"none",zIndex:10}}>
+          <div style={{color:"#6B7280",marginBottom:"2px"}}>{dates[hov]}</div>
+          <div style={{color:lineCol,fontWeight:"700",fontSize:"12px"}}>
+            {values[hov]>=0?"+":""}{values[hov].toFixed(2)}%
           </div>
-        );
-      })()}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── CHART PANEL ─────────────────────────────────────────────────────────────
-const IDX_META = {
-  SP500:   { label:"S&P 500", color:"#5c8af5" },
-  FTSE100: { label:"FTSE",    color:"#F59E0B" },
-  DAX:     { label:"DAX",     color:"#EC4899" },
-  NASDAQ:  { label:"Nasdaq",  color:"#38BDF8" },
-};
-
-const RANGE_LABELS = { "1d":"1D", "3mo":"3M", "ytd":"YTD", "1y":"1A" };
-
 function ChartPanel({ sel, positions }) {
-  const [activeIdxs, setActiveIdxs] = useState([]);
-  const [range, setRange]           = useState("1y");
-  const toggleIdx = k => setActiveIdxs(p => p.includes(k) ? p.filter(x=>x!==k) : [...p, k]);
-
   const isTotal = !sel || sel === "__total__";
-  const pos     = positions.find(p => p.ticker === sel);
-  const port1y      = CHART_DATA.portfolio?.["1y"] || {};
-  const lastPortVal = Object.values(port1y).pop() || 0;
-  const isPos       = pos ? pctReturn(pos) >= 0 : lastPortVal >= 0;
-  const lineCol     = isPos ? "#089981" : "#ef5350";
+  const pos = positions.find(p => p.ticker === sel);
+  const col = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
+  const isPos = pos ? pctReturn(pos) >= 0 : (CHART_DATA.portfolio[Object.keys(CHART_DATA.portfolio).pop()] || 0) >= 0;
+  const lineCol = isTotal ? (isPos ? "#10B981" : "#EF4444") : col;
 
   const seriesData = isTotal
-    ? (CHART_DATA.portfolio?.[range] || {})
-    : (CHART_DATA.stocks?.[sel]?.[range] || {});
-  const label  = isTotal ? "portfolio" : (sel || "stock");
+    ? CHART_DATA.portfolio
+    : (CHART_DATA.stocks[sel] || {});
+
+  const label = isTotal ? "portfolio" : (sel || "stock");
   const lastVal = Object.values(seriesData).pop() || 0;
 
-  const overlays = activeIdxs.map(k => ({
-    label:   IDX_META[k].label,
-    color:   IDX_META[k].color,
-    entries: Object.entries(CHART_DATA.indexes?.[k]?.[range] || {}).sort((a,b)=>a[0]>b[0]?1:-1),
-  }));
-
-  const pillStyle = (active, color) => ({
-    padding:"2px 7px", borderRadius:"4px", fontSize:"9px", fontWeight:"600",
-    border:`1px solid ${active ? (color||"#c8ccd4") : "#2a3042"}`,
-    background: active ? (color ? color+"22" : "#1e2438") : "transparent",
-    color: active ? (color||"#c8ccd4") : "#6b7280",
-    cursor:"pointer", transition:"all 0.12s", letterSpacing:"0.3px",
-  });
-
-  const RANGE_SUBTITLES = {
-    "1d":"hoje · intraday", "3mo":"últimos 3 meses",
-    "ytd":"desde 1 Jan", "1y":"últimos 12 meses"
-  };
-
   return (
-    <div style={{background:"#131722",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column"}}>
-
-      {/* ── Header row ── */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-        padding:"6px 14px 4px",flexShrink:0}}>
-
-        {/* Left: logo + name */}
-        <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
-          {!isTotal && pos && (
-            <LogoImg ticker={pos.ticker} sector={pos.sector} flag={pos.flag} size={26}/>
-          )}
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:"13px",fontWeight:"600",
-              color:"#d1d4dc",whiteSpace:"nowrap",
-              overflow:"hidden",textOverflow:"ellipsis"}}>
-              {isTotal ? "Portfolio Total" : pos?.name}
-            </div>
-            <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px"}}>
-              {isTotal ? `Retorno ponderado · ${RANGE_SUBTITLES[range]}` : `${RANGE_SUBTITLES[range]} · ${pos?.exchange}`}
-            </div>
+    <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"0"}}>
+      {/* Chart header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+        padding:"10px 14px 6px",borderBottom:"1px solid #0D1520"}}>
+        <div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB"}}>
+            {isTotal ? "Portfolio Total" : pos?.name}
+          </div>
+          <div style={{fontSize:"9px",color:"#4B5563",marginTop:"1px"}}>
+            {isTotal ? "Retorno ponderado por peso da carteira · 12 meses" : `Retorno vs preço médio de compra · ${pos?.exchange}`}
           </div>
         </div>
-
-        {/* Right: value + controls */}
-        <div className="chart-controls" style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"5px",flexShrink:0,marginLeft:"8px"}}>
-          {/* Return value */}
-          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-            <div style={{fontSize:"14px",fontWeight:"700",
-              color:lastVal>=0?"#089981":"#ef5350"}}>
-              {lastVal>=0?"+":""}{lastVal.toFixed(2)}%
+        <div style={{textAlign:"right"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"18px",fontWeight:"800",
+            color: lastVal >= 0 ? "#10B981" : "#EF4444"}}>
+            {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
+          </div>
+          {!isTotal && pos && (
+            <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444"}}>
+              {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur} P&L
             </div>
-            {!isTotal && pos && (
-              <div style={{fontSize:"9px",color:pos.ppl>=0?"#089981":"#ef5350",fontWeight:"500"}}>
-                {pos.ppl>=0?"+":""}{fmtEur(toEur(pos.ppl, pos.cur))}
-              </div>
-            )}
-          </div>
-
-          {/* Range buttons */}
-          <div style={{display:"flex",gap:"2px"}}>
-            {Object.entries(RANGE_LABELS).map(([k,l]) => (
-              <button key={k} className="cb" style={pillStyle(range===k)}
-                onClick={()=>setRange(k)}>{l}</button>
-            ))}
-          </div>
-
-          {/* Index toggles */}
-          <div style={{display:"flex",gap:"2px"}}>
-            {Object.keys(IDX_META).map(k => (
-              <button key={k} className="cb"
-                style={pillStyle(activeIdxs.includes(k), IDX_META[k].color)}
-                onClick={()=>toggleIdx(k)}>
-                {IDX_META[k].label}
-              </button>
-            ))}
-          </div>
+          )}
         </div>
       </div>
-
-      {/* ── Chart ── */}
-      <div style={{padding:"0 10px 4px",flex:1,minHeight:0}}>
+      <div style={{padding:"8px 10px 4px"}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
-          buyDates={range!=="1d" && !isTotal ? pos?.buyDates : null}
-          overlays={overlays} range={range}/>
+          buyDates={!isTotal ? pos?.buyDates : null}
+          avgPrice={!isTotal ? pos?.avgPrice : null}
+          cur={!isTotal ? pos?.cur : null}/>
       </div>
     </div>
   );
 }
 
-// ─── SUMMARY BAR ─────────────────────────────────────────────────────────────
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
 function Summary({ positions }) {
-  const totalPpl = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur) - toEur(p.qty * p.avgPrice, p.cur), 0);
-  const totalRet = TOTAL_COST_EUR > 0 ? (TOTAL_VAL_EUR - TOTAL_COST_EUR) / TOTAL_COST_EUR * 100 : 0;
-  const gainers  = positions.filter(p => p.ppl > 0).length;
-  const losers   = positions.filter(p => p.ppl < 0).length;
-  const best     = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
-  const worst    = [...positions].sort((a,b) => pctReturn(a)-pctReturn(b))[0];
+  const totalPpl  = positions.reduce((s,p) => s + p.ppl, 0);
+  const gainers   = positions.filter(p => p.ppl > 0).length;
+  const losers    = positions.filter(p => p.ppl < 0).length;
+  const best      = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
+  const worst     = [...positions].sort((a,b) => pctReturn(a)-pctReturn(b))[0];
 
-  const Stat = ({label, value, sub, color, border}) => (
-    <div style={{display:"flex",flexDirection:"column",justifyContent:"center",
-      padding:"0 18px",borderRight:`1px solid ${border||"#2a3042"}`,minWidth:0,flexShrink:0}}>
-      <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.8px",marginBottom:"2px",whiteSpace:"nowrap"}}>{label}</div>
-      <div style={{fontSize:"15px",fontWeight:"700",color:color||"#d1d4dc",whiteSpace:"nowrap",lineHeight:1.1}}>{value}</div>
-      {sub && <div style={{fontSize:"10px",color:"#6b7280",marginTop:"2px",whiteSpace:"nowrap"}}>{sub}</div>}
-    </div>
-  );
+  const cards = [
+    { l:"Posições",   v:positions.length,  s:"total",               c:"#6B7280" },
+    { l:"P&L Total",  v:(totalPpl>=0?"+":"")+totalPpl.toFixed(2)+"€*", s:"multicurrency", c:totalPpl>=0?"#10B981":"#EF4444" },
+    { l:"Em Ganho",   v:gainers,            s:"positivas",           c:"#10B981" },
+    { l:"Em Perda",   v:losers,             s:"negativas",           c:"#EF4444" },
+    { l:"Melhor",     v:best.ticker,        s:"+"+(pctReturn(best)).toFixed(1)+"%", c:"#10B981" },
+    { l:"Pior",       v:worst.ticker,       s:(pctReturn(worst)).toFixed(1)+"%",   c:"#EF4444" },
+  ];
 
   return (
-    <div className="summary-bar" style={{display:"flex",alignItems:"stretch",background:"#131722",
-      borderBottom:"1px solid #2a3042",height:"58px",overflowX:"auto",flexShrink:0}}>
-      <Stat label="POSIÇÕES"   value={positions.length}    sub="em carteira"   color="#9CA3AF"/>
-      <Stat label="P&L TOTAL"  value={(totalPpl>=0?"+":"")+totalPpl.toFixed(0)+"€"} sub={`${totalRet>=0?"+":""}${totalRet.toFixed(2)}% do capital`} color={totalPpl>=0?"#089981":"#ef5350"}/>
-      <Stat label="EM GANHO"   value={gainers}             sub={`${((gainers/positions.length)*100).toFixed(0)}% das posições`} color="#089981"/>
-      <Stat label="EM PERDA"   value={losers}              sub={`${((losers/positions.length)*100).toFixed(0)}% das posições`}  color="#ef5350"/>
-      <Stat label="MELHOR"     value={best.ticker}         sub={`+${pctReturn(best).toFixed(1)}%`} color="#089981"/>
-      <Stat label="PIOR"       value={worst.ticker}        sub={`${pctReturn(worst).toFixed(1)}%`} color="#ef5350" border="transparent"/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"6px",padding:"10px 12px",background:"#080C14",borderBottom:"1px solid #1F2937"}}>
+      {cards.map((c,i)=>(
+        <div key={i} style={{background:"#0D1117",border:`1px solid ${c.c}25`,borderTop:`2px solid ${c.c}`,borderRadius:"5px",padding:"8px 10px"}}>
+          <div style={{fontSize:"8px",color:"#6B7280",letterSpacing:"1px",marginBottom:"3px"}}>{c.l}</div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:c.c}}>{c.v}</div>
+          <div style={{fontSize:"8px",color:"#2D3748",marginTop:"1px"}}>{c.s}</div>
+        </div>
+      ))}
     </div>
   );
 }
 
 // ─── POSITION ROW ─────────────────────────────────────────────────────────────
-function Sparkline({ ticker, color }) {
-  const raw = CHART_DATA.stocks?.[ticker]?.["3mo"] || {};
-  const vals = Object.values(raw).filter(v => v != null);
-  if (vals.length < 2) return null;
-  const mn = Math.min(...vals), mx = Math.max(...vals);
-  const range = mx - mn || 1;
-  const W = 52, H = 22;
-  const pts = vals.map((v, i) =>
-    `${((i / (vals.length - 1)) * W).toFixed(1)},${(H - ((v - mn) / range) * H).toFixed(1)}`
-  ).join(" ");
-  const isPos = vals[vals.length - 1] >= vals[0];
-  const c = isPos ? "#089981" : "#ef5350";
-  return (
-    <svg width={W} height={H} style={{display:"block",flexShrink:0}}>
-      <polyline points={pts} fill="none" stroke={c} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" opacity="0.8"/>
-    </svg>
-  );
-}
-
 function PositionRow({ p, selected, onClick }) {
-  const ret       = pctReturn(p);
-  const costEur   = toEur(p.qty * p.avgPrice, p.cur);
-  const valEur    = toEur(p.qty * p.curPrice, p.cur);
-  const weightPct = TOTAL_VAL_EUR > 0 ? (valEur / TOTAL_VAL_EUR * 100) : 0;
+  const ret = pctReturn(p);
+  const col = SECTOR_COLORS[p.sector] || "#6B7280";
   return (
-    <div className="pos-grid pos-row row cb" onClick={onClick}
-      style={{padding:"5px 12px",
-        borderBottom:"1px solid #1a1f2e",
-        background: selected ? "#1e2d47" : "transparent",
-        borderLeft: selected ? "2px solid #2962ff" : "2px solid transparent",
-        transition:"background 0.1s"}}>
-      <LogoImg ticker={p.ticker} sector={p.sector} flag={p.flag} size={20}/>
-      {/* Empresa */}
-      <div style={{minWidth:0}}>
-        <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#d1d4dc":"#c8ccd4",
-          whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px"}}>{p.ticker}</div>
+    <div className="row cb" onClick={onClick}
+      style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",alignItems:"center",
+        padding:"7px 10px",borderBottom:"1px solid #0A0F1A",
+        background: selected ? "#0F1824" : "transparent",
+        borderLeft: selected ? `3px solid ${col}` : "3px solid transparent"}}>
+      <span style={{fontSize:"12px"}}>{p.flag}</span>
+      <div>
+        <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#D1D5DB",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+        <div style={{fontSize:"8px",color:"#374151"}}>{p.ticker}</div>
       </div>
-      {/* Preço actual */}
-      <div className="col-price" style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
-          {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
-        </div>
-        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
-          avg {p.cur}{p.avgPrice >= 100 ? p.avgPrice.toFixed(0) : p.avgPrice.toFixed(2)}
-        </div>
-      </div>
-      {/* Total Investido */}
-      <div className="col-invested" style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"500",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
-          {fmtEur(costEur)}
-        </div>
-      </div>
-      {/* Valor da Posição */}
       <div style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"600",color:"#c8ccd4",fontVariantNumeric:"tabular-nums"}}>
-          {fmtEur(valEur)}
+        <div style={{fontSize:"10px",color:"#D1D5DB"}}>{p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}</div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#10B981":"#EF4444"}}>
+          {ret>=0?"+":""}{ret.toFixed(1)}%
         </div>
-        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
-          {weightPct.toFixed(1)}%
+        <div style={{fontSize:"8px",color:ret>=0?"#10B981":"#EF4444"}}>
+          {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
         </div>
       </div>
-      {/* Peso % (por custo investido) */}
-      <div className="col-weight" style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"500",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
-          {TOTAL_COST_EUR > 0 ? (costEur / TOTAL_COST_EUR * 100).toFixed(1) : "—"}%
-        </div>
-      </div>
-      {/* Retorno */}
-      <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:"5px"}}>
-        <div className="row-spark" style={{opacity:selected?1:0.6}}>
-          <Sparkline ticker={p.ticker}/>
-        </div>
-        <div>
-          <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#089981":"#ef5350",
-            fontVariantNumeric:"tabular-nums"}}>
-            {ret>=0?"+":""}{ret.toFixed(1)}%
-          </div>
-          <div style={{fontSize:"8px",color:ret>=0?"#05614f":"#be3a38",fontVariantNumeric:"tabular-nums"}}>
-            {fmtEur(toEur(p.ppl, p.cur))}
-          </div>
-        </div>
+      <div style={{textAlign:"center"}}>
+        <span style={{fontSize:"7px",padding:"2px 4px",borderRadius:"3px",background:`${col}20`,color:col,
+          display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          {p.sector.split(" ")[0]}
+        </span>
       </div>
     </div>
   );
 }
 
-// ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
-const METRIC_META = {
-  revenue:           {title:"Receita",             unit:"B"},
-  grossMargin:       {title:"Margem Bruta",        unit:"%"},
-  operatingMargin:   {title:"Margem Operacional",  unit:"%"},
-  netMargin:         {title:"Margem Líquida",      unit:"%"},
-  netIncome:         {title:"Resultado Líquido",   unit:"B"},
-  eps:               {title:"EPS (diluído)",       unit:"cur"},
-  fcf:               {title:"Free Cash Flow",      unit:"B"},
-  fcfYield:          {title:"FCF Yield",           unit:"%"},
-  totalDebt:         {title:"Dívida Total",        unit:"B"},
-  marketCap:         {title:"Market Cap",          unit:"B"},
-  pe:                {title:"P/E Ratio",           unit:"x"},
-  debtToEquity:      {title:"Debt/Equity",         unit:"%"},
-  currentRatio:      {title:"Current Ratio",       unit:"x"},
-  roe:               {title:"ROE",                 unit:"%"},
-  roa:               {title:"ROA",                 unit:"%"},
-  payoutRatio:       {title:"Payout Ratio",        unit:"%"},
-  divYield:          {title:"Dividend Yield",      unit:"%"},
-  buybackYield:      {title:"Buyback Yield",       unit:"%"},
-  shareholderYield:  {title:"Shareholder Yield",   unit:"%"},
-  sharesOutstanding: {title:"Nº de Ações",         unit:"B"},
-  dps:               {title:"Dividendo por Ação",  unit:"cur"},
-};
-
+// ─── DETAIL ──────────────────────────────────────────────────────────────────
 function Detail({ p }) {
   const ret = pctReturn(p);
-  const col = SECTOR_COLORS[p.sector] || "#5a6478";
+  const col = SECTOR_COLORS[p.sector] || "#6B7280";
   const posValue  = p.qty * p.curPrice;
   const costBasis = p.qty * p.avgPrice;
   const f = FUNDAMENTALS[p.ticker];
-  const [histModal, setHistModal] = React.useState(null);
 
   const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
   const fmtStr = (v) => v == null ? "—" : String(v);
-  const weightPct = TOTAL_VAL_EUR > 0 ? toEur(p.qty * p.curPrice, p.cur) / TOTAL_VAL_EUR * 100 : 0;
-  const firstBuy  = p.buyDates && p.buyDates[0];
-  const daysSince = firstBuy ? Math.floor((Date.now() - new Date(firstBuy)) / 86400000) : null;
 
-  const yieldCol  = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
-  const peCol     = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
-  const cagrCol   = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const payoutCol = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
-  const marginCol = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
-  const fcfCol    = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const yieldCol  = (v) => v == null ? "#6B7280" : v >= 5 ? "#10B981" : v >= 2 ? "#D1D5DB" : "#9CA3AF";
+  const peCol     = (v) => v == null ? "#6B7280" : v < 0 ? "#EF4444" : v < 15 ? "#10B981" : v < 25 ? "#D1D5DB" : v < 40 ? "#F59E0B" : "#EF4444";
+  const cagrCol   = (v) => v == null ? "#6B7280" : v > 10 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
+  const payoutCol = (v) => v == null ? "#6B7280" : v < 50 ? "#10B981" : v < 80 ? "#F59E0B" : "#EF4444";
+  const marginCol = (v) => v == null ? "#6B7280" : v > 50 ? "#10B981" : v > 25 ? "#D1D5DB" : "#F59E0B";
+  const fcfCol    = (v) => v == null ? "#6B7280" : v > 15 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
 
-  const INDICATOR_DESC = {
-    "Market Cap":        "Valor total de mercado da empresa: preço da ação × número de ações em circulação.",
-    "Total Debt":        "Dívida total da empresa (curto + longo prazo).",
-    "P/E Ratio":         "Preço / Lucro por ação. Quantos anos de lucros atuais pagas pelo preço de hoje — quanto mais baixo, mais barata a ação.",
-    "Gross Margin":      "(Receita − custo dos produtos vendidos) / Receita. Mede o poder de preço do negócio.",
-    "Net Margin":        "Lucro líquido / Receita. Quanto de cada dólar/euro de vendas se converte em lucro final.",
-    "ROE":               "Retorno sobre capitais próprios: lucro líquido / capital dos acionistas. Acima de 15–20% é excelente.",
-    "FCF Yield":         "Free cash flow / Market cap. Cash livre gerado por ano face ao preço pago pela empresa.",
-    "Revenue Growth":    "Crescimento da receita face ao ano fiscal anterior.",
-    "Dividend Yield":    "Dividendo anual / Preço da ação.",
-    "Buyback Yield":     "Valor gasto em recompras de ações / Market cap.",
-    "Shareholder Yield": "Dividend yield + buyback yield: retorno total devolvido ao acionista.",
-    "Payout Ratio":      "Percentagem dos lucros paga em dividendos. Abaixo de ~60–80% é geralmente sustentável.",
-    "Div CAGR 5 anos":   "Taxa de crescimento anual composto do dividendo nos últimos 5 anos.",
-  };
-
-  const Card = ({label, value, color, histKey}) => {
-    const desc = INDICATOR_DESC[label];
-    const hist = histKey && f && f.history && f.history[histKey];
-    const [tip, setTip] = React.useState(false);
-    const [tipPos, setTipPos] = React.useState({left:"50%",transform:"translateX(-50%)"});
-    const handleEnter = e => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const vw = window.innerWidth;
-      if (rect.left < 80)           setTipPos({left:0, transform:"none"});
-      else if (rect.right > vw - 80) setTipPos({right:0, left:"auto", transform:"none"});
-      else                            setTipPos({left:"50%", transform:"translateX(-50%)"});
-      setTip(true);
-    };
-    return (
-      <div
-        style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:`1px solid ${tip?"#2962ff":"#1e2438"}`,
-                cursor:"pointer",position:"relative",transition:"border-color 0.15s"}}
-        onMouseEnter={handleEnter}
-        onMouseLeave={() => setTip(false)}
-        onTouchStart={handleEnter}
-        onTouchEnd={() => setTimeout(() => setTip(false), 1800)}
-        onClick={() => hist && setHistModal({label, key: histKey})}
-      >
-        {tip && desc && (
-          <div style={{position:"absolute",bottom:"calc(100% + 6px)",...tipPos,
-            background:"#1e2438",border:"1px solid #2a2e39",borderRadius:"6px",padding:"7px 10px",
-            fontSize:"10px",color:"#c8ccd4",lineHeight:"1.4",width:"180px",zIndex:200,
-            boxShadow:"0 4px 16px #00000088",pointerEvents:"none",textAlign:"left"}}>
-            {desc}
-            {hist && <div style={{marginTop:"4px",color:"#2962ff",fontSize:"9px"}}>Clica para ver histórico →</div>}
-          </div>
-        )}
-        <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase",display:"flex",alignItems:"center",gap:"4px"}}>
-          {label}
-          {hist && <span style={{color:"#2962ff",fontSize:"8px",lineHeight:1}}>↗</span>}
-        </div>
-        <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
-      </div>
-    );
-  };
+  const Card = ({label, value, color}) => (
+    <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"6px 8px",border:"1px solid #1A2535"}}>
+      <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.4px"}}>{label}</div>
+      <div style={{fontSize:"11px",color:color||"#D1D5DB",fontWeight:"600"}}>{value}</div>
+    </div>
+  );
 
   const Section = ({title}) => (
-    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
+    <div style={{fontSize:"7px",color:"#374151",letterSpacing:"1.5px",margin:"8px 0 4px 2px"}}>{title}</div>
   );
 
   return (
-    <div style={{padding:"12px"}}>
+    <div style={{padding:"10px"}}>
       {/* Header */}
-      <div style={{borderLeft:"3px solid #2962ff",paddingLeft:"10px",marginBottom:"12px"}}>
-        <div style={{fontSize:"9px",color:"#787b86",marginBottom:"3px",letterSpacing:"0.3px"}}>
-          {p.exchange} · <span style={{color:"#2962ff"}}>{p.ticker}</span>
-        </div>
-        <div style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb"}}>{p.name}</div>
-        <div style={{display:"flex",gap:"12px",marginTop:"4px",alignItems:"baseline"}}>
-          <span style={{fontSize:"16px",fontWeight:"700",color:"#c8ccd4"}}>{p.cur}{p.curPrice.toFixed(2)}</span>
-          <span style={{fontSize:"11px",color:ret>=0?"#089981":"#ef5350",fontWeight:"600"}}>
-            {ret>=0?"+":""}{ret.toFixed(2)}%
-          </span>
-          <span style={{fontSize:"10px",color:ret>=0?"#05614f":"#be3a38"}}>
-            {p.ppl>=0?"+":""}{fmtEur(toEur(p.ppl, p.cur))}
-          </span>
+      <div style={{borderLeft:`3px solid ${col}`,paddingLeft:"10px",marginBottom:"10px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:"8px",color:"#6B7280"}}>{p.exchange} · {p.ticker}</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:"#F9FAFB"}}>{p.name}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"16px",fontWeight:"800",color:col}}>{p.cur}{p.curPrice.toFixed(2)}</div>
+            <div style={{fontSize:"10px",color:ret>=0?"#10B981":"#EF4444",fontWeight:"600"}}>{ret>=0?"+":""}{ret.toFixed(2)}% | {p.ppl>=0?"+":""}{p.ppl.toFixed(2)}{p.cur}</div>
+          </div>
         </div>
       </div>
 
       {/* Position */}
-      <Section title="Posição"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-        <Card label="Preço Atual"   value={`${p.cur}${p.curPrice.toFixed(2)}`}  color="#c8ccd4"/>
-        <Card label="Preço Médio"   value={`${p.cur}${p.avgPrice.toFixed(2)}`}  color="#787b86"/>
-        <Card label="Valor Posição" value={`${p.cur}${posValue.toFixed(2)}`}    color="#c8ccd4"/>
-        <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`}   color="#787b86"/>
-        <Card label="Quantidade"    value={p.qty.toFixed(4)}                    color="#5a6478"/>
-        <Card label="Setor"         value={p.sector}                            color={col}/>
-        <Card label="% Portfolio"   value={`${weightPct.toFixed(2)}%`}          color={weightPct>20?"#F0883E":"#c8ccd4"}/>
-        <Card label="Dias Carteira" value={daysSince != null ? `${daysSince}d` : "—"} color="#5a6478"/>
-        {firstBuy && <Card label="1ª Compra" value={firstBuy} color="#6b7280"/>}
+      <Section title="POSIÇÃO"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+        <Card label="Preço Atual"   value={`${p.cur}${p.curPrice.toFixed(2)}`} color={col}/>
+        <Card label="Preço Médio"   value={`${p.cur}${p.avgPrice.toFixed(2)}`} color="#9CA3AF"/>
+        <Card label="Quantidade"    value={p.qty.toFixed(4)} color="#D1D5DB"/>
+        <Card label="Valor Posição" value={`${p.cur}${posValue.toFixed(2)}`} color="#D1D5DB"/>
+        <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`} color="#6B7280"/>
+        <Card label="Setor"         value={p.sector} color={col}/>
       </div>
 
       {/* Fundamentals */}
       {f ? (<>
-        <Section title="Avaliação"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"                          histKey="marketCap"/>
-          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"} histKey="totalDebt"/>
-          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}                     histKey="pe"/>
+        <Section title="AVALIAÇÃO"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"5px"}}>
+          <Card label="Market Cap"   value={fmtStr(f.marketCap)}    color="#D1D5DB"/>
+          <Card label="Total Debt"   value={fmtStr(f.totalDebt)}    color={f.totalDebt ? "#F59E0B" : "#6B7280"}/>
+          <Card label="P/E Ratio"    value={fmtNum(f.pe)}           color={peCol(f.pe)}/>
         </div>
 
-        <Section title="Rentabilidade"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)} histKey="grossMargin"/>
-          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}   histKey="netMargin"/>
-          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}            histKey="roe"/>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
-          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}       histKey="fcfYield"/>
-          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)} histKey="revenue"/>
+        <Section title="MARGENS"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+          <Card label="Gross Margin"  value={fmtPct(f.grossMargin)} color={marginCol(f.grossMargin)}/>
+          <Card label="FCF / Revenue" value={fmtPct(f.fcfRatio)}    color={fcfCol(f.fcfRatio)}/>
         </div>
 
-        <Section title="Retorno ao Acionista"/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}         histKey="divYield"/>
-          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}     histKey="buybackYield"/>
-          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)} histKey="shareholderYield"/>
-          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}     histKey="payoutRatio"/>
+        <Section title="RETORNO AO ACIONISTA"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+          <Card label="Dividend Yield"     value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
+          <Card label="Buyback Yield"      value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
+          <Card label="Shareholder Yield"  value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
+          <Card label="Payout Ratio"       value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
         </div>
 
-        <Section title="Crescimento do Dividendo"/>
-        <div style={{background:"#1a1f2e",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438",
+        <Section title="CRESCIMENTO DO DIVIDENDO"/>
+        <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"8px 10px",border:"1px solid #1A2535",
           display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
-          <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
-            <div style={{fontSize:"15px",color:cagrCol(f.divCagr5y),fontWeight:"700",fontFamily:"'Inter',sans-serif",minWidth:"52px",textAlign:"right"}}>
-              {f.divCagr5y != null ? `${f.divCagr5y>0?"+":""}${f.divCagr5y.toFixed(1)}%` : "—"}
+          <div style={{fontSize:"7px",color:"#4B5563"}}>Div CAGR · 5 anos</div>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <div style={{fontSize:"14px",color:cagrCol(f.divCagr5y),fontWeight:"700"}}>
+              {f.divCagr5y != null ? `${f.divCagr5y > 0 ? "+" : ""}${f.divCagr5y.toFixed(1)}%` : "—"}
             </div>
             {f.divCagr5y != null && (
-              <div style={{position:"relative",width:"50px",height:"4px",borderRadius:"2px",background:"#1e2438",flexShrink:0}}>
-                <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#5a6478"}}/>
+              <div style={{position:"relative",width:"64px",height:"5px",borderRadius:"3px",background:"#1A2535"}}>
                 <div style={{
-                  position:"absolute",height:"100%",borderRadius:"2px",
+                  position:"absolute",height:"100%",borderRadius:"3px",
+                  width:`${Math.min(100, Math.abs(f.divCagr5y) * 2.5)}%`,
                   background:cagrCol(f.divCagr5y),
-                  left:  f.divCagr5y>=0 ? "50%" : `${Math.max(0,50-Math.min(50,Math.abs(f.divCagr5y)*1.5))}%`,
-                  width: `${Math.min(50,Math.abs(f.divCagr5y)*1.5)}%`,
+                  left: f.divCagr5y >= 0 ? "50%" : `${Math.max(0, 50 - Math.min(50, Math.abs(f.divCagr5y)*1.25))}%`,
+                  transform: f.divCagr5y >= 0 ? "none" : "none"
                 }}/>
+                <div style={{position:"absolute",left:"50%",top:"-1px",width:"1px",height:"7px",background:"#374151"}}/>
               </div>
             )}
           </div>
         </div>
       </>) : (
-        <div style={{marginTop:"16px",padding:"16px",background:"#1a1f2e",borderRadius:"5px",
-          border:"1px solid #1e2438",textAlign:"center",color:"#6b7280",fontSize:"9px"}}>
-          Dados fundamentais não disponíveis
-        </div>
-      )}
-
-      {histModal && f && f.history && f.history[histModal.key] && (() => {
-        const meta   = METRIC_META[histModal.key] || {};
-        const unit   = meta.unit || "%";
-        const title  = meta.title || histModal.label;
-        const raw    = f.history[histModal.key];
-        const years  = Object.keys(raw).map(Number).sort();
-        const vals   = years.map(y => raw[y]);
-        const max    = Math.max(...vals.map(Math.abs));
-        const fmtBig = v => {
-          if (Math.abs(v) >= 1e12) return `${(v/1e12).toFixed(2)}T`;
-          if (Math.abs(v) >= 1e9)  return `${(v/1e9).toFixed(1)}B`;
-          if (Math.abs(v) >= 1e6)  return `${(v/1e6).toFixed(0)}M`;
-          return String(Math.round(v));
-        };
-        const fmtVal = v => {
-          if (unit === "%")   return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
-          if (unit === "B")   return fmtBig(v);
-          if (unit === "cur") return fmtBig(v);
-          if (unit === "x")   return `${v.toFixed(2)}x`;
-          return v.toFixed(1);
-        };
-        const barCol = v => v >= 0 ? "#089981" : "#ef5350";
-        return (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
-            display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}
-            onClick={() => setHistModal(null)}>
-            <div style={{background:"#131722",border:"1px solid #2a2e39",borderRadius:"10px",
-              padding:"20px",width:"100%",maxWidth:"380px"}}
-              onClick={e => e.stopPropagation()}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
-                <div>
-                  <div style={{fontSize:"11px",color:"#787b86",marginBottom:"2px"}}>{p.ticker} · {p.name}</div>
-                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>{title}</div>
-                </div>
-                <button onClick={() => setHistModal(null)}
-                  style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"4px"}}>✕</button>
-              </div>
-              <svg width="100%" viewBox={`0 0 ${years.length * 60} 100`} style={{display:"block",marginBottom:"12px"}}>
-                {vals.map((v, i) => {
-                  const barH = max > 0 ? Math.abs(v) / max * 70 : 0;
-                  const x = i * 60 + 5;
-                  const baseline = 80;
-                  const y = v >= 0 ? baseline - barH : baseline;
-                  return (
-                    <g key={years[i]}>
-                      <rect x={x} y={y} width={50} height={Math.max(barH, 1)} fill={barCol(v)} rx="3" opacity="0.85"/>
-                      <text x={x + 25} y={baseline + 12} textAnchor="middle" fill="#6b7280" fontSize="9">{years[i]}</text>
-                      <text x={x + 25} y={v >= 0 ? y - 3 : y + barH + 11} textAnchor="middle"
-                        fill={barCol(v)} fontSize="9" fontWeight="600">{fmtVal(v)}</text>
-                    </g>
-                  );
-                })}
-                <line x1="0" y1="80" x2={years.length * 60} y2="80" stroke="#2a2e39" strokeWidth="1"/>
-              </svg>
-              <div style={{display:"grid",gridTemplateColumns:`repeat(${years.length},minmax(0,1fr))`,gap:"4px",textAlign:"center"}}>
-                {years.map((y,i) => (
-                  <div key={y} style={{background:"#1a1f2e",borderRadius:"4px",padding:"5px 2px",minWidth:0}}>
-                    <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px"}}>{y}</div>
-                    <div style={{fontSize:"10px",fontWeight:"600",color:barCol(vals[i]),whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{fmtVal(vals[i])}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── News button ── */}
-      <NewsButton ticker={p.ticker} label={`${p.ticker} · ${p.name}`} bgColor="#1a1f2e" />
-    </div>
-  );
-}
-
-// ─── PORTFOLIO OVERVIEW PANEL ────────────────────────────────────────────────
-function PortfolioOverview({ positions, onSelect }) {
-  const sorted   = [...positions].sort((a,b) => pctReturn(b) - pctReturn(a));
-  const top3     = sorted.slice(0, 3);
-  const bot3     = sorted.slice(-3).reverse();
-  const totalVal  = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur), 0);
-  const totalCost = positions.reduce((s,p) => s + toEur(p.qty * p.avgPrice, p.cur), 0);
-  const totalPnl  = totalVal - totalCost;
-
-  // Sector allocation (in EUR)
-  const sectorMap = {};
-  positions.forEach(p => {
-    const v = toEur(p.qty * p.curPrice, p.cur);
-    sectorMap[p.sector] = (sectorMap[p.sector] || 0) + v;
-  });
-  const sectorList = Object.entries(sectorMap)
-    .map(([s, v]) => ({ s, v, pct: (v / totalVal) * 100 }))
-    .sort((a, b) => b.v - a.v);
-
-  // Country/exchange allocation (in EUR)
-  const countryMap = {};
-  positions.forEach(p => {
-    const v = toEur(p.qty * p.curPrice, p.cur);
-    const key = (p.flag || "🌍") + " " + (p.exchange || "—");
-    countryMap[key] = (countryMap[key] || 0) + v;
-  });
-  const countryList = Object.entries(countryMap)
-    .map(([k, v]) => ({ k, v, pct: (v / totalVal) * 100 }))
-    .sort((a, b) => b.v - a.v);
-
-  // Alertas de concentração
-  const posAlerts = positions
-    .map(p => ({ ticker: p.ticker, name: p.name, pct: toEur(p.qty * p.curPrice, p.cur) / totalVal * 100 }))
-    .filter(x => x.pct > 20)
-    .sort((a, b) => b.pct - a.pct);
-  const secAlerts = sectorList.filter(x => x.pct > 30);
-
-  const MiniRow = ({ p, rank }) => {
-    const ret = pctReturn(p);
-    const col = ret >= 0 ? "#089981" : "#ef5350";
-    return (
-      <div onClick={() => onSelect(p.ticker)}
-        style={{display:"flex",alignItems:"center",gap:"8px",padding:"5px 8px",
-          borderRadius:"4px",cursor:"pointer",transition:"background 0.1s"}}
-        onMouseEnter={e=>e.currentTarget.style.background="#1a1f2e"}
-        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-        <div style={{fontSize:"9px",color:"#5a6478",width:"14px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{rank}</div>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:"10px",fontWeight:"600",color:"#c8ccd4",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-          <div style={{fontSize:"9px",color:"#6b7280"}}>{p.ticker}</div>
-        </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:"11px",fontWeight:"700",color:col,fontVariantNumeric:"tabular-nums"}}>
-            {ret>=0?"+":""}{ret.toFixed(1)}%
-          </div>
-          <div style={{fontSize:"8px",color:ret>=0?"#05614f":"#be3a38",fontVariantNumeric:"tabular-nums"}}>
-            {p.ppl>=0?"+":""}{fmtEur(toEur(p.ppl, p.cur)).replace("€","")}€
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const SectionLabel = ({title}) => (
-    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",textTransform:"uppercase",
-      padding:"8px 8px 4px",borderTop:"1px solid #1a1f2e",marginTop:"2px"}}>{title}</div>
-  );
-
-  return (
-    <div style={{padding:"10px 4px 16px"}}>
-      {/* Header */}
-      <div style={{padding:"2px 8px 10px",borderBottom:"1px solid #1a1f2e"}}>
-        <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Visão Geral</div>
-        <div style={{display:"flex",gap:"6px"}}>
-          {[
-            { l:"Total investido", v: fmtEur(totalCost),                                    c:"#c8ccd4" },
-            { l:"Valor actual",    v: fmtEur(totalVal),                                     c:"#c8ccd4" },
-            { l:"P&L total",       v: (totalPnl>=0?"+":"")+fmtEur(totalPnl).replace("€","")+"€", c: totalPnl>=0?"#089981":"#ef5350" },
-          ].map(({l,v,c}) => (
-            <div key={l} style={{flex:1,background:"#1a1f2e",borderRadius:"5px",padding:"6px 8px",border:"1px solid #1e2438"}}>
-              <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"3px",letterSpacing:"0.3px"}}>{l}</div>
-              <div style={{fontSize:"11px",fontWeight:"700",color:c,fontFamily:"'Inter',sans-serif"}}>{v}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Top 3 gainers */}
-      <SectionLabel title="▲  Maiores Ganhos"/>
-      {top3.map((p,i) => <MiniRow key={p.ticker} p={p} rank={i+1}/>)}
-
-      {/* Top 3 losers */}
-      <SectionLabel title="▼  Maiores Perdas"/>
-      {bot3.map((p,i) => <MiniRow key={p.ticker} p={p} rank={i+1}/>)}
-
-      {/* Alertas de concentração */}
-      {(posAlerts.length > 0 || secAlerts.length > 0) && (
-        <>
-          <SectionLabel title="⚠ Concentração"/>
-          <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"4px"}}>
-            {posAlerts.map(x => (
-              <div key={x.ticker} style={{display:"flex",alignItems:"center",gap:"6px",
-                background:"#2a1f0e",border:"1px solid #4a3010",borderRadius:"4px",padding:"5px 8px"}}>
-                <span style={{fontSize:"9px",color:"#F0883E"}}>⚠</span>
-                <span style={{fontSize:"9px",color:"#c8a96e",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.name}</span>
-                <span style={{fontSize:"9px",color:"#F0883E",fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>{x.pct.toFixed(1)}%</span>
-              </div>
-            ))}
-            {secAlerts.map(x => (
-              <div key={x.s} style={{display:"flex",alignItems:"center",gap:"6px",
-                background:"#1e1a2a",border:"1px solid #3a3050",borderRadius:"4px",padding:"5px 8px"}}>
-                <span style={{fontSize:"9px",color:"#a78bfa"}}>⚠</span>
-                <span style={{fontSize:"9px",color:"#a78bfa",flex:1}}>{x.s}</span>
-                <span style={{fontSize:"9px",color:"#a78bfa",fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>{x.pct.toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Sector allocation */}
-      <SectionLabel title="Alocação por Sector"/>
-      <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"5px"}}>
-        {sectorList.map(({s, pct}) => (
-          <div key={s}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
-              <div style={{fontSize:"9px",color:"#787b86",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"65%"}}>{s}</div>
-              <div style={{fontSize:"9px",color:"#6b7280",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
-            </div>
-            <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
-              <div style={{height:"100%",borderRadius:"2px",background:SECTOR_COLORS[s]||"#5a6478",
-                width:`${pct}%`,transition:"width 0.3s"}}/>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Country/Exchange allocation */}
-      <SectionLabel title="Alocação por País / Bolsa"/>
-      <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"5px"}}>
-        {countryList.map(({k, pct}) => (
-          <div key={k}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
-              <div style={{fontSize:"9px",color:"#787b86",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"70%"}}>{k}</div>
-              <div style={{fontSize:"9px",color:"#6b7280",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
-            </div>
-            <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
-              <div style={{height:"100%",borderRadius:"2px",background:"#5b8af5",
-                width:`${pct}%`,transition:"width 0.3s"}}/>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-// ─── DEPLOY + COUNTDOWN (combined widget) ────────────────────────────────────
-function DeployCountdown() {
-  const REFRESH_MS = 15 * 60 * 1000;
-  const [status,    setStatus]   = useState("idle"); // idle | asking | running | ok | err
-  const [token,     setToken]    = useState(() => localStorage.getItem("gh_pat") || "");
-  const [inputVal,  setInput]    = useState("");
-  const [errMsg,    setErrMsg]   = useState("");
-  const [minsLeft,  setMinsLeft] = useState(15);
-  const ref = useRef(null);
-
-  // Auto-refresh timer + countdown
-  useEffect(() => {
-    const deadline = Date.now() + REFRESH_MS;
-    const tick = setInterval(() => {
-      setMinsLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 60000)));
-    }, 10000);
-    const reload = setTimeout(() => location.reload(), REFRESH_MS);
-    return () => { clearInterval(tick); clearTimeout(reload); };
-  }, []);
-
-  // Fechar modal ao clicar fora
-  useEffect(() => {
-    if (status !== "asking") return;
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setStatus("idle"); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [status]);
-
-  const trigger = async (pat) => {
-    setStatus("running");
-    try {
-      const res = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`,
-        { method:"POST", headers:{ "Authorization":`Bearer ${pat}`, "Accept":"application/vnd.github+json", "Content-Type":"application/json" },
-          body: JSON.stringify({ ref:"main" }) }
-      );
-      if (res.status === 204) {
-        setStatus("ok");
-        setTimeout(() => setStatus("idle"), 4000);
-      } else {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || `HTTP ${res.status}`);
-      }
-    } catch(e) {
-      setErrMsg(e.message);
-      setStatus("err");
-      setTimeout(() => setStatus("idle"), 5000);
-    }
-  };
-
-  const handleClick = () => {
-    if (status === "running") return;
-    if (token) { trigger(token); return; }
-    setInput(""); setStatus("asking");
-  };
-
-  const handleSave = () => {
-    const pat = inputVal.trim();
-    if (!pat) return;
-    localStorage.setItem("gh_pat", pat);
-    setToken(pat);
-    trigger(pat);
-  };
-
-  const handleClear = (e) => {
-    e.stopPropagation();
-    localStorage.removeItem("gh_pat");
-    setToken(""); setStatus("idle");
-  };
-
-  const col    = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : status==="running" ? "#5b8af5" : "#6b7280";
-  const bg     = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : status==="running" ? "#2962ff11" : "#1e2438";
-  const border = status==="ok" ? "#22C55E44" : status==="err" ? "#ef535044" : status==="running" ? "#2962ff44" : "#2a3042";
-
-  const label = status==="running" ? "⏳ a correr…"
-              : status==="ok"      ? "✓ em curso"
-              : status==="err"     ? "✗ erro"
-              : `↻ ${minsLeft}m`;
-
-  return (
-    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",gap:"2px"}}>
-      <button className="cb" onClick={handleClick}
-        style={{fontSize:"9px",color:col,background:bg,
-          border:`1px solid ${border}`,borderRadius: token&&status==="idle" ? "5px 0 0 5px" : "5px",
-          padding:"4px 10px",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",
-          transition:"all 0.2s"}}>
-        {label}
-      </button>
-      {token && status==="idle" && (
-        <button className="cb" onClick={handleClear} title="Remover token"
-          style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
-            border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
-            padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
-          ×
-        </button>
-      )}
-      {status==="asking" && (
-        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:100,
-          background:"#1a1f2e",border:"1px solid #3a4060",borderRadius:"8px",
-          padding:"12px",width:"260px",boxShadow:"0 8px 24px #00000066"}}>
-          <div style={{fontSize:"10px",color:"#c8ccd4",marginBottom:"8px",fontWeight:"600"}}>
-            GitHub Personal Access Token
-          </div>
-          <input autoFocus value={inputVal} onChange={e=>setInput(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&handleSave()}
-            placeholder="ghp_…"
-            style={{width:"100%",boxSizing:"border-box",background:"#131722",
-              border:"1px solid #3a4060",borderRadius:"5px",padding:"6px 8px",
-              color:"#c8ccd4",fontSize:"10px",fontFamily:"'Inter',sans-serif",outline:"none"}}/>
-          <div style={{display:"flex",gap:"6px",marginTop:"8px"}}>
-            <button className="cb" onClick={handleSave}
-              style={{flex:1,fontSize:"9px",padding:"5px",borderRadius:"5px",
-                background:"#2962ff",border:"none",color:"#fff",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
-              Guardar e Deploy
-            </button>
-            <button className="cb" onClick={()=>setStatus("idle")}
-              style={{fontSize:"9px",padding:"5px 8px",borderRadius:"5px",cursor:"pointer",
-                background:"transparent",border:"1px solid #2a3042",color:"#6b7280",fontFamily:"'Inter',sans-serif"}}>
-              Cancelar
-            </button>
-          </div>
-          {status==="err" && <div style={{fontSize:"9px",color:"#ef5350",marginTop:"6px"}}>{errMsg}</div>}
-        </div>
-      )}
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
-
-const GH_REPO     = "ctrovisco-blip/portfolio-tracker";
-const GH_WORKFLOW = "update.yml";
-
-// ─── FRESHNESS INDICATOR ──────────────────────────────────────────────────────
-function FreshnessIndicator() {
-  const [show, setShow] = useState(false);
-  const ref = useRef(null);
-
-  // Fecha o tooltip ao clicar fora
-  useEffect(() => {
-    if (!show) return;
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setShow(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [show]);
-
-  // Determina a "idade" mais velha dos dados (excluindo fundamentais — mudam trimestralmente)
-  function ageMinutes(ts) {
-    if (!ts || ts === "n/a") return 9999;
-    const d = new Date(ts.replace(" UTC","Z").replace(" ","T"));
-    return (Date.now() - d.getTime()) / 60000;
-  }
-  const ages = {
-    "Posições":   ageMinutes(TIMESTAMPS.positions),
-    "Gráficos":   ageMinutes(TIMESTAMPS.chart),
-    "FX":         ageMinutes(TIMESTAMPS.fx),
-    "Fundament.": ageMinutes(TIMESTAMPS.fundamentals),
-  };
-  const tsLabels = {
-    "Posições":   TIMESTAMPS.positions,
-    "Gráficos":   TIMESTAMPS.chart,
-    "FX":         TIMESTAMPS.fx,
-    "Fundament.": TIMESTAMPS.fundamentals,
-  };
-  const maxAge = Math.max(...Object.values(ages).filter(v => v < 9999));
-  // Verde < 4h, Amarelo < 25h, Vermelho >= 25h
-  const dot = maxAge < 240 ? "#22C55E" : maxAge < 1500 ? "#F59E0B" : "#ef5350";
-  const label = maxAge < 240
-    ? maxAge < 60 ? `${Math.round(maxAge)}m` : `${(maxAge/60).toFixed(1)}h`
-    : maxAge < 9999 ? `${(maxAge/60/24).toFixed(1)}d`
-    : "?";
-
-  return (
-    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",gap:"5px",cursor:"pointer"}}
-      onClick={() => setShow(s => !s)}>
-      {/* Dot animado */}
-      <div style={{position:"relative",width:"7px",height:"7px"}}>
-        <div style={{position:"absolute",inset:0,borderRadius:"50%",background:dot,opacity:0.35,
-          animation: dot==="#22C55E" ? "ping 2s cubic-bezier(0,0,0.2,1) infinite" : "none"}}/>
-        <div style={{position:"absolute",inset:"1px",borderRadius:"50%",background:dot}}/>
-      </div>
-      <span className="hdr-freshness-text" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
-        Dados: {label} atrás
-      </span>
-      {/* Tooltip */}
-      {show && (
-        <div style={{position:"absolute",top:"18px",right:0,zIndex:50,
-          background:"#1e2438",border:"1px solid #2a3042",borderRadius:"8px",
-          padding:"10px 12px",minWidth:"210px",boxShadow:"0 8px 24px #00000080"}}>
-          <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"0.8px",marginBottom:"8px",fontWeight:600}}>
-            ÚLTIMA ACTUALIZAÇÃO
-          </div>
-          {Object.entries(tsLabels).map(([k,v]) => (
-            <div key={k} style={{display:"flex",justifyContent:"space-between",gap:"12px",
-              marginBottom:"5px",alignItems:"center"}}>
-              <span style={{fontSize:"9px",color:"#787b86",minWidth:"72px"}}>{k}</span>
-              <span style={{fontSize:"9px",color:"#c8ccd4",fontVariantNumeric:"tabular-nums",
-                fontFamily:"'Inter',monospace"}}>{v || "—"}</span>
-            </div>
-          ))}
-          <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
-            fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-            Build: __UPDATED__
-          </div>
-        </div>
-      )}
-      <style>{`@keyframes ping{0%{transform:scale(1);opacity:.8}75%,100%{transform:scale(2.2);opacity:0}}`}</style>
-    </div>
-  );
-}
-
-// ─── PDF REPORT GENERATOR (light theme) ──────────────────────────────────────
-
-function generateReportHTML(cards) {
-  const today = new Date().toLocaleDateString('pt-PT');
-
-  const fmtPct    = (v, d=2) => v == null ? '—' : `${v.toFixed(d)}%`;
-  const fmtNum    = (v, d=1) => v == null ? '—' : v.toFixed(d);
-  const fmtStr    = (v)      => v == null ? '—' : String(v);
-  const fmtGrowth = (v, d=1) => v == null ? '—' : `${v>0?'+':''}${v.toFixed(d)}%`;
-
-  // Light-theme color functions
-  const peCol    = v => v==null?'#9ca3af':v<0?'#b91c1c':v<15?'#065f46':v<25?'#374151':v<40?'#92400e':'#b91c1c';
-  const pbCol    = v => v==null?'#9ca3af':v<1?'#065f46':v<3?'#374151':v<10?'#92400e':'#b91c1c';
-  const betaCol  = v => v==null?'#9ca3af':v<0.8?'#1e40af':v<1.2?'#374151':v<1.5?'#92400e':'#b91c1c';
-  const deCol    = v => v==null?'#9ca3af':v<50?'#065f46':v<100?'#374151':v<200?'#92400e':'#b91c1c';
-  const crCol    = v => v==null?'#9ca3af':v>=2?'#065f46':v>=1?'#374151':'#b91c1c';
-  const marginCol= v => v==null?'#9ca3af':v>50?'#065f46':v>25?'#374151':'#92400e';
-  const fcfCol   = v => v==null?'#9ca3af':v>15?'#065f46':v>0?'#374151':'#b91c1c';
-  const roeCol   = v => v==null?'#9ca3af':v>20?'#065f46':v>10?'#374151':v>0?'#92400e':'#b91c1c';
-  const growthCol= v => v==null?'#9ca3af':v>15?'#065f46':v>5?'#374151':v>0?'#92400e':'#b91c1c';
-  const yieldCol = v => v==null?'#9ca3af':v>=5?'#065f46':v>=2?'#374151':'#9ca3af';
-  const cagrCol  = v => v==null?'#9ca3af':v>10?'#065f46':v>0?'#374151':'#b91c1c';
-  const payoutCol= v => v==null?'#9ca3af':v<50?'#065f46':v<80?'#92400e':'#b91c1c';
-  const epsGrCol = v => v==null?'#9ca3af':v>20?'#065f46':v>5?'#374151':v>0?'#92400e':'#b91c1c';
-  const psCol    = v => v==null?'#9ca3af':v<2?'#065f46':v<5?'#374151':v<10?'#92400e':'#b91c1c';
-  const opMarCol = v => v==null?'#9ca3af':v>30?'#065f46':v>15?'#374151':v>0?'#92400e':'#b91c1c';
-  const upsideCol= v => v==null?'#9ca3af':v>20?'#065f46':v>0?'#374151':v>-10?'#92400e':'#b91c1c';
-
-  const sparkSVG = (values, color, w=72, h=24) => {
-    if (!values || values.length < 2) return '';
-    const mn = Math.min(...values), mx = Math.max(...values);
-    const range = mx - mn || 1;
-    const pad = 2;
-    const pts = values.map((v, i) => {
-      const x = pad + (i / (values.length - 1)) * (w - pad * 2);
-      const y = (h - pad) - ((v - mn) / range) * (h - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    const lx = (pad + (w - pad * 2)).toFixed(1);
-    const ly = ((h - pad) - ((values[values.length-1] - mn) / range) * (h - pad * 2)).toFixed(1);
-    return `<svg width="${w}" height="${h}" style="display:block;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/></svg>`;
-  };
-
-  const priceSVG = (prices, w=540, h=90) => {
-    if (!prices || prices.length < 2) return '';
-    const mn = Math.min(...prices), mx = Math.max(...prices);
-    const range = mx - mn || 1;
-    const pad = 4;
-    const isUp = prices[prices.length - 1] >= prices[0];
-    const cc = isUp ? '#059669' : '#dc2626';
-    const pts = prices.map((v, i) => {
-      const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
-      const y = (h - pad) - ((v - mn) / range) * (h - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    const lastPt = pts[pts.length - 1].split(',');
-    const baseY = (h - pad).toFixed(1);
-    const areaD = `M${pad},${baseY} L${pts.join(' L')} L${(w-pad).toFixed(1)},${baseY} Z`;
-    const pct = ((prices[prices.length-1] - prices[0]) / prices[0] * 100).toFixed(2);
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-        <span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Gráfico de Preço</span>
-        <span style="font-size:11px;font-weight:700;color:${cc}">${pct>=0?'+':''}${pct}%</span>
-      </div>
-      <svg width="${w}" height="${h}" style="display:block;width:100%;border-radius:4px;background:#f8fafc;border:1px solid #e2e8f0">
-        <defs><linearGradient id="pgpdf" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${cc}" stop-opacity="0.2"/>
-          <stop offset="100%" stop-color="${cc}" stop-opacity="0"/>
-        </linearGradient></defs>
-        <path d="${areaD}" fill="url(#pgpdf)"/>
-        <polyline points="${pts.join(' ')}" fill="none" stroke="${cc}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${cc}"/>
-      </svg>
-    </div>`;
-  };
-
-  const metric = (label, value, color, sparkValues) => `
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px">
-      <div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px">${label}</div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:6px">
-        <div style="font-size:12px;font-weight:700;color:${color};font-variant-numeric:tabular-nums;line-height:1">${value}</div>
-        ${sparkValues ? sparkSVG(sparkValues, color) : ''}
-      </div>
-    </div>`;
-
-  const sectionTitle = title => `
-    <div style="font-size:8px;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin:13px 0 6px 1px;font-weight:600">${title}</div>`;
-
-  const weekRangeHTML = (data, sym) => {
-    if (!data.week52Low || !data.week52High || !data.curPrice) return '';
-    const pct = Math.max(0, Math.min(100, (data.curPrice - data.week52Low) / (data.week52High - data.week52Low) * 100));
-    return `
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:9px;color:#9ca3af">${sym}${data.week52Low.toFixed(2)}</span>
-        <span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px">52 semanas</span>
-        <span style="font-size:9px;color:#9ca3af">${sym}${data.week52High.toFixed(2)}</span>
-      </div>
-      <div style="position:relative;height:5px;border-radius:3px;background:#e2e8f0">
-        <div style="position:absolute;height:100%;border-radius:3px;background:linear-gradient(90deg,#ef5350 0%,#f97316 45%,#059669 100%);width:${pct}%"></div>
-        <div style="position:absolute;top:-4px;width:3px;height:13px;background:#374151;border-radius:2px;left:calc(${pct}% - 1.5px)"></div>
-      </div>
-      <div style="text-align:center;margin-top:4px;font-size:8px;color:#9ca3af">${pct.toFixed(0)}% do intervalo anual</div>
-    </div>`;
-  };
-
-  const cardHTML = ({ticker, data, chartPeriod = '6M'}) => {
-    const sym = {EUR:'€', GBP:'£', USD:'$'}[data.currency] || data.currency || '$';
-    const periodPrices = ({ph1D:data.ph1D, ph6M:data.ph6M, ph5Y:data.ph5Y, phAll:data.phAll})[
-      {['1D']:'ph1D',['6M']:'ph6M',['5Y']:'ph5Y',['All']:'phAll'}[chartPeriod] || 'ph6M'
-    ] || data.ph6M || data.ph5Y || data.ph1D || data.phAll;
-    const targetUpside = (data.targetPrice && data.curPrice)
-      ? ((data.targetPrice / data.curPrice - 1) * 100) : null;
-    return `
-  <div class="page">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #e2e8f0;margin-bottom:14px">
-      <div>
-        <div style="font-size:9px;color:#6b7280;margin-bottom:4px">${data.flag} ${data.exchange} · <span style="color:#2962ff;font-weight:700">${ticker}</span></div>
-        <div style="font-size:22px;font-weight:800;color:#111827;line-height:1.1;margin-bottom:6px">${data.name}</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          ${data.curPrice != null ? `<span style="font-size:20px;font-weight:700;color:#111827">${sym}${data.curPrice.toFixed(2)}</span>` : ''}
-          <span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;font-weight:600">${data.sector}</span>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;font-weight:700;color:#374151">Análise Fundamental</div>
-        <div style="font-size:9px;color:#9ca3af;margin-top:3px">Portfolio Tracker · Cláudio Trovisco</div>
-        <div style="font-size:9px;color:#9ca3af;margin-top:1px">${today}</div>
-      </div>
-    </div>
-
-    ${priceSVG(periodPrices)}
-    ${weekRangeHTML(data, sym)}
-
-    ${sectionTitle('Avaliação')}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-      ${metric('Market Cap',   fmtStr(data.marketCap),  '#374151')}
-      ${metric('P/E Ratio',    fmtNum(data.pe),          peCol(data.pe))}
-      ${metric('Price/Book',   fmtNum(data.priceToBook), pbCol(data.priceToBook))}
-      ${metric('Price/Sales',  fmtNum(data.priceToSales), psCol(data.priceToSales))}
-      ${metric('EV/EBITDA',   fmtNum(data.evEbitda),    psCol(data.evEbitda))}
-      ${metric('Beta',         fmtNum(data.beta, 2),     betaCol(data.beta))}
-      ${metric('Debt/Equity',  data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : '—', deCol(data.debtToEquity))}
-      ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2), crCol(data.currentRatio))}
-      ${metric('Total Debt',   fmtStr(data.totalDebt),  data.totalDebt ? '#92400e' : '#9ca3af')}
-      ${metric('Preço Alvo', data.targetPrice != null ? `${sym}${data.targetPrice.toFixed(2)}${targetUpside!=null?` (${targetUpside>0?'+':''}${targetUpside.toFixed(0)}%)`:''}` : '—', upsideCol(targetUpside))}
-    </div>
-
-    ${sectionTitle('Rentabilidade')}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-      ${metric('Gross Margin',  fmtPct(data.grossMargin),  marginCol(data.grossMargin), data.grossMarginHistory)}
-      ${metric('Op. Margin',    fmtPct(data.operatingMargin), opMarCol(data.operatingMargin))}
-      ${metric('Net Margin',    fmtPct(data.netMargin),    marginCol(data.netMargin),   data.netMarginHistory)}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:5px">
-      ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
-      ${metric('ROA',           fmtPct(data.roa),         roeCol(data.roa))}
-      ${metric('ROIC',          fmtPct(data.roic),        roeCol(data.roic))}
-      ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
-      ${metric('Rev. Growth',   fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
-    </div>
-
-    ${sectionTitle('Por Ação')}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-      ${metric('Nº Acções',  fmtStr(data.sharesOutstanding), '#374151')}
-      ${metric('EPS',        data.eps != null ? `${sym}${data.eps.toFixed(2)}` : '—', '#374151')}
-      ${metric('EPS Growth', fmtGrowth(data.epsGrowth), epsGrCol(data.epsGrowth))}
-    </div>
-
-    ${sectionTitle('Retorno ao Acionista')}
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
-      ${metric('Dividend Yield',    fmtPct(data.divYield),         yieldCol(data.divYield))}
-      ${metric('Buyback Yield',     fmtPct(data.buybackYield),     yieldCol(data.buybackYield))}
-      ${metric('Shareholder Yield', fmtPct(data.shareholderYield), yieldCol(data.shareholderYield))}
-      ${metric('Payout Ratio',      data.payoutRatio != null ? `${data.payoutRatio.toFixed(1)}%` : '—', payoutCol(data.payoutRatio))}
-    </div>
-
-    ${sectionTitle('Crescimento do Dividendo')}
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px">Div CAGR 5 anos</div>
-      <div style="font-size:20px;font-weight:800;color:${cagrCol(data.divCagr5y)}">${data.divCagr5y != null ? fmtGrowth(data.divCagr5y, 1) : '—'}</div>
-    </div>
-
-    ${(data.insiderOwnership != null || data.institutionalOwnership != null || data.shortInterest != null || data.analystBuy != null) ? `
-    ${sectionTitle('Acionariado')}
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
-      ${data.insiderOwnership != null ? metric('Insiders', `${data.insiderOwnership.toFixed(1)}%`, data.insiderOwnership>5?'#065f46':'#374151') : ''}
-      ${data.institutionalOwnership != null ? metric('Institucional', `${data.institutionalOwnership.toFixed(1)}%`, '#374151') : ''}
-      ${data.shortInterest != null ? metric('Short Interest', `${data.shortInterest.toFixed(1)}%`, data.shortInterest>10?'#b91c1c':data.shortInterest>5?'#92400e':'#374151') : ''}
-      ${data.analystBuy != null ? (() => { const total=data.analystBuy+data.analystHold+data.analystSell; return metric(`Analistas (${total})`, `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`, data.analystBuy/total>0.6?'#065f46':data.analystBuy/total>0.4?'#374151':'#92400e'); })() : ''}
-    </div>` : ''}
-
-    ${data.summary ? `
-    <div style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:8px;color:#9ca3af;letter-spacing:1px;text-transform:uppercase">Análise</span>
-        <span style="font-size:9px;font-weight:700;padding:2px 10px;border-radius:20px;
-          background:${data.summary.verdictColor}22;color:${data.summary.verdictColor};
-          border:1px solid ${data.summary.verdictColor}55">${data.summary.verdict}</span>
-      </div>
-      <p style="font-size:10px;color:#6b7280;line-height:1.55;margin:0">${data.summary.text}</p>
-    </div>` : ''}
-
-    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between">
-      <span style="font-size:8px;color:#d1d5db">ctrovisco-blip.github.io/portfolio-tracker</span>
-      ${data.fetchedAt ? `<span style="font-size:8px;color:#d1d5db">Dados: ${data.fetchedAt}</span>` : ''}
-    </div>
-  </div>`;
-  };
-
-  return `<!DOCTYPE html>
-<html lang="pt">
-<head>
-<meta charset="UTF-8"/>
-<title>Análise Fundamental — ${cards.map(c => c.ticker).join(', ')}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',-apple-system,sans-serif;background:white;color:#111827;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  @page{size:A4;margin:12mm;}
-  .page{min-height:calc(297mm - 24mm);padding:0;page-break-after:always;}
-  .page:last-child{page-break-after:avoid;}
-</style>
-</head>
-<body>
-${cards.map(c => cardHTML(c)).join('\n')}
-<script>window.onload=function(){window.print();}<\/script>
-</body>
-</html>`;
-}
-
-function openPDF(cards) {
-  const html = generateReportHTML(cards);
-  const win = window.open('', '_blank');
-  if (!win) { alert('Permite pop-ups para exportar PDF.'); return; }
-  win.document.write(html);
-  win.document.close();
-}
-
-// ─── SCREENER ─────────────────────────────────────────────────────────────────
-
-const GH_SCREENER_WORKFLOW = "screener.yml";
-
-function ScreenerFetchBar() {
-  const [tickers,  setTickers]  = useState("");
-  const [mode,     setMode]     = useState("add");
-  const [status,   setStatus]   = useState("idle"); // idle | pat-needed | running | ok | err
-  const [token,    setToken]    = useState(() => localStorage.getItem("gh_pat") || "");
-  const [patInput, setPatInput] = useState("");
-  const [errMsg,   setErrMsg]   = useState("");
-  const modalRef = useRef(null);
-
-  useEffect(() => {
-    if (status !== "pat-needed") return;
-    const h = e => { if (modalRef.current && !modalRef.current.contains(e.target)) setStatus("idle"); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [status]);
-
-  const doFetch = async (pat) => {
-    setStatus("running");
-    try {
-      const res = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_SCREENER_WORKFLOW}/dispatches`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${pat}`,
-            "Accept":        "application/vnd.github+json",
-            "Content-Type":  "application/json",
-          },
-          body: JSON.stringify({ ref: "main", inputs: { tickers: tickers.trim(), mode } }),
-        }
-      );
-      if (res.status === 204) {
-        setStatus("ok");
-        setTimeout(() => setStatus("idle"), 10000);
-      } else {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || `HTTP ${res.status}`);
-      }
-    } catch(e) {
-      setErrMsg(e.message);
-      setStatus("err");
-      setTimeout(() => setStatus("idle"), 5000);
-    }
-  };
-
-  const handleFetch = () => {
-    if (!tickers.trim() || status === "running") return;
-    if (token) { doFetch(token); return; }
-    setStatus("pat-needed");
-  };
-
-  const handlePatSave = () => {
-    const pat = patInput.trim();
-    if (!pat) return;
-    localStorage.setItem("gh_pat", pat);
-    setToken(pat);
-    doFetch(pat);
-  };
-
-  const btnColor = status==="ok"?"#22C55E":status==="err"?"#ef5350":status==="running"?"#F59E0B":"#2962ff";
-  const btnLabel = status==="running"?"⏳ A correr...":status==="ok"?"✓ Pedido enviado!":status==="err"?"✗ Erro":"Obter dados";
-
-  return (
-    <div style={{display:"flex",gap:"8px",alignItems:"center",flexWrap:"wrap"}}>
-      {/* Ticker input */}
-      <input
-        value={tickers}
-        onChange={e => setTickers(e.target.value)}
-        onKeyDown={e => e.key === "Enter" && handleFetch()}
-        placeholder="AAPL, MSFT, NVDA..."
-        style={{
-          minWidth:"200px",maxWidth:"360px",flex:"1",
-          background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
-          padding:"6px 10px",color:"#c8ccd4",fontSize:"11px",
-          fontFamily:"'Inter',sans-serif",outline:"none",
-        }}
-      />
-
-      {/* Mode toggle */}
-      <div style={{display:"flex",gap:"2px",flexShrink:0}}>
-        {[["add","Adicionar"],["replace","Substituir"]].map(([k,l]) => (
-          <button key={k} onClick={() => setMode(k)} style={{
-            fontSize:"9px",padding:"5px 10px",borderRadius:"20px",cursor:"pointer",
-            border: mode===k?"1px solid #5a6478":"1px solid transparent",
-            background: mode===k?"#1e2438":"transparent",
-            color: mode===k?"#c8ccd4":"#6b7280",
-            transition:"all 0.12s",fontFamily:"'Inter',sans-serif",
-          }}>{l}</button>
-        ))}
-      </div>
-
-      {/* Fetch button */}
-      <div style={{position:"relative",flexShrink:0}}>
-        <button onClick={handleFetch}
-          disabled={!tickers.trim() || status === "running"}
-          style={{
-            fontSize:"10px",fontWeight:"600",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",
-            background: !tickers.trim()?"#1e2438":`${btnColor}22`,
-            border: `1px solid ${!tickers.trim()?"#2a3042":btnColor}`,
-            color: !tickers.trim()?"#5a6478":btnColor,
-            fontFamily:"'Inter',sans-serif",transition:"all 0.15s",
-          }}>
-          {btnLabel}
-        </button>
-
-        {/* PAT modal */}
-        {status === "pat-needed" && (
-          <div ref={modalRef} style={{
-            position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200,
-            background:"#1e2438",border:"1px solid #2a3042",borderRadius:"10px",
-            padding:"14px",width:"270px",boxShadow:"0 8px 32px #00000099",
-          }}>
-            <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
-              GitHub Personal Access Token
-            </div>
-            <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"10px",lineHeight:1.6}}>
-              Scope necessário: <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.{" "}
-              <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Screener"
-                target="_blank" rel="noopener" style={{color:"#2962ff",textDecoration:"none"}}>
-                Criar token ↗
-              </a>
-            </div>
-            <input autoFocus value={patInput} onChange={e => setPatInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handlePatSave()}
-              type="password" placeholder="ghp_xxxxxxxxxxxx"
-              style={{width:"100%",background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
-                padding:"6px 8px",color:"#c8ccd4",fontSize:"10px",fontFamily:"monospace",
-                outline:"none",marginBottom:"8px"}}/>
-            <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
-              <button onClick={() => setStatus("idle")}
-                style={{fontSize:"9px",color:"#6b7280",background:"transparent",
-                  border:"1px solid #2a3042",borderRadius:"5px",padding:"4px 10px",cursor:"pointer",
-                  fontFamily:"'Inter',sans-serif"}}>
-                Cancelar
-              </button>
-              <button onClick={handlePatSave}
-                style={{fontSize:"9px",color:"#e0e3eb",background:"#2962ff",
-                  border:"1px solid #2962ff",borderRadius:"5px",padding:"4px 12px",
-                  fontWeight:"600",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
-                Guardar & Correr
-              </button>
-            </div>
-            <div style={{fontSize:"9px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
-              Token guardado apenas neste browser (localStorage).
-            </div>
-          </div>
-        )}
-
-        {/* Error tooltip */}
-        {status === "err" && (
-          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200,
-            background:"#1A0000",border:"1px solid #7F1D1D",borderRadius:"6px",
-            padding:"8px 10px",width:"220px",fontSize:"9px",color:"#F87171"}}>
-            {errMsg}
-          </div>
-        )}
-      </div>
-
-      {status === "ok" && (
-        <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-          Aguarda ~1-2 min e actualiza a página
-        </span>
-      )}
-    </div>
-  );
-}
-
-function ScreenerCard({ ticker, data, onRemove, onDelete }) {
-  const inPortfolio = positions.some(p => p.ticker === ticker);
-  const col = SECTOR_COLORS[data.sector] || "#5a6478";
-
-  const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
-  const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
-  const fmtStr = (v)       => v == null ? "—" : String(v);
-
-  const yieldCol   = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
-  const peCol      = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
-  const pbCol      = v => v==null?"#6b7280":v<1?"#089981":v<3?"#c8ccd4":v<10?"#F0883E":"#ef5350";
-  const betaCol    = v => v==null?"#6b7280":v<0.8?"#5b8af5":v<1.2?"#c8ccd4":v<1.5?"#F0883E":"#ef5350";
-  const deCol      = v => v==null?"#6b7280":v<50?"#089981":v<100?"#c8ccd4":v<200?"#F0883E":"#ef5350";
-  const crCol      = v => v==null?"#6b7280":v>=2?"#089981":v>=1?"#c8ccd4":"#ef5350";
-  const cagrCol    = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const payoutCol  = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
-  const marginCol  = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
-  const fcfCol     = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const roeCol     = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const growthCol  = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const epsGrCol   = v => v==null?"#6b7280":v>20?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const psCol      = v => v==null?"#6b7280":v<2?"#089981":v<5?"#c8ccd4":v<10?"#F0883E":"#ef5350";
-  const opMarCol   = v => v==null?"#6b7280":v>30?"#089981":v>15?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const upsideCol  = v => v==null?"#6b7280":v>20?"#089981":v>0?"#c8ccd4":v>-10?"#F0883E":"#ef5350";
-
-  const [chartPeriod, setChartPeriod] = useState("6M");
-
-  // Price chart component
-  const PriceChart = () => {
-    const periodMap = {"1D": data.ph1D, "6M": data.ph6M, "5Y": data.ph5Y, "All": data.phAll};
-    const prices = periodMap[chartPeriod] || [];
-    const available = Object.keys(periodMap).filter(k => periodMap[k] && periodMap[k].length >= 2);
-    if (prices.length < 2 && available.length === 0) return null;
-    const activePrices = prices.length >= 2 ? prices : (periodMap[available[0]] || []);
-    if (activePrices.length < 2) return null;
-    const mn = Math.min(...activePrices), mx = Math.max(...activePrices);
-    const range = mx - mn || 1;
-    const W = 300, H = 80, pad = 3;
-    const isUp = activePrices[activePrices.length - 1] >= activePrices[0];
-    const cc = isUp ? "#089981" : "#ef5350";
-    const pts = activePrices.map((v, i) => {
-      const x = pad + (i / (activePrices.length - 1)) * (W - pad * 2);
-      const y = (H - pad) - ((v - mn) / range) * (H - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    const lastPt = pts[pts.length - 1].split(",");
-    const baseY = (H - pad).toFixed(1);
-    const areaD = `M${pad},${baseY} L${pts.join(" L")} L${(W-pad).toFixed(1)},${baseY} Z`;
-    const pricePct = ((activePrices[activePrices.length-1] - activePrices[0]) / activePrices[0] * 100);
-    const gradId = `pg_${ticker}`;
-    return (
-      <div style={{marginBottom:"8px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
-          <span style={{fontSize:"10px",color:cc,fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>
-            {pricePct >= 0 ? "+" : ""}{pricePct.toFixed(2)}%
-          </span>
-          <div style={{display:"flex",gap:"2px"}}>
-            {["1D","6M","5Y","All"].filter(p => periodMap[p] && periodMap[p].length >= 2).map(p => (
-              <button key={p} onClick={() => setChartPeriod(p)}
-                style={{
-                  background: chartPeriod===p ? cc+"33" : "transparent",
-                  border: `1px solid ${chartPeriod===p ? cc+"66" : "#2a3042"}`,
-                  color: chartPeriod===p ? cc : "#5a6478",
-                  fontSize:"9px",padding:"1px 6px",borderRadius:"3px",cursor:"pointer",
-                  fontWeight: chartPeriod===p ? "700" : "400",
-                  transition:"all 0.12s",
-                }}>
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-        <svg width={W} height={H} style={{width:"100%",display:"block",borderRadius:"4px"}}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={cc} stopOpacity="0.25"/>
-              <stop offset="100%" stopColor={cc} stopOpacity="0.02"/>
-            </linearGradient>
-          </defs>
-          <path d={areaD} fill={`url(#${gradId})`}/>
-          <polyline points={pts.join(" ")} fill="none" stroke={cc}
-            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx={lastPt[0]} cy={lastPt[1]} r="2.5" fill={cc}/>
-        </svg>
-      </div>
-    );
-  };
-
-  // Mini sparkline SVG for historical trends
-  const MiniSparkline = ({ values, color: sc = "#5a6478" }) => {
-    if (!values || values.length < 2) return null;
-    const mn = Math.min(...values), mx = Math.max(...values);
-    const range = mx - mn || 1;
-    const W = 48, H = 18, pad = 2;
-    const pts = values.map((v, i) => {
-      const x = pad + (i / (values.length - 1)) * (W - pad * 2);
-      const y = (H - pad) - ((v - mn) / range) * (H - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-    const lx = (W - pad).toFixed(1);
-    const ly = ((H - pad) - ((values[values.length-1] - mn) / range) * (H - pad * 2)).toFixed(1);
-    return (
-      <svg width={W} height={H} style={{flexShrink:0,opacity:0.9}}>
-        <polyline points={pts} fill="none" stroke={sc} strokeWidth="1.5"
-          strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx={lx} cy={ly} r="2" fill={sc}/>
-      </svg>
-    );
-  };
-
-  const CardItem = ({label, value, color, history}) => (
-    <div style={{background:"#131722",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
-      <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:"4px"}}>
-        <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
-        {history && history.length >= 2 && <MiniSparkline values={history} color={color||"#5a6478"}/>}
-      </div>
-    </div>
-  );
-
-  const Section = ({title}) => (
-    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
-  );
-
-  const currencySymbol = {EUR:"€",GBP:"£",USD:"$"}[data.currency] || data.currency || "$";
-
-  // 52-week range bar
-  const WeekRange = () => {
-    if (!data.week52Low || !data.week52High || !data.curPrice) return null;
-    const pct = Math.max(0, Math.min(100,
-      (data.curPrice - data.week52Low) / (data.week52High - data.week52Low) * 100));
-    return (
-      <div style={{background:"#131722",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438"}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"5px",alignItems:"center"}}>
-          <span style={{fontSize:"9px",color:"#5a6478"}}>{currencySymbol}{data.week52Low.toFixed(2)}</span>
-          <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>52 semanas</span>
-          <span style={{fontSize:"9px",color:"#5a6478"}}>{currencySymbol}{data.week52High.toFixed(2)}</span>
-        </div>
-        <div style={{position:"relative",height:"4px",borderRadius:"2px",background:"#1e2438"}}>
-          <div style={{
-            position:"absolute",height:"100%",borderRadius:"2px",
-            background:"linear-gradient(90deg,#ef5350 0%,#F0883E 45%,#089981 100%)",
-            width:`${pct}%`,
-          }}/>
-          <div style={{
-            position:"absolute",top:"-4px",width:"2px",height:"12px",
-            background:"#e0e3eb",borderRadius:"1px",
-            left:`calc(${pct}% - 1px)`,
-          }}/>
-        </div>
-        <div style={{textAlign:"center",marginTop:"4px",fontSize:"8px",color:"#5a6478"}}>
-          {pct.toFixed(0)}% do intervalo anual
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="screener-card" style={{
-      background:"#1a1f2e",borderRadius:"8px",border:"1px solid #2a3042",padding:"12px",
-    }}>
-      {/* Header */}
-      <div style={{borderLeft:"3px solid #2962ff",paddingLeft:"10px",marginBottom:"12px",
-        display:"flex",alignItems:"flex-start",gap:"8px"}}>
-        <LogoImg ticker={ticker} sector={data.sector} flag={data.flag} size={24}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px",display:"flex",
-            alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
-            <span>{data.flag} {data.exchange} · <span style={{color:"#2962ff"}}>{ticker}</span></span>
-            {inPortfolio && (
-              <span style={{background:"#2962ff22",color:"#5b8af5",
-                border:"1px solid #2962ff33",borderRadius:"3px",padding:"0 5px",
-                fontSize:"8px",fontWeight:"600"}}>
-                portfolio
-              </span>
-            )}
-          </div>
-          <div style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb",
-            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.name}</div>
-          <div style={{display:"flex",gap:"8px",marginTop:"4px",alignItems:"center",flexWrap:"wrap"}}>
-            {data.curPrice != null && (
-              <span style={{fontSize:"14px",fontWeight:"600",color:"#c8ccd4",
-                fontVariantNumeric:"tabular-nums"}}>
-                {currencySymbol}{data.curPrice.toFixed(2)}
-              </span>
-            )}
-            <span style={{fontSize:"9px",background:col+"22",color:col,
-              border:`1px solid ${col}44`,borderRadius:"3px",padding:"2px 7px"}}>
-              {data.sector}
-            </span>
-          </div>
-        </div>
-        <div className="no-print" style={{display:"flex",gap:"3px",flexShrink:0}}>
-          <button onClick={() => openPDF([{ticker, data, chartPeriod}])}
-            title="Exportar PDF"
-            style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
-              cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
-              borderRadius:"4px",transition:"all 0.12s"}}
-            onMouseEnter={e=>{e.currentTarget.style.color="#5b8af5";e.currentTarget.style.borderColor="#5b8af544";}}
-            onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-            ⎙
-          </button>
-          {onRemove && (
-            <button onClick={() => onRemove(ticker)} title="Ocultar (restaurável)"
-              style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
-                cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,
-                borderRadius:"4px",transition:"all 0.12s"}}
-              onMouseEnter={e=>{e.currentTarget.style.color="#c8ccd4";e.currentTarget.style.borderColor="#5a6478";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-              ×
-            </button>
-          )}
-          {onDelete && (
-            <button onClick={() => onDelete(ticker)} title="Apagar definitivamente"
-              style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
-                cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
-                borderRadius:"4px",transition:"all 0.12s"}}
-              onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-              🗑
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Price chart */}
-      <PriceChart/>
-
-      {/* 52-week range */}
-      <WeekRange/>
-
-      <Section title="Avaliação"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Market Cap"   value={fmtStr(data.marketCap)}    color="#c8ccd4"/>
-        <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}           color={peCol(data.pe)}/>
-        <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)}  color={pbCol(data.priceToBook)}/>
-        <CardItem label="Price/Sales"  value={fmtNum(data.priceToSales)} color={psCol(data.priceToSales)}/>
-        <CardItem label="EV/EBITDA"    value={fmtNum(data.evEbitda)}     color={psCol(data.evEbitda)}/>
-        <CardItem label="Beta"         value={fmtNum(data.beta, 2)}      color={betaCol(data.beta)}/>
-        <CardItem label="Debt/Equity"  value={data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : "—"} color={deCol(data.debtToEquity)}/>
-        <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
-        <CardItem label="Total Debt"   value={fmtStr(data.totalDebt)}    color={data.totalDebt?"#F0883E":"#6b7280"}/>
-        {(() => {
-          const upside = (data.targetPrice && data.curPrice) ? ((data.targetPrice / data.curPrice - 1) * 100) : null;
-          const label = data.targetPrice != null
-            ? `${currencySymbol}${data.targetPrice.toFixed(2)}${upside!=null?` (${upside>0?"+":""}${upside.toFixed(0)}%)`:""}`
-            : "—";
-          return <CardItem label="Preço Alvo" value={label} color={upsideCol(upside)}/>;
-        })()}
-      </div>
-
-      <Section title="Rentabilidade"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Gross Margin"  value={fmtPct(data.grossMargin)}       color={marginCol(data.grossMargin)} history={data.grossMarginHistory}/>
-        <CardItem label="Op. Margin"    value={fmtPct(data.operatingMargin)}   color={opMarCol(data.operatingMargin)}/>
-        <CardItem label="Net Margin"    value={fmtPct(data.netMargin)}         color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
-        <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
-        <CardItem label="ROA"         value={fmtPct(data.roa)}             color={roeCol(data.roa)}/>
-        <CardItem label="ROIC"        value={fmtPct(data.roic)}            color={roeCol(data.roic)}/>
-        <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
-        <CardItem label="Rev. Growth"
-          value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
-          color={growthCol(data.revenueGrowth)} history={data.revenueHistory}/>
-      </div>
-
-      <Section title="Por Ação"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Nº Acções"   value={fmtStr(data.sharesOutstanding)}  color="#c8ccd4"/>
-        <CardItem label="EPS"         value={data.eps != null ? `${currencySymbol}${data.eps.toFixed(2)}` : "—"} color="#c8ccd4"/>
-        <CardItem label="EPS Growth"  value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"} color={epsGrCol(data.epsGrowth)}/>
-      </div>
-
-      <Section title="Retorno ao Acionista"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-        <CardItem label="Dividend Yield"    value={fmtPct(data.divYield)}         color={yieldCol(data.divYield)}/>
-        <CardItem label="Buyback Yield"     value={fmtPct(data.buybackYield)}     color={yieldCol(data.buybackYield)}/>
-        <CardItem label="Shareholder Yield" value={fmtPct(data.shareholderYield)} color={yieldCol(data.shareholderYield)}/>
-        <CardItem label="Payout Ratio"      value={fmtPct(data.payoutRatio,1)}    color={payoutCol(data.payoutRatio)}/>
-      </div>
-
-      <Section title="Crescimento do Dividendo"/>
-      <div style={{background:"#131722",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438",
-        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
-        <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
-          <div style={{fontSize:"15px",color:cagrCol(data.divCagr5y),fontWeight:"700",
-            fontFamily:"'Inter',sans-serif",minWidth:"52px",textAlign:"right"}}>
-            {data.divCagr5y != null ? `${data.divCagr5y>0?"+":""}${data.divCagr5y.toFixed(1)}%` : "—"}
-          </div>
-          {data.divCagr5y != null && (
-            <div style={{position:"relative",width:"50px",height:"4px",borderRadius:"2px",
-              background:"#1e2438",flexShrink:0}}>
-              <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#5a6478"}}/>
-              <div style={{
-                position:"absolute",height:"100%",borderRadius:"2px",
-                background:cagrCol(data.divCagr5y),
-                left:  data.divCagr5y>=0 ? "50%" : `${Math.max(0,50-Math.min(50,Math.abs(data.divCagr5y)*1.5))}%`,
-                width: `${Math.min(50,Math.abs(data.divCagr5y)*1.5)}%`,
-              }}/>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Acionariado (FMP) */}
-      {(data.insiderOwnership != null || data.institutionalOwnership != null ||
-        data.shortInterest != null || data.analystBuy != null) && (
-        <>
-          <Section title="Acionariado"/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-            {data.insiderOwnership != null && (
-              <CardItem label="Insiders" value={`${data.insiderOwnership.toFixed(1)}%`}
-                color={data.insiderOwnership>5?"#089981":"#c8ccd4"}/>
-            )}
-            {data.institutionalOwnership != null && (
-              <CardItem label="Institucional" value={`${data.institutionalOwnership.toFixed(1)}%`}
-                color="#c8ccd4"/>
-            )}
-            {data.shortInterest != null && (
-              <CardItem label="Short Interest" value={`${data.shortInterest.toFixed(1)}%`}
-                color={data.shortInterest>10?"#ef5350":data.shortInterest>5?"#F0883E":"#c8ccd4"}/>
-            )}
-            {data.analystBuy != null && (() => {
-              const total = data.analystBuy + data.analystHold + data.analystSell;
-              const label = `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`;
-              const buyPct = data.analystBuy / total;
-              return <CardItem label={`Analistas (${total})`} value={label}
-                color={buyPct>0.6?"#089981":buyPct>0.4?"#c8ccd4":"#F0883E"}/>;
-            })()}
-          </div>
-        </>
-      )}
-
-      {/* AI Summary */}
-      {data.summary && (
-        <div style={{marginTop:"10px",background:"#131722",borderRadius:"6px",
-          padding:"10px 12px",border:"1px solid #1e2438"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
-            <span style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1px",textTransform:"uppercase"}}>Análise</span>
-            <span style={{
-              fontSize:"9px",fontWeight:"700",padding:"2px 8px",borderRadius:"20px",
-              background:data.summary.verdictColor+"22",
-              color:data.summary.verdictColor,
-              border:`1px solid ${data.summary.verdictColor}44`,
-            }}>{data.summary.verdict}</span>
-          </div>
-          <p style={{fontSize:"10px",color:"#9ca3af",lineHeight:"1.55",margin:0}}>
-            {data.summary.text}
-          </p>
-        </div>
-      )}
-
-      {/* News button */}
-      <NewsButton ticker={ticker} label={`${ticker} · ${data.name}`} bgColor="#131722" />
-
-      {data.fetchedAt && (
-        <div style={{marginTop:"8px",fontSize:"8px",color:"#5a6478",textAlign:"right",letterSpacing:"0.3px"}}>
-          Actualizado: {data.fetchedAt}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted }) {
-  const allTickers = Object.keys(SCREENER_DATA);
-  const [hidden, setHidden] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_hidden") || "[]"); } catch { return []; }
-  });
-
-  const hide = t => setHidden(h => {
-    const next = [...h, t];
-    localStorage.setItem("screener_hidden", JSON.stringify(next));
-    return next;
-  });
-  const del = t => {
-    setDeleted(d => {
-      const next = [...d, t];
-      localStorage.setItem("screener_deleted", JSON.stringify(next));
-      return next;
-    });
-    setHidden(h => {
-      const next = h.filter(x => x !== t);
-      localStorage.setItem("screener_hidden", JSON.stringify(next));
-      return next;
-    });
-  };
-  const restoreHidden = () => {
-    setHidden([]);
-    localStorage.removeItem("screener_hidden");
-  };
-
-  const visible = allTickers.filter(t => !hidden.includes(t) && !deleted.includes(t));
-
-  return (
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#131722"}}>
-
-      {/* Top bar */}
-      <div className="no-print" style={{
-        padding:"10px 16px",borderBottom:"1px solid #2a3042",background:"#1a1f2e",
-        display:"flex",gap:"10px",alignItems:"center",flexShrink:0,flexWrap:"wrap",
-      }}>
-        <ScreenerFetchBar/>
-        <div style={{flex:1}}/>
-        {hidden.length > 0 && visible.length > 0 && (
-          <button onClick={restoreHidden}
-            title={`Mostrar ${hidden.length} stock(s) oculta(s)`}
-            style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
-              background:"#1e2438",border:"1px solid #2a3042",color:"#6b7280",
-              fontFamily:"'Inter',sans-serif",flexShrink:0}}>
-            Mostrar ocultas ({hidden.length})
-          </button>
-        )}
-        {visible.length > 0 && (
-          <button
-            onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t], chartPeriod: "6M"})))}
-            title={`Exportar ${visible.length} ${visible.length===1?'stock':'stocks'} em PDF`}
-            style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
-              background:"#1e2438",border:"1px solid #5a6478",color:"#787b86",
-              fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"5px",
-              transition:"all 0.12s",flexShrink:0}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor="#c8ccd4";e.currentTarget.style.color="#c8ccd4";}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor="#5a6478";e.currentTarget.style.color="#787b86";}}>
-            ⎙ Exportar PDF {visible.length > 1 ? `(${visible.length})` : ""}
-          </button>
-        )}
-      </div>
-
-      {/* Print-only header */}
-      <div className="screener-print-header" style={{display:"none",padding:"0 0 12px",
-        marginBottom:"12px",borderBottom:"1px solid #2a3042"}}>
-        <div style={{fontSize:"16px",fontWeight:"700",color:"#e0e3eb"}}>Análise Fundamental</div>
-        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"4px"}}>
-          Portfolio Tracker · Cláudio Trovisco · {new Date().toLocaleDateString("pt-PT")}
-        </div>
-      </div>
-
-      {/* Cards grid or empty state */}
-      {visible.length > 0 ? (
-        <div style={{overflowY:"auto",flex:1,padding:"16px"}}>
-          <div className="screener-grid" style={{
-            display:"grid",
-            gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",
-            gap:"12px",
-          }}>
-            {visible.map(ticker => (
-              <ScreenerCard
-                key={ticker}
-                ticker={ticker}
-                data={SCREENER_DATA[ticker]}
-                onRemove={hide}
-                onDelete={del}
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
-          justifyContent:"center",color:"#5a6478",gap:"14px",padding:"24px"}}>
-          <div style={{fontSize:"36px",opacity:0.2}}>🔍</div>
-          <div style={{fontSize:"12px",color:"#6b7280",textAlign:"center"}}>
-            {allTickers.length === 0
-              ? "Sem dados. Introduz tickers acima e clica em \"Obter dados\"."
-              : "Todos os cards foram ocultados."}
-          </div>
-          {allTickers.length === 0 && (
-            <div style={{fontSize:"10px",color:"#3d4760",textAlign:"center",maxWidth:"300px",lineHeight:1.7}}>
-              Os dados são obtidos via GitHub Actions (~1-2 min).{" "}
-              Precisas de um token GitHub com scope{" "}
-              <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.
-            </div>
-          )}
-          {hidden.length > 0 && (
-            <button onClick={restoreHidden}
-              style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
-                background:"#1e2438",border:"1px solid #2a3042",color:"#787b86",
-                fontFamily:"'Inter',sans-serif"}}>
-              Mostrar ocultas ({hidden.length})
-            </button>
-          )}
+        <div style={{textAlign:"center",padding:"16px 0",color:"#374151",fontSize:"9px"}}>
+          Dados fundamentais não disponíveis para este instrumento
         </div>
       )}
     </div>
@@ -2391,285 +443,124 @@ function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
-  const [tab, setTab]           = useState("portfolio");
-  const [screenerDeleted, setScreenerDeleted] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_deleted") || "[]"); } catch { return []; }
-  });
-  const [sel, setSel]           = useState(null);
-  const [mobPanel, setMobPanel] = useState(null); // null | "overview"
-  const [mobDetail, setMobDetail] = useState(false); // mobile: detail panel open
-  const [filter, setFilter]     = useState("all");
-  const [sector, setSector]     = useState("all");
-  const [sort, setSort]         = useState("ppl");
+  const [sel, setSel]     = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort]   = useState("ppl");
 
-  // ── Resizable panes ────────────────────────────────────────────────
-  const [rightW, setRightW]   = useState(() => {
-    const v = parseInt(localStorage.getItem("pane_rightW"));
-    return (v >= 180 && v <= 700) ? v : 310;
-  });
-  const [chartH, setChartH]   = useState(() => {
-    const v = parseInt(localStorage.getItem("pane_chartH"));
-    return (v >= 80 && v <= 600) ? v : 240;
-  });
-  const dragV = useRef(null); // { startX, startW }
-  const dragH = useRef(null); // { startY, startH }
-
-  useEffect(() => { localStorage.setItem("pane_rightW", rightW); }, [rightW]);
-  useEffect(() => { localStorage.setItem("pane_chartH", chartH); }, [chartH]);
-
-  function onDividerVMouseDown(e) {
-    e.preventDefault();
-    dragV.current = { startX: e.clientX, startW: rightW };
-    const el = e.currentTarget;
-    el.classList.add("dragging");
-    function onMove(e) {
-      const delta = dragV.current.startX - e.clientX;
-      const next = Math.max(180, Math.min(700, dragV.current.startW + delta));
-      setRightW(next);
-    }
-    function onUp() {
-      el.classList.remove("dragging");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
-
-  function onDividerHMouseDown(e) {
-    e.preventDefault();
-    dragH.current = { startY: e.clientY, startH: chartH };
-    const el = e.currentTarget;
-    el.classList.add("dragging");
-    function onMove(e) {
-      const delta = e.clientY - dragH.current.startY;
-      const next = Math.max(80, Math.min(600, dragH.current.startH + delta));
-      setChartH(next);
-    }
-    function onUp() {
-      el.classList.remove("dragging");
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
-  // ──────────────────────────────────────────────────────────────────
-
-  const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))].sort(), []);
+  const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))], []);
 
   const filtered = useMemo(() => {
     let list = [...positions];
-    if (filter === "ganhos") list = list.filter(p => p.ppl > 0);
+    if (filter === "ganhos")  list = list.filter(p => p.ppl > 0);
     else if (filter === "perdas") list = list.filter(p => p.ppl < 0);
-    if (sector !== "all") list = list.filter(p => p.sector === sector);
-    if (sort === "ppl")   list.sort((a,b) => toEur(b.ppl, b.cur) - toEur(a.ppl, a.cur));
+    else if (sectors.includes(filter)) list = list.filter(p => p.sector === filter);
+    if (sort === "ppl")   list.sort((a,b) => b.ppl - a.ppl);
     if (sort === "pct")   list.sort((a,b) => pctReturn(b) - pctReturn(a));
-    if (sort === "value") list.sort((a,b) => toEur(b.qty*b.curPrice, b.cur) - toEur(a.qty*a.curPrice, a.cur));
+    if (sort === "value") list.sort((a,b) => (b.qty*b.curPrice)-(a.qty*a.curPrice));
     if (sort === "name")  list.sort((a,b) => a.name.localeCompare(b.name));
     return list;
-  }, [filter, sector, sort]);
+  }, [filter, sort]);
 
   const selPos = sel ? positions.find(p => p.ticker === sel) : null;
-  // Desktop: auto-open detail panel when a stock is selected.
-  // Mobile: only opens when user explicitly taps "Ver Indicadores" (mobDetail) or opens overview.
-  const isMobile = () => window.matchMedia('(max-width:768px)').matches;
-  const panelOpen = !!(mobDetail || mobPanel === "overview");
 
-  const pillStyle = (active) => ({
-    padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"500",
-    border: active ? "1px solid #5a6478" : "1px solid transparent",
-    background: active ? "#1e2438" : "transparent",
-    color: active ? "#c8ccd4" : "#6b7280",
-    cursor:"pointer",transition:"all 0.12s",whiteSpace:"nowrap",
-  });
+  const filterBtns = [
+    {k:"all",    l:"Todas"},
+    {k:"ganhos", l:"✅ Ganhos"},
+    {k:"perdas", l:"❌ Perdas"},
+    ...sectors.map(s=>({k:s,l:s})),
+  ];
 
   return (
-    <div style={{background:"#131722",height:"100vh",display:"flex",flexDirection:"column",
-      fontFamily:"'Inter',sans-serif",color:"#c8ccd4",fontSize:"11px",overflow:"hidden"}}>
+    <div style={{background:"#060A12",minHeight:"100vh",fontFamily:"'Courier New',monospace",color:"#D1D5DB",fontSize:"11px"}}>
 
-      {/* ── Header ── */}
-      <div style={{background:"#1a1f2e",borderBottom:"1px solid #2a3042",padding:"0 16px",
-        display:"flex",alignItems:"center",gap:"10px",height:"42px",flexShrink:0}}>
-        <span style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb"}}>Portfolio Tracker</span>
-        <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#2a3042"}}/>
-        <span className="hdr-name" style={{fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:"700",
-          color:"#6b7280",letterSpacing:"-0.2px"}}>Cláudio Trovisco</span>
-        <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#2a3042"}}/>
-        <span className="hdr-live" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"1.5px"}}>
-          TRADING212 · LIVE · {positions.length} POSIÇÕES
-        </span>
-        <div style={{flex:1}}/>
-        {/* Tab navigation */}
-        <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
-          {[
-            ["portfolio", "Portfolio"],
-            ["screener",  (() => { const all = Object.keys(SCREENER_DATA); if (!all.length) return "Screener"; const n = all.filter(t => !screenerDeleted.includes(t)).length; return `Screener${n > 0 ? ` (${n})` : ""}`; })()],
-          ].map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{
-              fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
-              border:      tab===k ? "1px solid #2962ff"    : "1px solid transparent",
-              background:  tab===k ? "#2962ff22"            : "transparent",
-              color:       tab===k ? "#5b8af5"              : "#6b7280",
-              fontFamily:"'Inter',sans-serif",fontWeight: tab===k?"600":"400",
-              transition:"all 0.12s",
-            }}>{l}</button>
-          ))}
-          {/* Dashboard de qualidade de entrada — página própria */}
-          <a href="entry_dashboard.html" style={{
-            fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
-            border:"1px solid transparent",background:"transparent",color:"#6b7280",
-            fontFamily:"'Inter',sans-serif",textDecoration:"none",transition:"all 0.12s",
-          }}>🎯 Entrada</a>
-        </div>
-        <FreshnessIndicator/>
-        <DeployCountdown/>
-        {/* Botão "Visão Geral" — só visível no mobile via CSS */}
-        <button className="mob-overview-btn cb" style={{display:"none",
-          fontSize:"9px",color:"#787b86",background:"#1e2438",
-          border:"1px solid #5a6478",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}
-          onClick={() => { setSel(null); setMobPanel("overview"); }}>
-          ≡ Overview
-        </button>
+      {/* Header */}
+      <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"10px 14px",
+        display:"flex",alignItems:"center",gap:"8px"}}>
+        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",color:"#F9FAFB"}}>Portfolio Tracker</span>
+        <span style={{flex:1,height:"1px",background:"#1F2937"}}/>
+        <span style={{fontSize:"8px",color:"#4B5563",letterSpacing:"2px"}}>TRADING212 · LIVE · {positions.length} POSIÇÕES · __UPDATED__</span>
         {sel && (
-          <button className="hdr-back cb" onClick={()=>setSel(null)}
-            style={{fontSize:"9px",color:"#787b86",background:"#1e2438",
-              border:"1px solid #5a6478",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
-            ← Portfolio
+          <button className="cb" onClick={()=>setSel(null)}
+            style={{fontSize:"8px",color:"#6B7280",background:"#111827",border:"1px solid #1F2937",
+              borderRadius:"4px",padding:"3px 8px"}}>
+            ← Portfolio Total
           </button>
         )}
       </div>
 
-      {/* ── Summary bar (portfolio only) ── */}
-      {tab === "portfolio" && <Summary positions={positions} className="summary-bar"/>}
+      {/* Summary */}
+      <Summary positions={positions}/>
 
-      {/* ── Screener view ── */}
-      {tab === "screener" && <ScreenerView screenerDeleted={screenerDeleted} setScreenerDeleted={setScreenerDeleted}/>}
+      {/* Chart */}
+      <ChartPanel sel={sel} positions={positions}/>
 
-      {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
-      {tab === "portfolio" && <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
+      {/* Main layout */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",height:"calc(100vh - 370px)"}}>
 
-        {/* ── LEFT COLUMN ── */}
-        <div style={{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
+        {/* Left: list */}
+        <div style={{borderRight:"1px solid #1F2937",display:"flex",flexDirection:"column",overflow:"hidden"}}>
 
-          {/* Chart */}
-          <div className="chart-wrap" style={{flexShrink:0,height:`${chartH}px`,borderBottom:"1px solid #2a3042"}}>
-            <ChartPanel sel={sel} positions={positions}/>
-          </div>
-
-          {/* "Ver Indicadores" button — mobile only, shown when a stock is selected */}
-          {sel && selPos && (
-            <div className="mob-indicators-btn" style={{display:"none",
-              padding:"8px 12px", borderBottom:"1px solid #2a3042",
-              background:"#1a1f2e", flexShrink:0}}>
-              <button onClick={() => setMobDetail(true)} style={{
-                width:"100%", padding:"9px", borderRadius:"6px",
-                background:"#2a3042", border:"1px solid #3a4060",
-                color:"#c8ccd4", fontSize:"12px", fontWeight:"600",
-                cursor:"pointer", letterSpacing:"0.3px",
-              }}>
-                Ver Indicadores — {selPos.name} →
-              </button>
-            </div>
-          )}
-
-          {/* Horizontal divider — resize chart height */}
-          <div className="divider-h" onMouseDown={onDividerHMouseDown} title="Arrastar para redimensionar"/>
-
-          {/* Filter bar */}
-          <div className="filter-bar" style={{padding:"6px 12px",borderBottom:"1px solid #2a3042",
-            display:"flex",gap:"4px",alignItems:"center",flexShrink:0,background:"#1a1f2e"}}>
-
-            <div style={{display:"flex",gap:"3px"}}>
-              {[["all","Todas"],["ganhos","✦ Ganhos"],["perdas","✦ Perdas"]].map(([k,l]) => (
-                <button key={k} className="cb" style={pillStyle(filter===k)}
-                  onClick={() => setFilter(k)}>{l}</button>
+          {/* Filters */}
+          <div style={{padding:"6px 10px",borderBottom:"1px solid #1F2937",display:"flex",gap:"3px",flexWrap:"wrap",
+            alignItems:"center",flexShrink:0}}>
+            <div style={{display:"flex",gap:"2px",flexWrap:"wrap",flex:1}}>
+              {filterBtns.map(b=>(
+                <button key={b.k} className="cb" onClick={()=>setFilter(b.k)}
+                  style={{padding:"2px 6px",fontSize:"8px",borderRadius:"3px",border:"none",
+                    background:filter===b.k?"#1F2937":"transparent",
+                    color:filter===b.k?"#F9FAFB":"#6B7280"}}>
+                  {b.l}
+                </button>
               ))}
             </div>
-
-            <div className="filter-sep-v" style={{width:"1px",height:"14px",background:"#2a3042",margin:"0 2px"}}/>
-
-            <div style={{position:"relative",display:"flex",alignItems:"center"}}>
-              <select value={sector} onChange={e=>setSector(e.target.value)}
-                style={{background:"#1a1f2e",border:"1px solid #2a3042",borderRadius:"20px",
-                  color:sector!=="all"?"#c8ccd4":"#6b7280",fontSize:"10px",fontWeight:"500",
-                  padding:"3px 22px 3px 10px",fontFamily:"'Inter',sans-serif",outline:"none"}}>
-                <option value="all">Sector</option>
-                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <span style={{position:"absolute",right:"8px",color:"#6b7280",fontSize:"8px",pointerEvents:"none"}}>▾</span>
-            </div>
-
-            <div style={{flex:1}}/>
-
-            <div className="filter-row-sort" style={{display:"flex",gap:"2px",alignItems:"center"}}>
-              <span className="sort-label" style={{fontSize:"8px",color:"#5a6478",marginRight:"2px"}}>ordenar</span>
-              {[["ppl","P&L€"],["pct","P&L%"],["value","Valor"],["name","A-Z"]].map(([k,l]) => (
-                <button key={k} className="cb" style={pillStyle(sort===k)}
-                  onClick={() => setSort(k)}>{l}</button>
+            <div style={{display:"flex",gap:"2px",alignItems:"center",flexShrink:0}}>
+              <span style={{fontSize:"8px",color:"#374151"}}>sort:</span>
+              {[["ppl","P&L€"],["pct","P&L%"],["value","Val"],["name","A-Z"]].map(([k,l])=>(
+                <button key={k} className="cb" onClick={()=>setSort(k)}
+                  style={{padding:"2px 5px",fontSize:"8px",borderRadius:"3px",border:"none",
+                    background:sort===k?"#1F2937":"transparent",
+                    color:sort===k?"#F9FAFB":"#6B7280"}}>
+                  {l}
+                </button>
               ))}
-              <button className="mob-overview-sort cb" style={{...pillStyle(false),display:"none",marginLeft:"4px"}}
-                onClick={() => { setSel(null); setMobPanel("overview"); }}>
-                ≡ Overview
-              </button>
             </div>
           </div>
 
           {/* Table header */}
-          <div className="pos-grid" style={{padding:"5px 12px",background:"#1a1f2e",
-            borderBottom:"1px solid #1a1f2e",flexShrink:0}}>
-            <div style={{fontSize:"9px",color:"#6b7280"}}></div>
-            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px"}}>EMPRESA</div>
-            <div className="col-price-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
-            <div className="col-invested-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
-            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
-            <div className="col-weight-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PESO</div>
-            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
+          <div style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",
+            padding:"5px 10px",background:"#080C14",flexShrink:0}}>
+            {["","Empresa","Preço","Retorno","Setor"].map((h,i)=>(
+              <div key={i} style={{fontSize:"8px",color:"#2D3748",textAlign:i>=2?"right":"left",
+                ...(i===4?{textAlign:"center"}:{})}}>{h}</div>
+            ))}
           </div>
 
           {/* Rows */}
           <div style={{overflowY:"auto",flex:1}}>
-            {filtered.map(p => (
+            {filtered.map(p=>(
               <PositionRow key={p.ticker} p={p}
                 selected={sel===p.ticker}
-                onClick={() => { const next = sel===p.ticker ? null : p.ticker; setSel(next); setMobPanel(null); setMobDetail(!isMobile() && !!next); }}/>
+                onClick={()=>setSel(sel===p.ticker ? null : p.ticker)}/>
             ))}
+            <div style={{padding:"6px 10px",fontSize:"8px",color:"#1F2937"}}>
+              * P&L em moeda local (€/$/ pence) — sem conversão cambial
+            </div>
           </div>
         </div>
 
-        {/* Vertical divider — resize right column width */}
-        <div className="divider-v" onMouseDown={onDividerVMouseDown} title="Arrastar para redimensionar"/>
-
-        {/* ── RIGHT COLUMN: Detail (full height; slide-in overlay no mobile) ── */}
-        <div className={`right-col${panelOpen ? " open" : ""}`}
-          style={{width:`${rightW}px`,flexShrink:0,overflowY:"auto",background:"#131722"}}>
-
-          {/* Botão voltar — só visível no mobile (display:none no desktop via CSS) */}
-          <div className="mob-back" style={{
-            display:"none", position:"sticky", top:0, zIndex:10,
-            background:"#1a1f2e", borderBottom:"1px solid #2a3042",
-            padding:"0 16px", height:"48px",
-            alignItems:"center", gap:"10px", flexShrink:0,
-          }}>
-            <button className="cb" onClick={() => { setSel(null); setMobPanel(null); setMobDetail(false); }} style={{
-              fontSize:"12px", color:"#c8ccd4", background:"transparent",
-              border:"none", padding:"8px 0", display:"flex", alignItems:"center", gap:"6px",
-            }}>
-              ← Voltar
-            </button>
-            <span style={{fontSize:"12px", fontWeight:"600", color:"#e0e3eb",
-              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-              {selPos ? selPos.name : "Visão Geral"}
-            </span>
-          </div>
-
+        {/* Right: detail */}
+        <div style={{overflowY:"auto",background:"#06090F"}}>
           {selPos
             ? <Detail p={selPos}/>
-            : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); setMobDetail(!isMobile()); }}/>
+            : (
+              <div style={{padding:"20px 14px",color:"#2D3748",fontSize:"10px",textAlign:"center",marginTop:"30px"}}>
+                <div style={{fontSize:"24px",marginBottom:"8px"}}>👆</div>
+                Clica numa posição<br/>para ver o detalhe
+              </div>
+            )
           }
         </div>
-
-      </div>}
+      </div>
     </div>
   );
 }
