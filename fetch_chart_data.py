@@ -10,6 +10,8 @@ with open("data/positions.json", encoding="utf-8") as f:
     positions = json.load(f)
 with open("metadata.json", encoding="utf-8") as f:
     METADATA = json.load(f)
+with open("data/fx.json", encoding="utf-8") as f:
+    FX = json.load(f)   # {"€":1.0, "$":0.xxx, "p":0.xxx, "C$":0.xxx}
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -22,7 +24,7 @@ RANGES = [
     ("3mo", "1d",  "3mo"),
     ("ytd", "1d",  "ytd"),
     ("1y",  "1d",  "1y"),
-    ("5y",  "1wk", "5y"),
+    ("max", "1mo", "max"),
 ]
 INTRADAY = {"1m","2m","5m","15m","30m","1h"}
 
@@ -93,26 +95,25 @@ for rk, _, _ in RANGES:
         if items:
             bases[ticker] = items[0][1]
 
-    # Pesos baseados em qty × preço_inicial (não preço actual)
-    initial_values = {}
+    # Pesos em EUR: qty × preço_inicial × taxa_de_câmbio
+    # Essencial para não misturar pence (GBP), dólares, euros sem conversão
+    initial_eur = {}
     for ticker, init_price in bases.items():
         pos = p_map.get(ticker)
         if pos and init_price and init_price > 0:
-            initial_values[ticker] = pos["qty"] * init_price
-    total_initial = sum(initial_values.values()) or 1
-    period_weights = {t: v / total_initial for t, v in initial_values.items()}
+            fx = FX.get(pos["cur"], 1.0)
+            initial_eur[ticker] = pos["qty"] * init_price * fx
+    total_initial_eur = sum(initial_eur.values()) or 1
+    period_weights = {t: v / total_initial_eur for t, v in initial_eur.items()}
 
     port = {}
     for key in all_keys:
-        wr, tw = 0.0, 0.0
+        wr = 0.0
         for ticker, r_data in raw.items():
             if key in r_data[rk] and bases.get(ticker, 0) > 0:
                 pct = (r_data[rk][key] / bases[ticker] - 1) * 100
-                w   = period_weights.get(ticker, 0)
-                wr += w * pct
-                tw += w
-        if tw > 0:
-            port[key] = round(wr / tw, 4)  # normalizar pelo peso total disponível
+                wr += period_weights.get(ticker, 0) * pct
+        port[key] = round(wr, 4)
     portfolio_series[rk] = port
 
 # ── Benchmark indices ─────────────────────────────────────────────────────
