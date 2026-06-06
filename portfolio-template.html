@@ -500,16 +500,75 @@ function App() {
       {/* ── Summary bar ── */}
       <Summary positions={positions}/>
 
-      {/* ── Middle row: Chart (left) + Detail (right) ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 310px",flexShrink:0,
-        borderBottom:"1px solid #1A2535",height:"200px"}}>
+      {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 310px",flex:1,minHeight:0}}>
 
-        {/* Chart */}
-        <div style={{borderRight:"1px solid #1A2535",overflow:"hidden"}}>
-          <ChartPanel sel={sel} positions={positions}/>
+        {/* ── LEFT COLUMN ── */}
+        <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #1A2535",overflow:"hidden"}}>
+
+          {/* Chart */}
+          <div style={{flexShrink:0,height:"190px",borderBottom:"1px solid #1A2535",overflow:"hidden"}}>
+            <ChartPanel sel={sel} positions={positions}/>
+          </div>
+
+          {/* Filter bar */}
+          <div style={{padding:"6px 12px",borderBottom:"1px solid #1A2535",
+            display:"flex",gap:"4px",alignItems:"center",flexShrink:0,background:"#0A0F1A"}}>
+
+            <div style={{display:"flex",gap:"3px"}}>
+              {[["all","Todas"],["ganhos","✦ Ganhos"],["perdas","✦ Perdas"]].map(([k,l]) => (
+                <button key={k} className="cb" style={pillStyle(filter===k)}
+                  onClick={() => setFilter(k)}>{l}</button>
+              ))}
+            </div>
+
+            <div style={{width:"1px",height:"14px",background:"#1A2535",margin:"0 2px"}}/>
+
+            <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+              <select value={sector} onChange={e=>setSector(e.target.value)}
+                style={{background:"#0A0F1A",border:"1px solid #1A2535",borderRadius:"20px",
+                  color:sector!=="all"?"#C9D1D9":"#4B5563",fontSize:"10px",fontWeight:"500",
+                  padding:"3px 22px 3px 10px",fontFamily:"'Inter',sans-serif",outline:"none"}}>
+                <option value="all">Sector</option>
+                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <span style={{position:"absolute",right:"8px",color:"#4B5563",fontSize:"8px",pointerEvents:"none"}}>▾</span>
+            </div>
+
+            <div style={{flex:1}}/>
+
+            <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
+              <span style={{fontSize:"8px",color:"#30363D",marginRight:"2px"}}>ordenar</span>
+              {[["ppl","P&L€"],["pct","P&L%"],["value","Valor"],["name","A-Z"]].map(([k,l]) => (
+                <button key={k} className="cb" style={pillStyle(sort===k)}
+                  onClick={() => setSort(k)}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table header */}
+          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
+            padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
+            {["","Empresa","Preço","Retorno"].map((h,i) => (
+              <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",
+                textAlign:i>=2?"right":"left"}}>{h.toUpperCase()}</div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div style={{overflowY:"auto",flex:1}}>
+            {filtered.map(p => (
+              <PositionRow key={p.ticker} p={p}
+                selected={sel===p.ticker}
+                onClick={() => setSel(sel===p.ticker ? null : p.ticker)}/>
+            ))}
+            <div style={{padding:"8px 12px",fontSize:"8px",color:"#21262D",fontStyle:"italic"}}>
+              * P&L em moeda local — sem conversão cambial
+            </div>
+          </div>
         </div>
 
-        {/* Detail panel */}
+        {/* ── RIGHT COLUMN: Detail (full height) ── */}
         <div style={{overflowY:"auto",background:"#080C14"}}>
           {selPos
             ? <Detail p={selPos}/>
@@ -526,69 +585,7 @@ function App() {
             )
           }
         </div>
-      </div>
 
-      {/* ── Bottom: full-width list ── */}
-      <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-
-        {/* Filter bar */}
-        <div style={{padding:"6px 12px",borderBottom:"1px solid #1A2535",
-          display:"flex",gap:"4px",alignItems:"center",flexShrink:0,background:"#0A0F1A"}}>
-
-          {/* Todas / Ganhos / Perdas */}
-          <div style={{display:"flex",gap:"3px"}}>
-            {[["all","Todas"],["ganhos","✦ Ganhos"],["perdas","✦ Perdas"]].map(([k,l]) => (
-              <button key={k} className="cb" style={pillStyle(filter===k)}
-                onClick={() => setFilter(k)}>{l}</button>
-            ))}
-          </div>
-
-          <div style={{width:"1px",height:"14px",background:"#1A2535",margin:"0 2px"}}/>
-
-          {/* Sector dropdown */}
-          <div style={{position:"relative",display:"flex",alignItems:"center"}}>
-            <select value={sector} onChange={e=>setSector(e.target.value)}
-              style={{background:"#0A0F1A",border:"1px solid #1A2535",borderRadius:"20px",
-                color:sector!=="all"?"#C9D1D9":"#4B5563",fontSize:"10px",fontWeight:"500",
-                padding:"3px 22px 3px 10px",fontFamily:"'Inter',sans-serif",outline:"none"}}>
-              <option value="all">Sector</option>
-              {sectors.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <span style={{position:"absolute",right:"8px",color:"#4B5563",fontSize:"8px",pointerEvents:"none"}}>▾</span>
-          </div>
-
-          <div style={{flex:1}}/>
-
-          {/* Sort */}
-          <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-            <span style={{fontSize:"8px",color:"#30363D",marginRight:"2px"}}>ordenar</span>
-            {[["ppl","P&L€"],["pct","P&L%"],["value","Valor"],["name","A-Z"]].map(([k,l]) => (
-              <button key={k} className="cb" style={pillStyle(sort===k)}
-                onClick={() => setSort(k)}>{l}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Table header */}
-        <div style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
-          padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
-          {["","Empresa","Preço","Retorno"].map((h,i) => (
-            <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",
-              textAlign:i>=2?"right":"left"}}>{h.toUpperCase()}</div>
-          ))}
-        </div>
-
-        {/* Rows */}
-        <div style={{overflowY:"auto",flex:1}}>
-          {filtered.map(p => (
-            <PositionRow key={p.ticker} p={p}
-              selected={sel===p.ticker}
-              onClick={() => setSel(sel===p.ticker ? null : p.ticker)}/>
-          ))}
-          <div style={{padding:"8px 12px",fontSize:"8px",color:"#21262D",fontStyle:"italic"}}>
-            * P&L em moeda local — sem conversão cambial
-          </div>
-        </div>
       </div>
     </div>
   );
