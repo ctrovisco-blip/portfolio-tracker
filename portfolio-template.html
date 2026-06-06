@@ -768,57 +768,111 @@ function SearchPanel() {
     }, 350);
   };
 
+  // ── Helpers de formatação ────────────────────────────────────────────────────
+  const fmtLarge = v => {
+    if (v == null) return null;
+    if (v >= 1e12) return (v/1e12).toFixed(2)+"T";
+    if (v >= 1e9)  return (v/1e9).toFixed(2)+"B";
+    if (v >= 1e6)  return (v/1e6).toFixed(2)+"M";
+    return v.toFixed(0);
+  };
+  const fmtPct = v => v == null ? null : (v*100).toFixed(2)+"%";
+
+  // ── Tenta obter fundamentais via múltiplos proxies/endpoints ─────────────────
+  const fetchFundamentals = async (sym, fallbackName) => {
+    const base = { name: fallbackName || sym };
+
+    // Lista de tentativas por ordem de preferência
+    const attempts = [
+      // 1) allorigins + v10/quoteSummary  (allorigins mantém sessão YF)
+      async () => {
+        const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=price%2CsummaryDetail%2CfinancialData%2CdefaultKeyStatistics&formatted=true&region=US&lang=en-US`;
+        const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        const j = await r.json();
+        const d = j?.quoteSummary?.result?.[0];
+        if (!d) return null;
+        return {
+          name:        d.price?.longName?.raw || d.price?.shortName?.raw || fallbackName,
+          sector:      d.summaryProfile?.sector || d.financialData?.sector || "—",
+          marketCap:   d.price?.marketCap?.fmt,
+          pe:          d.summaryDetail?.trailingPE?.fmt || d.defaultKeyStatistics?.forwardPE?.fmt,
+          divYield:    d.summaryDetail?.dividendYield?.fmt,
+          grossMargin: d.financialData?.grossMargins?.fmt,
+          totalDebt:   d.financialData?.totalDebt?.fmt,
+          fcfYield:    (() => { const f=d.financialData?.freeCashflow?.raw, m=d.price?.marketCap?.raw; return f&&m?(f/m*100).toFixed(2)+"%":null; })(),
+          payoutRatio: d.summaryDetail?.payoutRatio?.fmt,
+          roe:         d.financialData?.returnOnEquity?.fmt,
+        };
+      },
+      // 2) corsproxy + v10/quoteSummary  (fallback)
+      async () => {
+        const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=price%2CsummaryDetail%2CfinancialData%2CdefaultKeyStatistics`;
+        const r = await fetch(PROXY + encodeURIComponent(url));
+        const j = await r.json();
+        const d = j?.quoteSummary?.result?.[0];
+        if (!d) return null;
+        return {
+          name:        d.price?.longName || d.price?.shortName || fallbackName,
+          sector:      d.financialData?.sector || "—",
+          marketCap:   d.price?.marketCap?.fmt,
+          pe:          d.summaryDetail?.trailingPE?.fmt || d.defaultKeyStatistics?.forwardPE?.fmt,
+          divYield:    d.summaryDetail?.dividendYield?.fmt,
+          grossMargin: d.financialData?.grossMargins?.fmt,
+          totalDebt:   d.financialData?.totalDebt?.fmt,
+          fcfYield:    (() => { const f=d.financialData?.freeCashflow?.raw, m=d.price?.marketCap?.raw; return f&&m?(f/m*100).toFixed(2)+"%":null; })(),
+          payoutRatio: d.summaryDetail?.payoutRatio?.fmt,
+          roe:         d.financialData?.returnOnEquity?.fmt,
+        };
+      },
+      // 3) allorigins + v7/quote
+      async () => {
+        const url = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${sym}`;
+        const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        const j = await r.json();
+        const q = j?.quoteResponse?.result?.[0];
+        if (!q) return null;
+        return {
+          name:        q.longName || q.shortName || fallbackName,
+          sector:      q.sector || "—",
+          marketCap:   fmtLarge(q.marketCap),
+          pe:          q.trailingPE?.toFixed(2) || q.forwardPE?.toFixed(2),
+          divYield:    fmtPct(q.trailingAnnualDividendYield),
+          grossMargin: fmtPct(q.grossMargins),
+          totalDebt:   fmtLarge(q.totalDebt),
+          fcfYield:    (q.freeCashflow&&q.marketCap)?(q.freeCashflow/q.marketCap*100).toFixed(2)+"%":null,
+          payoutRatio: fmtPct(q.payoutRatio),
+          roe:         fmtPct(q.returnOnEquity),
+        };
+      },
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        const result = await attempt();
+        if (result && Object.values(result).some(v => v && v !== "—" && v !== sym)) {
+          return result;
+        }
+      } catch(_) {}
+    }
+    return base;
+  };
+
   // ── Fetch completo dos dados de um ticker ───────────────────────────────────
   const fetchTicker = async (sym) => {
     setShowSugg(false);
     setQuery(sym);
     setLoad(true); setError(null); setResult(null);
     try {
-      // Fetch chart (preço + série temporal) e fundamentais em paralelo
+      // Fetch chart (preço + série temporal)
       const chartUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
-      // v7/quote não precisa de crumb e devolve P/E, MarketCap, Div Yield, margens, dívida, etc.
-      const quoteUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${sym}&fields=shortName,longName,regularMarketPrice,marketCap,trailingPE,forwardPE,trailingAnnualDividendYield,grossMargins,freeCashflow,totalDebt,returnOnEquity,sector,payoutRatio`;
-
-      const [chartRes, quoteRes] = await Promise.all([
-        fetch(PROXY + encodeURIComponent(chartUrl)),
-        fetch(PROXY + encodeURIComponent(quoteUrl)).catch(() => null),
-      ]);
-
+      const chartRes = await fetch(PROXY + encodeURIComponent(chartUrl));
       if (!chartRes.ok) throw new Error("Ticker não encontrado");
       const chartJson = await chartRes.json();
       const meta = chartJson?.chart?.result?.[0]?.meta;
       if (!meta) throw new Error("Sem dados para este ticker");
 
-      // Processar fundamentais do v7/quote
-      let info = { name: meta.longName || meta.shortName || sym };
-      try {
-        const quoteJson = await quoteRes?.json();
-        const q = quoteJson?.quoteResponse?.result?.[0];
-        if (q) {
-          const fmtLarge = v => {
-            if (v == null) return null;
-            if (v >= 1e12) return (v/1e12).toFixed(2)+"T";
-            if (v >= 1e9)  return (v/1e9).toFixed(2)+"B";
-            if (v >= 1e6)  return (v/1e6).toFixed(2)+"M";
-            return v.toFixed(0);
-          };
-          const fmtPct = v => v == null ? null : (v*100).toFixed(2)+"%";
-          info = {
-            name:        q.longName || q.shortName || meta.longName || sym,
-            sector:      q.sector || "—",
-            marketCap:   fmtLarge(q.marketCap),
-            pe:          q.trailingPE?.toFixed(2) || q.forwardPE?.toFixed(2),
-            divYield:    fmtPct(q.trailingAnnualDividendYield),
-            grossMargin: fmtPct(q.grossMargins),
-            totalDebt:   fmtLarge(q.totalDebt),
-            fcfYield:    (q.freeCashflow && q.marketCap)
-                           ? (q.freeCashflow / q.marketCap * 100).toFixed(2)+"%"
-                           : null,
-            payoutRatio: fmtPct(q.payoutRatio),
-            roe:         fmtPct(q.returnOnEquity),
-          };
-        }
-      } catch(_) {}
+      // Fundamentais: tenta múltiplos proxies/endpoints
+      const info = await fetchFundamentals(sym, meta.longName || meta.shortName);
 
       const prices = chartJson.chart.result[0].indicators.quote[0].close.filter(Boolean);
       const base   = prices[0];
