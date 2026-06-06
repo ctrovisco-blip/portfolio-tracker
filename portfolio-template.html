@@ -1057,10 +1057,10 @@ function DeployButton() {
             GitHub Personal Access Token
           </div>
           <div style={{fontSize:"8px",color:"#4B5563",marginBottom:"10px",lineHeight:1.6}}>
-            Precisa de permissão <span style={{color:"#6366F1",fontFamily:"monospace"}}>workflow</span>.{" "}
-            <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Portfolio+Deploy"
+            Precisa do scope <span style={{color:"#6366F1",fontFamily:"monospace"}}>repo</span>.{" "}
+            <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Deploy"
               target="_blank" rel="noopener"
-              style={{color:"#6366F1",textDecoration:"none"}}>Criar token ↗</a>
+              style={{color:"#6366F1",textDecoration:"none"}}>Criar token Classic ↗</a>
           </div>
           <input autoFocus value={inputVal} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&handleSave()}
