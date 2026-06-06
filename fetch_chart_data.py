@@ -1,6 +1,6 @@
 """
-Fetch Yahoo Finance chart data for all positions.
-Reads:  data/positions.json
+Fetch Yahoo Finance chart data for all positions across multiple time ranges.
+Reads:  data/positions.json + metadata.json
 Writes: data/chart_data.json
 """
 import json, urllib.request, time, os
@@ -8,7 +8,6 @@ from datetime import datetime
 
 with open("data/positions.json", encoding="utf-8") as f:
     positions = json.load(f)
-
 with open("metadata.json", encoding="utf-8") as f:
     METADATA = json.load(f)
 
@@ -17,66 +16,94 @@ HEADERS = {
     "Accept":     "application/json",
 }
 
-def fetch_yf(symbol, range_="1y", interval="1d"):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={interval}&range={range_}"
+# (key, yf_interval, yf_range)
+RANGES = [
+    ("1d",  "2m",  "1d"),
+    ("3mo", "1d",  "3mo"),
+    ("ytd", "1d",  "ytd"),
+    ("1y",  "1d",  "1y"),
+    ("5y",  "1wk", "5y"),
+]
+INTRADAY = {"1m","2m","5m","15m","30m","1h"}
+
+def fetch_raw(symbol, interval, range_):
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+           f"?interval={interval}&range={range_}")
     req = urllib.request.Request(url, headers=HEADERS)
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read())
         result = data["chart"]["result"][0]
         timestamps = result["timestamp"]
-        closes = result["indicators"]["quote"][0]["close"]
+        closes     = result["indicators"]["quote"][0]["close"]
         out = {}
         for t, c in zip(timestamps, closes):
-            if c is not None:
-                d = str(datetime.fromtimestamp(t).date())
-                out[d] = round(c, 4)
+            if c is None: continue
+            dt  = datetime.utcfromtimestamp(t)
+            key = dt.strftime("%H:%M") if interval in INTRADAY else str(dt.date())
+            out[key] = round(c, 4)
         return out
     except Exception as e:
-        print(f"  ERROR {symbol}: {e}")
+        print(f"    ERROR {symbol} [{range_}]: {e}")
         return {}
 
-total_value = sum(p["qty"] * p["curPrice"] for p in positions)
-chart_data = {}
-print(f"Fetching {len(positions)} tickers...")
+def normalize(prices):
+    """% from first price in period, sorted."""
+    if not prices: return {}
+    items = sorted(prices.items())
+    base  = items[0][1]
+    if not base or base <= 0: return {}
+    return {d: round((v / base - 1) * 100, 4) for d, v in items}
 
+total_value = sum(p["qty"] * p["curPrice"] for p in positions)
+weights     = {p["ticker"]: round((p["qty"] * p["curPrice"]) / total_value, 6)
+               for p in positions}
+
+# ── Fetch raw prices for every ticker × range ─────────────────────────────
+print(f"Fetching {len(positions)} tickers × {len(RANGES)} ranges...")
+raw = {}   # ticker → range_key → {date: price}
 for p in positions:
     ticker = p["ticker"]
     yf_sym = METADATA.get(ticker, {}).get("yf")
-    if yf_sym is None:
+    if not yf_sym:
         print(f"  SKIP {ticker}")
-        chart_data[ticker] = {"prices": {}, "avgPrice": p["avgPrice"],
-                              "weight": round((p["qty"]*p["curPrice"])/total_value, 6)}
+        raw[ticker] = {rk: {} for rk, _, _ in RANGES}
         continue
-    print(f"  {ticker} ({yf_sym})...")
-    prices = fetch_yf(yf_sym)
-    chart_data[ticker] = {"prices": prices, "avgPrice": p["avgPrice"],
-                          "weight": round((p["qty"]*p["curPrice"])/total_value, 6)}
-    time.sleep(0.3)
+    print(f"  {ticker} ({yf_sym})")
+    raw[ticker] = {}
+    for rk, interval, range_ in RANGES:
+        raw[ticker][rk] = fetch_raw(yf_sym, interval, range_)
+        time.sleep(0.2)
 
-all_dates = sorted(set(d for p in chart_data.values() for d in p["prices"].keys()))
-portfolio_series = {}
-for date in all_dates:
-    wr, tw = 0.0, 0.0
-    for d in chart_data.values():
-        if date in d["prices"] and d["avgPrice"] > 0:
-            wr += d["weight"] * (d["prices"][date] / d["avgPrice"] - 1) * 100
-            tw += d["weight"]
-    if tw > 0:
-        portfolio_series[date] = round(wr, 4)
-
+# ── Normalised stock series ────────────────────────────────────────────────
 stock_series = {}
-for ticker, d in chart_data.items():
-    if not d["prices"]:
-        stock_series[ticker] = {}
-        continue
-    avg = d["avgPrice"]
-    items = sorted({dt: round((pr/avg-1)*100, 4) for dt, pr in d["prices"].items()}.items())[-252:]
-    stock_series[ticker] = dict(items)
+for ticker, r_data in raw.items():
+    stock_series[ticker] = {rk: normalize(r_data[rk]) for rk, _, _ in RANGES}
 
-ptrim = dict(sorted(portfolio_series.items())[-252:])
+# ── Portfolio series per range (weighted avg % from period start) ──────────
+portfolio_series = {}
+for rk, _, _ in RANGES:
+    all_keys = sorted(set(k for t in raw.values() for k in t[rk]))
+    bases    = {}
+    for ticker, r_data in raw.items():
+        items = sorted(r_data[rk].items())
+        if items:
+            bases[ticker] = items[0][1]
 
-# ── Benchmark indices (normalised to % from first available price) ──────────
+    port = {}
+    for key in all_keys:
+        wr, tw = 0.0, 0.0
+        for ticker, r_data in raw.items():
+            if key in r_data[rk] and bases.get(ticker, 0) > 0:
+                pct = (r_data[rk][key] / bases[ticker] - 1) * 100
+                w   = weights.get(ticker, 0)
+                wr += w * pct
+                tw += w
+        if tw > 0:
+            port[key] = round(wr, 4)
+    portfolio_series[rk] = port
+
+# ── Benchmark indices ─────────────────────────────────────────────────────
 INDEXES = {
     "SP500":   "^GSPC",
     "FTSE100": "^FTSE",
@@ -86,20 +113,15 @@ INDEXES = {
 index_series = {}
 print("Fetching benchmark indices...")
 for name, sym in INDEXES.items():
-    print(f"  {name} ({sym})...")
-    raw = fetch_yf(sym)
-    if not raw:
-        index_series[name] = {}
-        continue
-    items = sorted(raw.items())[-252:]
-    base = items[0][1]
-    if base and base > 0:
-        index_series[name] = {d: round((v/base - 1)*100, 4) for d, v in items}
-    else:
-        index_series[name] = {}
-    time.sleep(0.3)
+    print(f"  {name} ({sym})")
+    index_series[name] = {}
+    for rk, interval, range_ in RANGES:
+        index_series[name][rk] = normalize(fetch_raw(sym, interval, range_))
+        time.sleep(0.2)
 
 os.makedirs("data", exist_ok=True)
 with open("data/chart_data.json", "w") as f:
-    json.dump({"portfolio": ptrim, "stocks": stock_series, "indexes": index_series}, f)
-print(f"Done! Portfolio: {len(ptrim)} days, Indexes: {list(index_series.keys())}")
+    json.dump({"portfolio": portfolio_series,
+               "stocks":    stock_series,
+               "indexes":   index_series}, f)
+print("Done!")
