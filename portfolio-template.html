@@ -23,7 +23,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 @media(max-width:768px){
   .main-grid{grid-template-columns:1fr!important;}
   .right-col{border-left:none!important;border-top:1px solid #1A2535;}
-  .chart-wrap{height:150px!important;}
+  .chart-wrap{height:180px!important;}
 }
 </style>
 </head>
@@ -175,29 +175,37 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
             stroke="#111827" strokeWidth="0.5"/>
         ))}
 
-        {/* Overlay index lines */}
-        {overlays.map(ov => {
-          if (!ov.entries || !ov.entries.length) return null;
-          const oPts = ov.entries.map(([,v],i) => {
-            const xi = PAD.left + (i / Math.max(ov.entries.length-1,1)) * cW;
-            const yi = PAD.top + cH - ((v - minV) / range) * cH;
-            return `${xi.toFixed(1)},${yi.toFixed(1)}`;
+        {/* Overlay index lines — aligned by date to main series */}
+        {(() => {
+          const t0 = new Date(dates[0]+"T12:00:00Z").getTime();
+          const t1 = new Date(dates[dates.length-1]+"T12:00:00Z").getTime();
+          const tRange = t1 - t0 || 1;
+          const dateToX = d => {
+            const t = new Date(d+"T12:00:00Z").getTime();
+            return PAD.left + Math.max(0, Math.min(1, (t-t0)/tRange)) * cW;
+          };
+          return overlays.map(ov => {
+            if (!ov.entries || !ov.entries.length) return null;
+            const pts = ov.entries
+              .map(([d,v]) => `${dateToX(d).toFixed(1)},${(PAD.top+cH-((v-minV)/range)*cH).toFixed(1)}`)
+              .join(" ");
+            const lastOv  = ov.entries[ov.entries.length-1][1];
+            const lastOvX = dateToX(ov.entries[ov.entries.length-1][0]);
+            const lastOvY = PAD.top + cH - ((lastOv-minV)/range)*cH;
+            return (
+              <g key={ov.label}>
+                <polyline points={pts} fill="none" stroke={ov.color}
+                  strokeWidth="1.4" strokeDasharray="5,3" opacity="0.8"
+                  clipPath={`url(#clip_${safeId})`}/>
+                <circle cx={lastOvX} cy={lastOvY} r="2.5" fill={ov.color} opacity="0.9"/>
+                <text x={lastOvX+5} y={lastOvY+3} fill={ov.color} fontSize="7.5" fontWeight="700"
+                  textAnchor="start">{ov.label}</text>
+                <text x={lastOvX+5} y={lastOvY+12} fill={ov.color} fontSize="7" opacity="0.85"
+                  textAnchor="start">{lastOv>=0?"+":""}{lastOv.toFixed(1)}%</text>
+              </g>
+            );
           });
-          const lastOv = ov.entries[ov.entries.length-1][1];
-          const lastOvX = PAD.left + cW;
-          const lastOvY = PAD.top + cH - ((lastOv - minV) / range) * cH;
-          return (
-            <g key={ov.label}>
-              <polyline points={oPts.join(" ")} fill="none" stroke={ov.color}
-                strokeWidth="1.2" strokeDasharray="5,3" opacity="0.7"
-                clipPath={`url(#clip_${safeId})`}/>
-              <text x={lastOvX+4} y={lastOvY+3.5} fill={ov.color} fontSize="7" fontWeight="600"
-                textAnchor="start">{ov.label}</text>
-              <text x={lastOvX+4} y={lastOvY+12} fill={ov.color} fontSize="6.5" opacity="0.8"
-                textAnchor="start">{lastOv>=0?"+":""}{lastOv.toFixed(1)}%</text>
-            </g>
-          );
-        })}
+        })()}
 
         {/* Area + Line */}
         <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
@@ -867,7 +875,7 @@ function App() {
         <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #1A2535",overflow:"hidden"}}>
 
           {/* Chart */}
-          <div className="chart-wrap" style={{flexShrink:0,height:"185px",borderBottom:"1px solid #1A2535"}}>
+          <div className="chart-wrap" style={{flexShrink:0,height:"240px",borderBottom:"1px solid #1A2535"}}>
             <ChartPanel sel={sel} positions={positions}/>
           </div>
 
