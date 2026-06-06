@@ -1,0 +1,47 @@
+name: Weekly Market Report
+
+on:
+  schedule:
+    - cron: '0 8 * * 0'  # Every Sunday 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python market_report/fetch_news.py
+        continue-on-error: true
+      - run: python market_report/fetch_discord.py
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_NAME: ${{ vars.DISCORD_GUILD_NAME }}
+          DISCORD_CHANNEL_NAME: ${{ vars.DISCORD_CHANNEL_NAME }}
+        continue-on-error: true
+      - run: python market_report/fetch_market_data.py
+        continue-on-error: true
+      - run: python market_report/fetch_earnings.py
+        continue-on-error: true
+      - run: python market_report/build_report.py
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          if ! git diff --cached --quiet; then
+            REPORT_DATE=$(date +%d/%m/%Y)
+            git commit -m "feat: market report ${REPORT_DATE} [skip ci]"
+            git push -u origin HEAD
+          else
+            echo "No new report changes"
+          fi
