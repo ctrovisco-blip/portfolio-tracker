@@ -727,29 +727,27 @@ function PortfolioOverview({ positions, onSelect }) {
 
 // ─── SEARCH PANEL ────────────────────────────────────────────────────────────
 function SearchPanel() {
-  // ── Todos os hooks no topo ────────────────────────────────────────────────────
-  const [query, setQuery]           = useState("");
-  const [suggestions, setSugg]      = useState([]);
-  const [suggLoad, setSuggLoad]     = useState(false);
-  const [showSugg, setShowSugg]     = useState(false);
-  const [loading, setLoad]          = useState(false);
-  const [result, setResult]         = useState(null);
-  const [error, setError]           = useState(null);
-  const [fmpKey, setFmpKey]         = useState(() => localStorage.getItem("fmp_api_key") || "");
+  // ── Hooks (todos no topo, sem excepção) ───────────────────────────────────────
+  const [query,        setQuery]    = useState("");
+  const [suggestions,  setSugg]     = useState([]);
+  const [suggLoad,     setSuggLoad] = useState(false);
+  const [showSugg,     setShowSugg] = useState(false);
+  const [loading,      setLoad]     = useState(false);
+  const [result,       setResult]   = useState(null);
+  const [error,        setError]    = useState(null);
+  const [fmpKey,       setFmpKey]   = useState(() => localStorage.getItem("fmp_api_key") || "");
   const [showFmpSetup, setFmpSetup] = useState(false);
-  const [fmpInput, setFmpInput]     = useState("");
+  const [fmpInput,     setFmpInput] = useState("");
   const debounceRef = useRef(null);
   const wrapRef     = useRef(null);
   const fmpRef      = useRef(null);
 
-  // Fechar autocomplete ao clicar fora
   useEffect(() => {
     const h = e => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setShowSugg(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // Fechar modal FMP ao clicar fora
   useEffect(() => {
     if (!showFmpSetup) return;
     const h = e => { if (fmpRef.current && !fmpRef.current.contains(e.target)) setFmpSetup(false); };
@@ -757,65 +755,78 @@ function SearchPanel() {
     return () => document.removeEventListener("mousedown", h);
   }, [showFmpSetup]);
 
-  const PROXY = "https://corsproxy.io/?";
+  // ── Constantes e helpers ──────────────────────────────────────────────────────
+  const PROXY    = "https://corsproxy.io/?";
+  const FMP_BASE = "https://financialmodelingprep.com/api/v3";
 
-  const saveFmpKey = (k) => {
-    localStorage.setItem("fmp_api_key", k);
-    setFmpKey(k);
-    setFmpSetup(false);
-  };
-
-  // ── Helpers de formatação ────────────────────────────────────────────────────
   const fmtLarge = v => {
     if (v == null) return null;
     if (v >= 1e12) return (v/1e12).toFixed(2)+"T";
     if (v >= 1e9)  return (v/1e9).toFixed(2)+"B";
     if (v >= 1e6)  return (v/1e6).toFixed(2)+"M";
-    return v.toFixed(0);
+    return String(v);
   };
+
+  const saveFmpKey = k => { localStorage.setItem("fmp_api_key", k); setFmpKey(k); setFmpSetup(false); };
+
+  // ── Autocomplete (debounce 350ms) ─────────────────────────────────────────────
+  const onQueryChange = val => {
+    setQuery(val);
+    setResult(null); setError(null);
+    clearTimeout(debounceRef.current);
+    if (val.trim().length < 2) { setSugg([]); setShowSugg(false); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSuggLoad(true);
+      try {
+        const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(val)}&quotesCount=8&newsCount=0&enableFuzzyQuery=true`;
+        const res  = await fetch(PROXY + encodeURIComponent(url));
+        const json = await res.json();
+        const list = (json?.quotes || json?.finance?.result?.[0]?.quotes || [])
+          .filter(q => q.symbol && ["EQUITY","ETF","MUTUALFUND"].includes(q.quoteType))
+          .slice(0, 7);
+        setSugg(list);
+        setShowSugg(list.length > 0);
+      } catch(_) { setSugg([]); }
+      setSuggLoad(false);
+    }, 350);
+  };
+
   const fmtPct = v => v == null ? null : (v*100).toFixed(2)+"%";
 
   // ── Fundamentais via FMP (endpoints gratuitos confirmados) ──────────────────
   const fetchFundamentalsFMP = async (sym, apiKey) => {
-    const base = `https://financialmodelingprep.com/api/v3`;
-
     // Fetch em paralelo — todos gratuitos no plano free da FMP
     const [profRes, quoteRes, ratioRes, bsRes] = await Promise.all([
-      fetch(`${base}/profile/${sym}?apikey=${apiKey}`),           // nome, sector, mktCap, lastDiv
-      fetch(`${base}/quote/${sym}?apikey=${apiKey}`),             // P/E, EPS, preço
-      fetch(`${base}/ratios/${sym}?limit=1&apikey=${apiKey}`),    // margens, ROE, divYield
-      fetch(`${base}/balance-sheet-statement/${sym}?limit=1&apikey=${apiKey}`), // dívida
+      fetch(`${FMP_BASE}/profile/${sym}?apikey=${apiKey}`),
+      fetch(`${FMP_BASE}/quote/${sym}?apikey=${apiKey}`),
+      fetch(`${FMP_BASE}/ratios/${sym}?limit=1&apikey=${apiKey}`),
+      fetch(`${FMP_BASE}/balance-sheet-statement/${sym}?limit=1&apikey=${apiKey}`),
     ]);
 
-    const toArr = async r => { try { const j = await r.json(); return Array.isArray(j) ? j[0] : null; } catch(_) { return null; } };
-    const [p, q, r, b] = await Promise.all([toArr(profRes), toArr(quoteRes), toArr(ratioRes), toArr(bsRes)]);
+    const parseArr = async res => { try { const j = await res.json(); return Array.isArray(j) ? j[0] : null; } catch(_) { return null; } };
+    const [p, q, ratios, bs] = await Promise.all([parseArr(profRes), parseArr(quoteRes), parseArr(ratioRes), parseArr(bsRes)]);
 
-    // Diagnóstico: se a API key for inválida, profile devolve {"message":"..."}
-    if (!p && !q) {
-      const errJson = await profRes.clone?.()?.json?.().catch(()=>null);
-      const msg = errJson?.message || errJson?.["Error Message"] || "Chave FMP inválida ou plano insuficiente";
-      throw new Error(msg);
-    }
+    if (!p && !q) throw new Error("Ticker não encontrado na FMP ou chave inválida");
 
     // Dividend yield: lastDiv (trimestral) × 4 ÷ preço
     const price    = p?.price || q?.price;
     const lastDiv  = p?.lastDiv;
     const divYield = (lastDiv && price && lastDiv > 0)
       ? (lastDiv * 4 / price * 100).toFixed(2) + "%"
-      : (r?.dividendYield != null ? (r.dividendYield * 100).toFixed(2) + "%" : null);
+      : (ratios?.dividendYield != null ? (ratios.dividendYield * 100).toFixed(2) + "%" : null);
 
     return {
       name:        p?.companyName || q?.name,
       sector:      p?.sector || "—",
       marketCap:   fmtLarge(p?.mktCap || q?.marketCap),
-      pe:          q?.pe?.toFixed(2) || (r?.priceEarningsRatio != null ? r.priceEarningsRatio.toFixed(2) : null),
+      pe:          q?.pe != null ? q.pe.toFixed(2) : (ratios?.priceEarningsRatio != null ? ratios.priceEarningsRatio.toFixed(2) : null),
       divYield,
-      grossMargin: r?.grossProfitMargin != null ? (r.grossProfitMargin * 100).toFixed(2) + "%" : null,
-      totalDebt:   fmtLarge(b?.totalDebt),
-      fcfYield:    (b && p?.mktCap && b.freeCashflow != null)
-                     ? (b.freeCashflow / p.mktCap * 100).toFixed(2) + "%" : null,
-      payoutRatio: r?.payoutRatio != null ? (r.payoutRatio * 100).toFixed(2) + "%" : null,
-      roe:         r?.returnOnEquity != null ? (r.returnOnEquity * 100).toFixed(2) + "%" : null,
+      grossMargin: ratios?.grossProfitMargin != null ? (ratios.grossProfitMargin * 100).toFixed(2) + "%" : null,
+      totalDebt:   fmtLarge(bs?.totalDebt),
+      fcfYield:    (bs?.freeCashflow != null && p?.mktCap)
+                     ? (bs.freeCashflow / p.mktCap * 100).toFixed(2) + "%" : null,
+      payoutRatio: ratios?.payoutRatio != null ? (ratios.payoutRatio * 100).toFixed(2) + "%" : null,
+      roe:         ratios?.returnOnEquity != null ? (ratios.returnOnEquity * 100).toFixed(2) + "%" : null,
     };
   };
 
