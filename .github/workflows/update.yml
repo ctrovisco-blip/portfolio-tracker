@@ -2,10 +2,17 @@ name: Update Portfolio Data
 
 on:
   schedule:
-    # Runs weekdays at 18:30 UTC (19:30 Lisboa hora de inverno, 20:30 verão)
-    - cron: '30 18 * * 1-5'
+    # ── Dias úteis ────────────────────────────────────────────────────────────
+    # 09:00 UTC → apanha fecho dos mercados asiáticos + abertura europeia
+    - cron: '0 9 * * 1-5'
+    # 21:30 UTC → 30 min após fecho de Wall Street (21:00 UTC)
+    - cron: '30 21 * * 1-5'
+    # ── Fim de semana ─────────────────────────────────────────────────────────
+    # Sábado 10:00 UTC → mantém dados frescos + recupera falhas da semana
+    - cron: '0 10 * * 6'
+
+  # Execução manual pelo botão "Run workflow" no GitHub
   workflow_dispatch:
-    # Permite correr manualmente a qualquer momento pelo botão "Run workflow" no GitHub
 
 permissions:
   contents: write
@@ -17,6 +24,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          # Garante que temos o estado mais recente (evita conflitos de push)
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,26 +36,63 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # ── Fetch de dados (continue-on-error: cada fonte falha de forma independente) ──
+
       - name: Fetch positions from Trading212
+        id: positions
+        continue-on-error: true
         env:
           T212_API_KEY:    ${{ secrets.T212_API_KEY }}
           T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
         run: python fetch_positions.py
 
       - name: Fetch FX rates
+        id: fx
+        continue-on-error: true
         run: python fetch_fx.py
 
       - name: Fetch chart data (Yahoo Finance)
+        id: charts
+        continue-on-error: true
         run: python fetch_chart_data.py
 
       - name: Fetch fundamental data (yfinance)
+        id: fundamentals
+        continue-on-error: true
+        # Fundamentais mudam trimestralmente.
+        # Corre: manualmente, na execução das 21:30 UTC, e ao sábado.
+        # NÃO corre na execução matinal das 09:00 (dados intraday) para poupar tempo.
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          github.event.schedule == '30 21 * * 1-5' ||
+          github.event.schedule == '0 10 * * 6'
         run: python fetch_fundamentals.py
+
+      - name: Log fetch results
+        run: |
+          echo "positions=${{ steps.positions.outcome }}"
+          echo "fx=${{ steps.fx.outcome }}"
+          echo "charts=${{ steps.charts.outcome }}"
+          echo "fundamentals=${{ steps.fundamentals.outcome }}"
+
+      # ── Build sempre (mesmo que alguns fetches tenham falhado) ────────────────
 
       - name: Build HTML
         run: python build_html.py
 
-      - name: Commit & push updated files
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update portfolio data [skip ci]"
-          file_pattern: "index.html data/*.json"
+      # ── Push robusto: pull --rebase antes de push para evitar conflitos ──────
+
+      - name: Commit & push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html data/*.json
+          # Só commita se houver mudanças
+          if git diff --staged --quiet; then
+            echo "Sem alteracoes, nada a commitar."
+            exit 0
+          fi
+          git commit -m "chore: update portfolio data $(date -u +'%Y-%m-%d %H:%M UTC') [skip ci]"
+          # Pull rebase para incorporar eventuais commits remotos antes de push
+          git pull --rebase origin main
+          git push origin main

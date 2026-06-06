@@ -2,39 +2,83 @@
 Builds the final index.html by injecting fresh JSON data into the template.
 Reads:  portfolio-template.html + data/*.json
 Writes: index.html
+
+Se algum ficheiro de dados estiver em falta, tenta usar a versão anterior de
+index.html; caso não exista, aborta com erro claro.
 """
-import json, re, os
-from datetime import datetime
+import json, os, sys
+from datetime import datetime, timezone
 
 print("Building index.html...")
+
+# ── Template ──────────────────────────────────────────────────────────────────
 
 with open("portfolio-template.html", encoding="utf-8") as f:
     html = f.read()
 
-with open("data/positions.json",   encoding="utf-8") as f: positions   = json.load(f)
-with open("data/chart_data.json",  encoding="utf-8") as f: chart_data  = json.load(f)
-with open("data/fundamentals.json",encoding="utf-8") as f: fundamentals= json.load(f)
-with open("data/fx.json",          encoding="utf-8") as f: fx_rates    = json.load(f)
+# ── Loader robusto ────────────────────────────────────────────────────────────
 
-# Compact JSON (no extra whitespace)
+def load_json(path, description):
+    """Carrega JSON; aborta se o ficheiro não existir."""
+    if not os.path.exists(path):
+        print(f"  AVISO: {path} nao encontrado — a build pode usar dados antigos.")
+        sys.exit(1)
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    print(f"  {description}: OK ({os.path.getsize(path)//1024}KB)")
+    return data
+
+positions    = load_json("data/positions.json",    "Positions")
+chart_data   = load_json("data/chart_data.json",   "Chart data")
+fundamentals = load_json("data/fundamentals.json", "Fundamentals")
+fx_rates     = load_json("data/fx.json",           "FX rates")
+
+# ── Timestamps por fonte ───────────────────────────────────────────────────────
+
+def file_mtime(path):
+    """Devolve a hora de modificação do ficheiro como string 'YYYY-MM-DD HH:MM UTC'."""
+    if not os.path.exists(path):
+        return "n/a"
+    t = os.path.getmtime(path)
+    return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+timestamps = {
+    "positions":    file_mtime("data/positions.json"),
+    "chart":        file_mtime("data/chart_data.json"),
+    "fundamentals": file_mtime("data/fundamentals.json"),
+    "fx":           file_mtime("data/fx.json"),
+}
+
+# ── Compact JSON ──────────────────────────────────────────────────────────────
+
 positions_js    = json.dumps(positions,    separators=(',',':'), ensure_ascii=False)
 chart_data_js   = json.dumps(chart_data,   separators=(',',':'))
 fundamentals_js = json.dumps(fundamentals, separators=(',',':'))
 fx_js           = json.dumps(fx_rates,     separators=(',',':'))
+timestamps_js   = json.dumps(timestamps,   separators=(',',':'))
 
-updated = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+updated = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-# Replace placeholders
+# ── Substituir placeholders ───────────────────────────────────────────────────
+
 html = html.replace("/*__POSITIONS__*/",    positions_js)
 html = html.replace("/*__CHART_DATA__*/",   chart_data_js)
 html = html.replace("/*__FUNDAMENTALS__*/", fundamentals_js)
 html = html.replace("/*__FX_RATES__*/",     fx_js)
+html = html.replace("/*__TIMESTAMPS__*/",   timestamps_js)
 html = html.replace("__UPDATED__",          updated)
+
+# ── Escrever index.html ───────────────────────────────────────────────────────
 
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"Done! index.html written ({len(html)//1024}KB)")
-print(f"  Positions: {len(positions)}")
-print(f"  Portfolio days (1y): {len(chart_data.get('portfolio', {}).get('1y', {}))}")
-print(f"  Updated: {updated}")
+print(f"\nindex.html escrito ({len(html)//1024}KB)")
+print(f"  Posicoes:           {len(positions)}")
+print(f"  Portfolio dias 1y:  {len(chart_data.get('portfolio', {}).get('1y', {}))}")
+print(f"  Fundamentais:       {len(fundamentals)}")
+print(f"  FX rates:           {list(fx_rates.keys())}")
+print(f"  Build timestamp:    {updated}")
+print(f"\n  Timestamps dos dados:")
+for k, v in timestamps.items():
+    print(f"    {k:15s} -> {v}")
