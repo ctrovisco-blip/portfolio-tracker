@@ -14,7 +14,7 @@
   "SRP":        {"name":"Serco Group",        "sector":"Defesa & Aeroespacial", "flag":"🇬🇧","exchange":"LSE",              "cur":"p", "yf":"SRP.L"},
   "NOS":        {"name":"NOS",                "sector":"Portuguesa",            "flag":"🇵🇹","exchange":"Euronext Lisboa",  "cur":"€", "yf":"NOS.LS"},
   "NVG":        {"name":"Navigator Company",  "sector":"Portuguesa",            "flag":"🇵🇹","exchange":"Euronext Lisboa",  "cur":"€", "yf":"NVG.LS"},
-  "CSG":        {"name":"Credit Suisse",       "sector":"Financeiro",            "flag":"🇨🇭","exchange":"Xetra",            "cur":"€", "yf":null},
+  "CSG":        {"name":"CSG N.V.",             "sector":"Outro",                 "flag":"🇳🇱","exchange":"Euronext AMS",     "cur":"€", "yf":"CSG.AS"},
   "PG":         {"name":"Procter & Gamble",   "sector":"Consumer Staples",      "flag":"🇺🇸","exchange":"NYSE",             "cur":"$", "yf":"PG"},
   "JNJ":        {"name":"Johnson & Johnson",  "sector":"Healthcare",            "flag":"🇺🇸","exchange":"Xetra",            "cur":"€", "yf":"JNJ"},
   "PFE":        {"name":"Pfizer",             "sector":"Healthcare",            "flag":"🇺🇸","exchange":"Xetra",            "cur":"€", "yf":"PFE"},
