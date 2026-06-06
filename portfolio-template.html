@@ -775,30 +775,47 @@ function SearchPanel() {
   };
   const fmtPct = v => v == null ? null : (v*100).toFixed(2)+"%";
 
-  // ── Fundamentais via FMP (fonte primária, sem proxy, CORS nativo) ─────────────
+  // ── Fundamentais via FMP (endpoints gratuitos confirmados) ──────────────────
   const fetchFundamentalsFMP = async (sym, apiKey) => {
-    // Dois endpoints em paralelo: profile (P/E, mktCap, sector) + key-metrics TTM (margens, FCF, ROE)
     const base = `https://financialmodelingprep.com/api/v3`;
-    const [profRes, metRes] = await Promise.all([
-      fetch(`${base}/profile/${sym}?apikey=${apiKey}`),
-      fetch(`${base}/key-metrics-ttm/${sym}?apikey=${apiKey}`),
+
+    // Fetch em paralelo — todos gratuitos no plano free da FMP
+    const [profRes, quoteRes, ratioRes, bsRes] = await Promise.all([
+      fetch(`${base}/profile/${sym}?apikey=${apiKey}`),           // nome, sector, mktCap, lastDiv
+      fetch(`${base}/quote/${sym}?apikey=${apiKey}`),             // P/E, EPS, preço
+      fetch(`${base}/ratios/${sym}?limit=1&apikey=${apiKey}`),    // margens, ROE, divYield
+      fetch(`${base}/balance-sheet-statement/${sym}?limit=1&apikey=${apiKey}`), // dívida
     ]);
-    const profJson = await profRes.json();
-    const metJson  = await metRes.json();
-    const p = Array.isArray(profJson) ? profJson[0] : null;
-    const m = Array.isArray(metJson)  ? metJson[0]  : null;
-    if (!p && !m) return null;
+
+    const toArr = async r => { try { const j = await r.json(); return Array.isArray(j) ? j[0] : null; } catch(_) { return null; } };
+    const [p, q, r, b] = await Promise.all([toArr(profRes), toArr(quoteRes), toArr(ratioRes), toArr(bsRes)]);
+
+    // Diagnóstico: se a API key for inválida, profile devolve {"message":"..."}
+    if (!p && !q) {
+      const errJson = await profRes.clone?.()?.json?.().catch(()=>null);
+      const msg = errJson?.message || errJson?.["Error Message"] || "Chave FMP inválida ou plano insuficiente";
+      throw new Error(msg);
+    }
+
+    // Dividend yield: lastDiv (trimestral) × 4 ÷ preço
+    const price    = p?.price || q?.price;
+    const lastDiv  = p?.lastDiv;
+    const divYield = (lastDiv && price && lastDiv > 0)
+      ? (lastDiv * 4 / price * 100).toFixed(2) + "%"
+      : (r?.dividendYield != null ? (r.dividendYield * 100).toFixed(2) + "%" : null);
+
     return {
-      name:        p?.companyName,
+      name:        p?.companyName || q?.name,
       sector:      p?.sector || "—",
-      marketCap:   fmtLarge(p?.mktCap),
-      pe:          m?.peRatioTTM?.toFixed(2),
-      divYield:    m?.dividendYieldTTM != null ? (m.dividendYieldTTM*100).toFixed(2)+"%" : null,
-      grossMargin: m?.grossProfitMarginTTM != null ? (m.grossProfitMarginTTM*100).toFixed(2)+"%" : null,
-      totalDebt:   fmtLarge(p?.totalDebt ?? null),
-      fcfYield:    m?.freeCashFlowYieldTTM != null ? (m.freeCashFlowYieldTTM*100).toFixed(2)+"%" : null,
-      payoutRatio: m?.payoutRatioTTM != null ? (m.payoutRatioTTM*100).toFixed(2)+"%" : null,
-      roe:         m?.roeTTM != null ? (m.roeTTM*100).toFixed(2)+"%" : null,
+      marketCap:   fmtLarge(p?.mktCap || q?.marketCap),
+      pe:          q?.pe?.toFixed(2) || (r?.priceEarningsRatio != null ? r.priceEarningsRatio.toFixed(2) : null),
+      divYield,
+      grossMargin: r?.grossProfitMargin != null ? (r.grossProfitMargin * 100).toFixed(2) + "%" : null,
+      totalDebt:   fmtLarge(b?.totalDebt),
+      fcfYield:    (b && p?.mktCap && b.freeCashflow != null)
+                     ? (b.freeCashflow / p.mktCap * 100).toFixed(2) + "%" : null,
+      payoutRatio: r?.payoutRatio != null ? (r.payoutRatio * 100).toFixed(2) + "%" : null,
+      roe:         r?.returnOnEquity != null ? (r.returnOnEquity * 100).toFixed(2) + "%" : null,
     };
   };
 
@@ -841,7 +858,10 @@ function SearchPanel() {
         try {
           const fmpData = await fetchFundamentalsFMP(sym, fmpKey);
           if (fmpData) info = { ...fmpData, source: "fmp" };
-        } catch(_) {}
+          else info = { ...info, source: "fmp_empty" };
+        } catch(e) {
+          info = { ...info, source: "fmp_error", fmpErrorMsg: e.message };
+        }
       } else {
         info.source = "nokey";
       }
@@ -1015,26 +1035,36 @@ function SearchPanel() {
             <FRow label="Div Yield"     value={info.divYield} color={info.divYield&&parseFloat(info.divYield)>3?"#3FB950":undefined}/>
             <FRow label="Payout Ratio"  value={info.payoutRatio}/>
 
-            {/* Fonte dos dados / aviso de configuração */}
-            {info.source === "nokey" ? (
+            {/* Fonte dos dados / aviso */}
+            {info.source === "nokey" && (
               <div style={{marginTop:"10px",padding:"8px 10px",background:"#1A1A2E",borderRadius:"6px",
                 border:"1px solid #6366F133",fontSize:"8px",color:"#6366F1",lineHeight:1.7}}>
                 <div style={{fontWeight:"600",marginBottom:"3px"}}>⚙ Fundamentais não disponíveis</div>
                 <div style={{color:"#4B5563"}}>
-                  Configura uma API key gratuita da{" "}
+                  Configura uma{" "}
                   <span style={{color:"#6366F1",cursor:"pointer",textDecoration:"underline"}}
-                    onClick={()=>setFmpSetup(true)}>
-                    Financial Modeling Prep
-                  </span>
+                    onClick={()=>setFmpSetup(true)}>API key gratuita da FMP</span>
                   {" "}para ver P/E, margens, ROE e mais.
                 </div>
               </div>
-            ) : (
+            )}
+            {(info.source === "fmp_error" || info.source === "fmp_empty") && (
+              <div style={{marginTop:"10px",padding:"8px 10px",background:"#2D1515",borderRadius:"6px",
+                border:"1px solid #EF444433",fontSize:"8px",color:"#F87171",lineHeight:1.7}}>
+                <div style={{fontWeight:"600",marginBottom:"3px"}}>⚠ Erro FMP</div>
+                <div style={{color:"#9CA3AF"}}>{info.fmpErrorMsg || "Sem dados — verifica a key ou o plano FMP."}</div>
+                <div style={{marginTop:"4px"}}>
+                  <span style={{color:"#6366F1",cursor:"pointer",textDecoration:"underline"}}
+                    onClick={()=>setFmpSetup(true)}>Actualizar key</span>
+                </div>
+              </div>
+            )}
+            {(info.source === "fmp" || info.source === "portfolio") && (
               <div style={{marginTop:"10px",padding:"6px 8px",background:"#0A0F1A",borderRadius:"5px",
                 border:"1px solid #161D2B",fontSize:"8px",color:"#374151",textAlign:"center"}}>
-                {info.source==="portfolio" ? "Dados da carteira (yfinance) · actualizados diariamente"
-                  : info.source==="fmp" ? "Dados via Financial Modeling Prep · apenas informativos"
-                  : "Dados apenas informativos"}
+                {info.source==="portfolio"
+                  ? "Dados da carteira (yfinance) · actualizados diariamente"
+                  : "Dados via Financial Modeling Prep · apenas informativos"}
               </div>
             )}
           </div>
