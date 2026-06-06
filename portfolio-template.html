@@ -371,7 +371,7 @@ const IDX_META = {
   NASDAQ:  { label:"Nasdaq",  color:"#38BDF8" },
 };
 
-const RANGE_LABELS = { "1d":"1D", "3mo":"3M", "ytd":"YTD", "1y":"1A", "5y":"5A" };
+const RANGE_LABELS = { "1d":"1D", "3mo":"3M", "ytd":"YTD", "1y":"1A", "max":"Máx" };
 
 function ChartPanel({ sel, positions }) {
   const [activeIdxs, setActiveIdxs] = useState([]);
@@ -407,7 +407,7 @@ function ChartPanel({ sel, positions }) {
 
   const RANGE_SUBTITLES = {
     "1d":"hoje · intraday", "3mo":"últimos 3 meses",
-    "ytd":"desde 1 Jan", "1y":"últimos 12 meses", "5y":"últimos 5 anos"
+    "ytd":"desde 1 Jan", "1y":"últimos 12 meses", "max":"histórico máximo"
   };
 
   return (
@@ -473,7 +473,7 @@ function ChartPanel({ sel, positions }) {
       {/* ── Chart ── */}
       <div style={{padding:"0 10px 4px",flex:1,minHeight:0}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
-          buyDates={range!=="1d" && range!=="5y" && !isTotal ? pos?.buyDates : null}
+          buyDates={range!=="1d" && range!=="max" && !isTotal ? pos?.buyDates : null}
           overlays={overlays} range={range}/>
       </div>
     </div>
