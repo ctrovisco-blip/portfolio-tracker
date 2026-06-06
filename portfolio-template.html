@@ -118,9 +118,10 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
   const labelOffX = -8;
 
   return (
-    <div style={{position:"relative",userSelect:"none"}}>
-      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`}
-        style={{display:"block",overflow:"hidden"}}
+    <div style={{position:"relative",userSelect:"none",height:"100%"}}>
+      <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        style={{display:"block"}}
         onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
@@ -229,9 +230,9 @@ function ChartPanel({ sel, positions }) {
   const lastVal    = Object.values(seriesData).pop() || 0;
 
   return (
-    <div style={{background:"#080C14",height:"100%",overflow:"hidden"}}>
+    <div style={{background:"#080C14",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"8px 14px 4px"}}>
+        padding:"8px 14px 4px",flexShrink:0}}>
         <div>
           <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px"}}>
             {isTotal ? "Portfolio Total" : pos?.name}
@@ -252,7 +253,7 @@ function ChartPanel({ sel, positions }) {
           )}
         </div>
       </div>
-      <div style={{padding:"2px 10px 4px"}}>
+      <div style={{padding:"2px 10px 4px",flex:1,minHeight:0}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
           buyDates={!isTotal ? pos?.buyDates : null}
           avgPrice={!isTotal ? pos?.avgPrice : null}
@@ -507,7 +508,7 @@ function App() {
         <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #1A2535",overflow:"hidden"}}>
 
           {/* Chart */}
-          <div style={{flexShrink:0,height:"190px",borderBottom:"1px solid #1A2535",overflow:"hidden"}}>
+          <div style={{flexShrink:0,height:"175px",borderBottom:"1px solid #1A2535"}}>
             <ChartPanel sel={sel} positions={positions}/>
           </div>
 
