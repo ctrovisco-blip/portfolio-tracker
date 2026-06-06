@@ -30,8 +30,9 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 <body>
 <div id="root"></div>
 <script>
-const CHART_DATA = /*__CHART_DATA__*/;
-const FX_RATES   = /*__FX_RATES__*/;
+const CHART_DATA  = /*__CHART_DATA__*/;
+const FX_RATES    = /*__FX_RATES__*/;
+const TIMESTAMPS  = /*__TIMESTAMPS__*/;
 </script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
@@ -849,6 +850,84 @@ function SearchPanel() {
   );
 }
 
+// ─── FRESHNESS INDICATOR ──────────────────────────────────────────────────────
+function FreshnessIndicator() {
+  const [show, setShow] = useState(false);
+  const ref = useRef(null);
+
+  // Fecha o tooltip ao clicar fora
+  useEffect(() => {
+    if (!show) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setShow(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [show]);
+
+  // Determina a "idade" mais velha dos dados (excluindo fundamentais — mudam trimestralmente)
+  function ageMinutes(ts) {
+    if (!ts || ts === "n/a") return 9999;
+    const d = new Date(ts.replace(" UTC","Z").replace(" ","T"));
+    return (Date.now() - d.getTime()) / 60000;
+  }
+  const ages = {
+    "Posições":   ageMinutes(TIMESTAMPS.positions),
+    "Gráficos":   ageMinutes(TIMESTAMPS.chart),
+    "FX":         ageMinutes(TIMESTAMPS.fx),
+    "Fundament.": ageMinutes(TIMESTAMPS.fundamentals),
+  };
+  const tsLabels = {
+    "Posições":   TIMESTAMPS.positions,
+    "Gráficos":   TIMESTAMPS.chart,
+    "FX":         TIMESTAMPS.fx,
+    "Fundament.": TIMESTAMPS.fundamentals,
+  };
+  const maxAge = Math.max(...Object.values(ages).filter(v => v < 9999));
+  // Verde < 4h, Amarelo < 25h, Vermelho >= 25h
+  const dot = maxAge < 240 ? "#22C55E" : maxAge < 1500 ? "#F59E0B" : "#EF4444";
+  const label = maxAge < 240
+    ? maxAge < 60 ? `${Math.round(maxAge)}m` : `${(maxAge/60).toFixed(1)}h`
+    : maxAge < 9999 ? `${(maxAge/60/24).toFixed(1)}d`
+    : "?";
+
+  return (
+    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",gap:"5px",cursor:"pointer"}}
+      onClick={() => setShow(s => !s)}>
+      {/* Dot animado */}
+      <div style={{position:"relative",width:"7px",height:"7px"}}>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",background:dot,opacity:0.35,
+          animation: dot==="#22C55E" ? "ping 2s cubic-bezier(0,0,0.2,1) infinite" : "none"}}/>
+        <div style={{position:"absolute",inset:"1px",borderRadius:"50%",background:dot}}/>
+      </div>
+      <span style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
+        Dados: {label} atrás
+      </span>
+      {/* Tooltip */}
+      {show && (
+        <div style={{position:"absolute",top:"18px",right:0,zIndex:50,
+          background:"#0C1420",border:"1px solid #1A2535",borderRadius:"8px",
+          padding:"10px 12px",minWidth:"210px",boxShadow:"0 8px 24px #00000080"}}>
+          <div style={{fontSize:"9px",color:"#6B7280",letterSpacing:"0.8px",marginBottom:"8px",fontWeight:600}}>
+            ÚLTIMA ACTUALIZAÇÃO
+          </div>
+          {Object.entries(tsLabels).map(([k,v]) => (
+            <div key={k} style={{display:"flex",justifyContent:"space-between",gap:"12px",
+              marginBottom:"5px",alignItems:"center"}}>
+              <span style={{fontSize:"9px",color:"#8B949E",minWidth:"72px"}}>{k}</span>
+              <span style={{fontSize:"9px",color:"#C9D1D9",fontVariantNumeric:"tabular-nums",
+                fontFamily:"'Inter',monospace"}}>{v || "—"}</span>
+            </div>
+          ))}
+          <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #1A2535",
+            fontSize:"8px",color:"#374151",letterSpacing:"0.3px"}}>
+            Build: __UPDATED__
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes ping{0%{transform:scale(1);opacity:.8}75%,100%{transform:scale(2.2);opacity:0}}`}</style>
+    </div>
+  );
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [sel, setSel]       = useState(null);
@@ -898,7 +977,7 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
-        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>__UPDATED__</span>
+        <FreshnessIndicator/>
         <button className="cb" onClick={()=>setSearchMode(s=>!s)}
           style={{fontSize:"9px",color:searchMode?"#6366F1":"#8B949E",
             background:searchMode?"#161D2B":"transparent",
