@@ -55,9 +55,7 @@ def normalize(prices):
     if not base or base <= 0: return {}
     return {d: round((v / base - 1) * 100, 4) for d, v in items}
 
-total_value = sum(p["qty"] * p["curPrice"] for p in positions)
-weights     = {p["ticker"]: round((p["qty"] * p["curPrice"]) / total_value, 6)
-               for p in positions}
+p_map = {p["ticker"]: p for p in positions}
 
 # ── Fetch raw prices for every ticker × range ─────────────────────────────
 print(f"Fetching {len(positions)} tickers × {len(RANGES)} ranges...")
@@ -81,14 +79,28 @@ for ticker, r_data in raw.items():
     stock_series[ticker] = {rk: normalize(r_data[rk]) for rk, _, _ in RANGES}
 
 # ── Portfolio series per range (weighted avg % from period start) ──────────
+# Os pesos são calculados com base nos preços do INÍCIO do período,
+# não nos preços actuais — evita distorção por stocks que apreciaram muito
+# (ex: NVDA ×10 em 5 anos daria peso enorme se usássemos preço actual).
 portfolio_series = {}
 for rk, _, _ in RANGES:
     all_keys = sorted(set(k for t in raw.values() for k in t[rk]))
-    bases    = {}
+
+    # Preço inicial do período para cada ticker
+    bases = {}
     for ticker, r_data in raw.items():
         items = sorted(r_data[rk].items())
         if items:
             bases[ticker] = items[0][1]
+
+    # Pesos baseados em qty × preço_inicial (não preço actual)
+    initial_values = {}
+    for ticker, init_price in bases.items():
+        pos = p_map.get(ticker)
+        if pos and init_price and init_price > 0:
+            initial_values[ticker] = pos["qty"] * init_price
+    total_initial = sum(initial_values.values()) or 1
+    period_weights = {t: v / total_initial for t, v in initial_values.items()}
 
     port = {}
     for key in all_keys:
@@ -96,11 +108,11 @@ for rk, _, _ in RANGES:
         for ticker, r_data in raw.items():
             if key in r_data[rk] and bases.get(ticker, 0) > 0:
                 pct = (r_data[rk][key] / bases[ticker] - 1) * 100
-                w   = weights.get(ticker, 0)
+                w   = period_weights.get(ticker, 0)
                 wr += w * pct
                 tw += w
         if tw > 0:
-            port[key] = round(wr, 4)
+            port[key] = round(wr / tw, 4)  # normalizar pelo peso total disponível
     portfolio_series[rk] = port
 
 # ── Benchmark indices ─────────────────────────────────────────────────────
