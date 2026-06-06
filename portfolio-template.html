@@ -1,0 +1,572 @@
+﻿<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Portfolio Tracker</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#060A12;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:#374151;}
+.cb{cursor:pointer;transition:all 0.15s;}
+.row:hover{background:#0D1520!important;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const CHART_DATA = /*__CHART_DATA__*/;
+</script>
+<script type="text/babel">
+const { useState, useMemo, useRef, useCallback } = React;
+
+const positions = /*__POSITIONS__*/;
+
+const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
+
+const SECTOR_COLORS = {
+  "ETF / ETC":             "#6366F1",
+  "Tech & AI":             "#00A4EF",
+  "Healthcare":            "#10B981",
+  "Consumer Staples":      "#F59E0B",
+  "Energia":               "#F97316",
+  "Defesa & Aeroespacial": "#EF4444",
+  "REIT":                  "#A78BFA",
+  "Portuguesa":            "#34D399",
+  "Luxo & Automóvel":      "#FBBF24",
+  "Retalho":               "#60A5FA",
+  "Telecomunicações":      "#94A3B8",
+  "Outro":                 "#6B7280",
+};
+
+function pctReturn(p) { return ((p.curPrice - p.avgPrice) / p.avgPrice * 100); }
+
+// ─── CHART ───────────────────────────────────────────────────────────────────
+function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
+
+  const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
+
+  if (!entries.length) {
+    return (
+      <div style={{height:"200px",display:"flex",alignItems:"center",justifyContent:"center",
+        color:"#4B5563",fontSize:"11px"}}>
+        Sem dados históricos disponíveis
+      </div>
+    );
+  }
+
+  const W = 700, H = 200;
+  const PAD = { top:24, right:55, bottom:32, left:46 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+
+  const values = entries.map(([,v]) => v);
+  const dates  = entries.map(([d]) => d);
+  const minV   = Math.min(...values, -1);
+  const maxV   = Math.max(...values, 1);
+  const range  = maxV - minV || 1;
+
+  const xS = i  => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
+  const yS = v  => PAD.top  + cH - ((v - minV) / range) * cH;
+  const zeroY   = yS(0);
+
+  const pts     = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
+  const linePath= `M${pts.join(" L")}`;
+  const areaPath= `M${xS(0).toFixed(1)},${zeroY.toFixed(1)} L${pts.join(" L")} L${xS(entries.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
+
+  const lastV = values[values.length - 1];
+  const isPos = lastV >= 0;
+  const lineCol = color || (isPos ? "#10B981" : "#EF4444");
+
+  // X labels — show ~6 evenly spaced
+  const xLabels = [];
+  const step = Math.max(1, Math.floor(entries.length / 6));
+  for (let i = 0; i < entries.length; i += step) {
+    const d = new Date(dates[i] + "T12:00:00Z");
+    xLabels.push({ x: xS(i), label: d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"}) });
+  }
+
+  // Y ticks
+  const yTicks = [];
+  for (let i = 0; i <= 4; i++) {
+    const v = minV + (range / 4) * i;
+    yTicks.push({ y: yS(v), label: (v >= 0 ? "+" : "") + v.toFixed(1) + "%" });
+  }
+
+  const hov = hoverIdx !== null ? hoverIdx : null;
+  // Sanitize label for use in SVG IDs (no hyphens, spaces, etc.)
+  const safeId = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const mouseX = (e.clientX - rect.left) * scaleX - PAD.left;
+    const idx = Math.round((mouseX / cW) * (entries.length - 1));
+    setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
+  };
+
+  return (
+    <div style={{position:"relative",userSelect:"none"}}>
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible",display:"block"}}
+        onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
+        <defs>
+          <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.25":"0.2"}/>
+            <stop offset="100%" stopColor={lineCol} stopOpacity="0.01"/>
+          </linearGradient>
+          <clipPath id={`clip_${safeId}`}>
+            <rect x={PAD.left} y={PAD.top} width={cW} height={cH}/>
+          </clipPath>
+        </defs>
+
+        {/* Grid lines */}
+        {yTicks.map((t,i) => (
+          <line key={i} x1={PAD.left} y1={t.y} x2={PAD.left+cW} y2={t.y}
+            stroke={t.label.startsWith("+0") || t.label==="0.0%" ? "#2D3748" : "#1A2535"} strokeWidth={t.label.includes("+0.0") || t.label==="0.0%"?"1.5":"0.5"} strokeDasharray={t.label.startsWith("+0.0")||t.label==="0.0%"?"":"3,3"}/>
+        ))}
+
+        {/* Area */}
+        <path d={areaPath} fill={`url(#grad_${safeId})`} clipPath={`url(#clip_${safeId})`}/>
+
+        {/* Line */}
+        <path d={linePath} fill="none" stroke={lineCol} strokeWidth="1.8" clipPath={`url(#clip_${safeId})`}/>
+
+        {/* Y axis labels */}
+        {yTicks.map((t,i) => (
+          <text key={i} x={PAD.left-5} y={t.y+3} textAnchor="end" fill="#4B5563" fontSize="8">{t.label}</text>
+        ))}
+
+        {/* X axis labels */}
+        {xLabels.map((l,i) => (
+          <text key={i} x={l.x} y={H-6} textAnchor="middle" fill="#4B5563" fontSize="8">{l.label}</text>
+        ))}
+
+        {/* Last value dot + label */}
+        <circle cx={xS(entries.length-1)} cy={yS(lastV)} r="3.5" fill={lineCol}/>
+        <text x={xS(entries.length-1)+6} y={yS(lastV)+4} fill={lineCol} fontSize="9.5" fontWeight="bold">
+          {lastV>=0?"+":""}{lastV.toFixed(2)}%
+        </text>
+
+        {/* Entry markers (one per buy date) */}
+        {(buyDates || []).map((bd, bi) => {
+          let entryIdx = dates.findIndex(d => d >= bd);
+          if (entryIdx < 0) entryIdx = dates.length - 1;
+          if (entryIdx < 0) return null;
+          const ex = xS(entryIdx);
+          const ey = yS(values[entryIdx]);
+          // Alternate label position to avoid overlap when entries are close
+          const labelAbove = ey > PAD.top + 44;
+          const labelY = labelAbove ? ey - 30 : ey + 10;
+          const isFirst = bi === 0;
+          const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+          const dateObj = new Date(bd + "T12:00:00Z");
+          const dateLabel = dateObj.getDate() + " " + months[dateObj.getMonth()];
+          return (
+            <g key={bd}>
+              {/* Vertical dashed line */}
+              <line x1={ex} y1={PAD.top} x2={ex} y2={PAD.top+cH}
+                stroke="#FBBF24" strokeWidth="1" strokeDasharray="3,2" opacity={isFirst ? 0.8 : 0.5}/>
+              {/* Diamond marker */}
+              <polygon
+                points={`${ex},${ey-5} ${ex+4},${ey} ${ex},${ey+5} ${ex-4},${ey}`}
+                fill="#FBBF24" stroke="#060A12" strokeWidth="1" opacity={isFirst ? 1 : 0.75}/>
+              {/* Label box */}
+              <rect x={ex-18} y={labelY} width="36" height="14" rx="2"
+                fill="#111827" stroke="#FBBF24" strokeWidth="0.7" opacity="0.92"/>
+              <text x={ex} y={labelY+10} textAnchor="middle" fill="#FBBF24" fontSize="7" fontWeight="600">{dateLabel}</text>
+            </g>
+          );
+        })}
+
+        {/* Axes */}
+        <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
+        <line x1={PAD.left} y1={PAD.top+cH} x2={PAD.left+cW} y2={PAD.top+cH} stroke="#1F2937" strokeWidth="1"/>
+
+        {/* Hover */}
+        {hov !== null && (
+          <>
+            <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
+              stroke="#374151" strokeWidth="1" strokeDasharray="3,3"/>
+            <circle cx={xS(hov)} cy={yS(values[hov])} r="4" fill={lineCol} stroke="#060A12" strokeWidth="1.5"/>
+          </>
+        )}
+      </svg>
+
+      {/* Hover tooltip */}
+      {hov !== null && (
+        <div style={{position:"absolute",top:"4px",left:"50px",background:"#111827",
+          border:`1px solid ${lineCol}40`,borderRadius:"5px",padding:"6px 10px",
+          fontSize:"9px",pointerEvents:"none",zIndex:10}}>
+          <div style={{color:"#6B7280",marginBottom:"2px"}}>{dates[hov]}</div>
+          <div style={{color:lineCol,fontWeight:"700",fontSize:"12px"}}>
+            {values[hov]>=0?"+":""}{values[hov].toFixed(2)}%
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CHART PANEL ─────────────────────────────────────────────────────────────
+function ChartPanel({ sel, positions }) {
+  const isTotal = !sel || sel === "__total__";
+  const pos = positions.find(p => p.ticker === sel);
+  const col = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
+  const isPos = pos ? pctReturn(pos) >= 0 : (CHART_DATA.portfolio[Object.keys(CHART_DATA.portfolio).pop()] || 0) >= 0;
+  const lineCol = isTotal ? (isPos ? "#10B981" : "#EF4444") : col;
+
+  const seriesData = isTotal
+    ? CHART_DATA.portfolio
+    : (CHART_DATA.stocks[sel] || {});
+
+  const label = isTotal ? "portfolio" : (sel || "stock");
+  const lastVal = Object.values(seriesData).pop() || 0;
+
+  return (
+    <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"0"}}>
+      {/* Chart header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+        padding:"10px 14px 6px",borderBottom:"1px solid #0D1520"}}>
+        <div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB"}}>
+            {isTotal ? "Portfolio Total" : pos?.name}
+          </div>
+          <div style={{fontSize:"9px",color:"#4B5563",marginTop:"1px"}}>
+            {isTotal ? "Retorno ponderado por peso da carteira · 12 meses" : `Retorno vs preço médio de compra · ${pos?.exchange}`}
+          </div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"18px",fontWeight:"800",
+            color: lastVal >= 0 ? "#10B981" : "#EF4444"}}>
+            {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
+          </div>
+          {!isTotal && pos && (
+            <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444"}}>
+              {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur} P&L
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{padding:"8px 10px 4px"}}>
+        <LineChart seriesData={seriesData} color={lineCol} label={label}
+          buyDates={!isTotal ? pos?.buyDates : null}
+          avgPrice={!isTotal ? pos?.avgPrice : null}
+          cur={!isTotal ? pos?.cur : null}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+function Summary({ positions }) {
+  const totalPpl  = positions.reduce((s,p) => s + p.ppl, 0);
+  const gainers   = positions.filter(p => p.ppl > 0).length;
+  const losers    = positions.filter(p => p.ppl < 0).length;
+  const best      = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
+  const worst     = [...positions].sort((a,b) => pctReturn(a)-pctReturn(b))[0];
+
+  const cards = [
+    { l:"Posições",   v:positions.length,  s:"total",               c:"#6B7280" },
+    { l:"P&L Total",  v:(totalPpl>=0?"+":"")+totalPpl.toFixed(2)+"€*", s:"multicurrency", c:totalPpl>=0?"#10B981":"#EF4444" },
+    { l:"Em Ganho",   v:gainers,            s:"positivas",           c:"#10B981" },
+    { l:"Em Perda",   v:losers,             s:"negativas",           c:"#EF4444" },
+    { l:"Melhor",     v:best.ticker,        s:"+"+(pctReturn(best)).toFixed(1)+"%", c:"#10B981" },
+    { l:"Pior",       v:worst.ticker,       s:(pctReturn(worst)).toFixed(1)+"%",   c:"#EF4444" },
+  ];
+
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"6px",padding:"10px 12px",background:"#080C14",borderBottom:"1px solid #1F2937"}}>
+      {cards.map((c,i)=>(
+        <div key={i} style={{background:"#0D1117",border:`1px solid ${c.c}25`,borderTop:`2px solid ${c.c}`,borderRadius:"5px",padding:"8px 10px"}}>
+          <div style={{fontSize:"8px",color:"#6B7280",letterSpacing:"1px",marginBottom:"3px"}}>{c.l}</div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:c.c}}>{c.v}</div>
+          <div style={{fontSize:"8px",color:"#2D3748",marginTop:"1px"}}>{c.s}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── POSITION ROW ─────────────────────────────────────────────────────────────
+function PositionRow({ p, selected, onClick }) {
+  const ret = pctReturn(p);
+  const col = SECTOR_COLORS[p.sector] || "#6B7280";
+  return (
+    <div className="row cb" onClick={onClick}
+      style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",alignItems:"center",
+        padding:"7px 10px",borderBottom:"1px solid #0A0F1A",
+        background: selected ? "#0F1824" : "transparent",
+        borderLeft: selected ? `3px solid ${col}` : "3px solid transparent"}}>
+      <span style={{fontSize:"12px"}}>{p.flag}</span>
+      <div>
+        <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#D1D5DB",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+        <div style={{fontSize:"8px",color:"#374151"}}>{p.ticker}</div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",color:"#D1D5DB"}}>{p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}</div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#10B981":"#EF4444"}}>
+          {ret>=0?"+":""}{ret.toFixed(1)}%
+        </div>
+        <div style={{fontSize:"8px",color:ret>=0?"#10B981":"#EF4444"}}>
+          {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
+        </div>
+      </div>
+      <div style={{textAlign:"center"}}>
+        <span style={{fontSize:"7px",padding:"2px 4px",borderRadius:"3px",background:`${col}20`,color:col,
+          display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          {p.sector.split(" ")[0]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── DETAIL ──────────────────────────────────────────────────────────────────
+function Detail({ p }) {
+  const ret = pctReturn(p);
+  const col = SECTOR_COLORS[p.sector] || "#6B7280";
+  const posValue  = p.qty * p.curPrice;
+  const costBasis = p.qty * p.avgPrice;
+  const f = FUNDAMENTALS[p.ticker];
+
+  const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
+  const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
+  const fmtStr = (v) => v == null ? "—" : String(v);
+
+  const yieldCol  = (v) => v == null ? "#6B7280" : v >= 5 ? "#10B981" : v >= 2 ? "#D1D5DB" : "#9CA3AF";
+  const peCol     = (v) => v == null ? "#6B7280" : v < 0 ? "#EF4444" : v < 15 ? "#10B981" : v < 25 ? "#D1D5DB" : v < 40 ? "#F59E0B" : "#EF4444";
+  const cagrCol   = (v) => v == null ? "#6B7280" : v > 10 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
+  const payoutCol = (v) => v == null ? "#6B7280" : v < 50 ? "#10B981" : v < 80 ? "#F59E0B" : "#EF4444";
+  const marginCol = (v) => v == null ? "#6B7280" : v > 50 ? "#10B981" : v > 25 ? "#D1D5DB" : "#F59E0B";
+  const fcfCol    = (v) => v == null ? "#6B7280" : v > 15 ? "#10B981" : v > 0 ? "#D1D5DB" : "#EF4444";
+
+  const Card = ({label, value, color}) => (
+    <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"6px 8px",border:"1px solid #1A2535"}}>
+      <div style={{fontSize:"7px",color:"#4B5563",marginBottom:"3px",letterSpacing:"0.4px"}}>{label}</div>
+      <div style={{fontSize:"11px",color:color||"#D1D5DB",fontWeight:"600"}}>{value}</div>
+    </div>
+  );
+
+  const Section = ({title}) => (
+    <div style={{fontSize:"7px",color:"#374151",letterSpacing:"1.5px",margin:"8px 0 4px 2px"}}>{title}</div>
+  );
+
+  return (
+    <div style={{padding:"10px"}}>
+      {/* Header */}
+      <div style={{borderLeft:`3px solid ${col}`,paddingLeft:"10px",marginBottom:"10px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:"8px",color:"#6B7280"}}>{p.exchange} · {p.ticker}</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",color:"#F9FAFB"}}>{p.name}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"16px",fontWeight:"800",color:col}}>{p.cur}{p.curPrice.toFixed(2)}</div>
+            <div style={{fontSize:"10px",color:ret>=0?"#10B981":"#EF4444",fontWeight:"600"}}>{ret>=0?"+":""}{ret.toFixed(2)}% | {p.ppl>=0?"+":""}{p.ppl.toFixed(2)}{p.cur}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Position */}
+      <Section title="POSIÇÃO"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+        <Card label="Preço Atual"   value={`${p.cur}${p.curPrice.toFixed(2)}`} color={col}/>
+        <Card label="Preço Médio"   value={`${p.cur}${p.avgPrice.toFixed(2)}`} color="#9CA3AF"/>
+        <Card label="Quantidade"    value={p.qty.toFixed(4)} color="#D1D5DB"/>
+        <Card label="Valor Posição" value={`${p.cur}${posValue.toFixed(2)}`} color="#D1D5DB"/>
+        <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`} color="#6B7280"/>
+        <Card label="Setor"         value={p.sector} color={col}/>
+      </div>
+
+      {/* Fundamentals */}
+      {f ? (<>
+        <Section title="AVALIAÇÃO"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"5px"}}>
+          <Card label="Market Cap"   value={fmtStr(f.marketCap)}    color="#D1D5DB"/>
+          <Card label="Total Debt"   value={fmtStr(f.totalDebt)}    color={f.totalDebt ? "#F59E0B" : "#6B7280"}/>
+          <Card label="P/E Ratio"    value={fmtNum(f.pe)}           color={peCol(f.pe)}/>
+        </div>
+
+        <Section title="MARGENS"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+          <Card label="Gross Margin"  value={fmtPct(f.grossMargin)} color={marginCol(f.grossMargin)}/>
+          <Card label="FCF / Revenue" value={fmtPct(f.fcfRatio)}    color={fcfCol(f.fcfRatio)}/>
+        </div>
+
+        <Section title="RETORNO AO ACIONISTA"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
+          <Card label="Dividend Yield"     value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
+          <Card label="Buyback Yield"      value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
+          <Card label="Shareholder Yield"  value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
+          <Card label="Payout Ratio"       value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
+        </div>
+
+        <Section title="CRESCIMENTO DO DIVIDENDO"/>
+        <div style={{background:"#0A0F1A",borderRadius:"4px",padding:"8px 10px",border:"1px solid #1A2535",
+          display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:"7px",color:"#4B5563"}}>Div CAGR · 5 anos</div>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <div style={{fontSize:"14px",color:cagrCol(f.divCagr5y),fontWeight:"700"}}>
+              {f.divCagr5y != null ? `${f.divCagr5y > 0 ? "+" : ""}${f.divCagr5y.toFixed(1)}%` : "—"}
+            </div>
+            {f.divCagr5y != null && (
+              <div style={{position:"relative",width:"64px",height:"5px",borderRadius:"3px",background:"#1A2535"}}>
+                <div style={{
+                  position:"absolute",height:"100%",borderRadius:"3px",
+                  width:`${Math.min(100, Math.abs(f.divCagr5y) * 2.5)}%`,
+                  background:cagrCol(f.divCagr5y),
+                  left: f.divCagr5y >= 0 ? "50%" : `${Math.max(0, 50 - Math.min(50, Math.abs(f.divCagr5y)*1.25))}%`,
+                  transform: f.divCagr5y >= 0 ? "none" : "none"
+                }}/>
+                <div style={{position:"absolute",left:"50%",top:"-1px",width:"1px",height:"7px",background:"#374151"}}/>
+              </div>
+            )}
+          </div>
+        </div>
+      </>) : (
+        <div style={{textAlign:"center",padding:"16px 0",color:"#374151",fontSize:"9px"}}>
+          Dados fundamentais não disponíveis para este instrumento
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [sel, setSel]     = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort]   = useState("ppl");
+
+  const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))], []);
+
+  const filtered = useMemo(() => {
+    let list = [...positions];
+    if (filter === "ganhos")  list = list.filter(p => p.ppl > 0);
+    else if (filter === "perdas") list = list.filter(p => p.ppl < 0);
+    else if (sectors.includes(filter)) list = list.filter(p => p.sector === filter);
+    if (sort === "ppl")   list.sort((a,b) => b.ppl - a.ppl);
+    if (sort === "pct")   list.sort((a,b) => pctReturn(b) - pctReturn(a));
+    if (sort === "value") list.sort((a,b) => (b.qty*b.curPrice)-(a.qty*a.curPrice));
+    if (sort === "name")  list.sort((a,b) => a.name.localeCompare(b.name));
+    return list;
+  }, [filter, sort]);
+
+  const selPos = sel ? positions.find(p => p.ticker === sel) : null;
+
+  const filterBtns = [
+    {k:"all",    l:"Todas"},
+    {k:"ganhos", l:"✅ Ganhos"},
+    {k:"perdas", l:"❌ Perdas"},
+    ...sectors.map(s=>({k:s,l:s})),
+  ];
+
+  return (
+    <div style={{background:"#060A12",minHeight:"100vh",fontFamily:"'Courier New',monospace",color:"#D1D5DB",fontSize:"11px"}}>
+
+      {/* Header */}
+      <div style={{background:"#080C14",borderBottom:"1px solid #1F2937",padding:"10px 14px",
+        display:"flex",alignItems:"center",gap:"8px"}}>
+        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",color:"#F9FAFB"}}>Portfolio Tracker</span>
+        <span style={{flex:1,height:"1px",background:"#1F2937"}}/>
+        <span style={{fontSize:"8px",color:"#4B5563",letterSpacing:"2px"}}>TRADING212 · LIVE · {positions.length} POSIÇÕES · __UPDATED__</span>
+        {sel && (
+          <button className="cb" onClick={()=>setSel(null)}
+            style={{fontSize:"8px",color:"#6B7280",background:"#111827",border:"1px solid #1F2937",
+              borderRadius:"4px",padding:"3px 8px"}}>
+            ← Portfolio Total
+          </button>
+        )}
+      </div>
+
+      {/* Summary */}
+      <Summary positions={positions}/>
+
+      {/* Chart */}
+      <ChartPanel sel={sel} positions={positions}/>
+
+      {/* Main layout */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",height:"calc(100vh - 370px)"}}>
+
+        {/* Left: list */}
+        <div style={{borderRight:"1px solid #1F2937",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+          {/* Filters */}
+          <div style={{padding:"6px 10px",borderBottom:"1px solid #1F2937",display:"flex",gap:"3px",flexWrap:"wrap",
+            alignItems:"center",flexShrink:0}}>
+            <div style={{display:"flex",gap:"2px",flexWrap:"wrap",flex:1}}>
+              {filterBtns.map(b=>(
+                <button key={b.k} className="cb" onClick={()=>setFilter(b.k)}
+                  style={{padding:"2px 6px",fontSize:"8px",borderRadius:"3px",border:"none",
+                    background:filter===b.k?"#1F2937":"transparent",
+                    color:filter===b.k?"#F9FAFB":"#6B7280"}}>
+                  {b.l}
+                </button>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:"2px",alignItems:"center",flexShrink:0}}>
+              <span style={{fontSize:"8px",color:"#374151"}}>sort:</span>
+              {[["ppl","P&L€"],["pct","P&L%"],["value","Val"],["name","A-Z"]].map(([k,l])=>(
+                <button key={k} className="cb" onClick={()=>setSort(k)}
+                  style={{padding:"2px 5px",fontSize:"8px",borderRadius:"3px",border:"none",
+                    background:sort===k?"#1F2937":"transparent",
+                    color:sort===k?"#F9FAFB":"#6B7280"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table header */}
+          <div style={{display:"grid",gridTemplateColumns:"18px 1fr 72px 65px 55px",gap:"5px",
+            padding:"5px 10px",background:"#080C14",flexShrink:0}}>
+            {["","Empresa","Preço","Retorno","Setor"].map((h,i)=>(
+              <div key={i} style={{fontSize:"8px",color:"#2D3748",textAlign:i>=2?"right":"left",
+                ...(i===4?{textAlign:"center"}:{})}}>{h}</div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div style={{overflowY:"auto",flex:1}}>
+            {filtered.map(p=>(
+              <PositionRow key={p.ticker} p={p}
+                selected={sel===p.ticker}
+                onClick={()=>setSel(sel===p.ticker ? null : p.ticker)}/>
+            ))}
+            <div style={{padding:"6px 10px",fontSize:"8px",color:"#1F2937"}}>
+              * P&L em moeda local (€/$/ pence) — sem conversão cambial
+            </div>
+          </div>
+        </div>
+
+        {/* Right: detail */}
+        <div style={{overflowY:"auto",background:"#06090F"}}>
+          {selPos
+            ? <Detail p={selPos}/>
+            : (
+              <div style={{padding:"20px 14px",color:"#2D3748",fontSize:"10px",textAlign:"center",marginTop:"30px"}}>
+                <div style={{fontSize:"24px",marginBottom:"8px"}}>👆</div>
+                Clica numa posição<br/>para ver o detalhe
+              </div>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Não incluir o HTML gerado localmente com dados do PC
+portfolio-master.html
+
+# Ficheiros temporários Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# IDE
+.vscode/

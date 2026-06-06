@@ -1,0 +1,48 @@
+name: Update Portfolio Data
+
+on:
+  schedule:
+    # Runs weekdays at 18:30 UTC (19:30 Lisboa hora de inverno, 20:30 verão)
+    - cron: '30 18 * * 1-5'
+  workflow_dispatch:
+    # Permite correr manualmente a qualquer momento pelo botão "Run workflow" no GitHub
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch positions from Trading212
+        env:
+          T212_API_KEY:    ${{ secrets.T212_API_KEY }}
+          T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
+        run: python fetch_positions.py
+
+      - name: Fetch chart data (Yahoo Finance)
+        run: python fetch_chart_data.py
+
+      - name: Fetch fundamental data (yfinance)
+        run: python fetch_fundamentals.py
+
+      - name: Build HTML
+        run: python build_html.py
+
+      - name: Commit & push updated files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update portfolio data [skip ci]"
+          file_pattern: "index.html data/*.json"
