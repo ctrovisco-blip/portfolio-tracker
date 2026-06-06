@@ -392,7 +392,7 @@ function ChartPanel({ sel, positions }) {
             </div>
             {!isTotal && pos && (
               <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444",fontWeight:"500"}}>
-                {pos.ppl>=0?"+":""}{pos.ppl.toFixed(2)}{pos.cur}
+                {pos.ppl>=0?"+":""}{fmtEur(toEur(pos.ppl, pos.cur))}
               </div>
             )}
           </div>
@@ -558,7 +558,7 @@ function Detail({ p }) {
             {ret>=0?"+":""}{ret.toFixed(2)}%
           </span>
           <span style={{fontSize:"10px",color:ret>=0?"#238636":"#DA3633"}}>
-            {p.ppl>=0?"+":""}{p.ppl.toFixed(2)}{p.cur}
+            {p.ppl>=0?"+":""}{fmtEur(toEur(p.ppl, p.cur))}
           </span>
         </div>
       </div>
@@ -1009,7 +1009,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #1A2535",
             fontSize:"8px",color:"#374151",letterSpacing:"0.3px"}}>
-            Build: 2026-06-06 16:37 UTC
+            Build: 2026-06-06 16:41 UTC
           </div>
         </div>
       )}
