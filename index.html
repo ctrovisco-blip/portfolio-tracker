@@ -175,7 +175,7 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
             stroke="#111827" strokeWidth="0.5"/>
         ))}
 
-        {/* Overlay index lines — aligned by date to main series */}
+        {/* Overlay index lines — rebased to match main series at first common date */}
         {(() => {
           const t0 = new Date(dates[0]+"T12:00:00Z").getTime();
           const t1 = new Date(dates[dates.length-1]+"T12:00:00Z").getTime();
@@ -184,14 +184,32 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
             const t = new Date(d+"T12:00:00Z").getTime();
             return PAD.left + Math.max(0, Math.min(1, (t-t0)/tRange)) * cW;
           };
+          // Build a date→value map for the main series for fast lookup
+          const mainMap = Object.fromEntries(entries);
+
           return overlays.map(ov => {
             if (!ov.entries || !ov.entries.length) return null;
-            const pts = ov.entries
+
+            // Rebase: find first overlay date that exists in main series,
+            // then shift overlay so it starts at the same value as the main series
+            let shift = 0;
+            for (const [d, ovV] of ov.entries) {
+              if (mainMap[d] !== undefined) {
+                shift = mainMap[d] - ovV;  // align to main series value at that date
+                break;
+              }
+            }
+            const rebasedEntries = ov.entries.map(([d,v]) => [d, v + shift]);
+            const lastRebased = rebasedEntries[rebasedEntries.length-1][1];
+            // Raw last value (unshifted) for displaying absolute index return
+            const rawLast = ov.entries[ov.entries.length-1][1];
+
+            const pts = rebasedEntries
               .map(([d,v]) => `${dateToX(d).toFixed(1)},${(PAD.top+cH-((v-minV)/range)*cH).toFixed(1)}`)
               .join(" ");
-            const lastOv  = ov.entries[ov.entries.length-1][1];
-            const lastOvX = dateToX(ov.entries[ov.entries.length-1][0]);
-            const lastOvY = PAD.top + cH - ((lastOv-minV)/range)*cH;
+            const lastOvX = dateToX(rebasedEntries[rebasedEntries.length-1][0]);
+            const lastOvY = PAD.top + cH - ((lastRebased-minV)/range)*cH;
+
             return (
               <g key={ov.label}>
                 <polyline points={pts} fill="none" stroke={ov.color}
@@ -201,7 +219,7 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
                 <text x={lastOvX+5} y={lastOvY+3} fill={ov.color} fontSize="7.5" fontWeight="700"
                   textAnchor="start">{ov.label}</text>
                 <text x={lastOvX+5} y={lastOvY+12} fill={ov.color} fontSize="7" opacity="0.85"
-                  textAnchor="start">{lastOv>=0?"+":""}{lastOv.toFixed(1)}%</text>
+                  textAnchor="start">{rawLast>=0?"+":""}{rawLast.toFixed(1)}%</text>
               </g>
             );
           });
@@ -848,7 +866,7 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
-        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>2026-06-06 16:39 UTC</span>
+        <span style={{fontSize:"8px",color:"#30363D",letterSpacing:"0.5px"}}>2026-06-06 16:45 UTC</span>
         <button className="cb" onClick={()=>setSearchMode(s=>!s)}
           style={{fontSize:"9px",color:searchMode?"#6366F1":"#8B949E",
             background:searchMode?"#161D2B":"transparent",
