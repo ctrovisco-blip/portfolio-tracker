@@ -2,6 +2,9 @@
 Fetch Yahoo Finance chart data for all positions across multiple time ranges.
 Reads:  data/positions.json + metadata.json
 Writes: data/chart_data.json
+
+O gráfico mostra performance do preço (% desde início do período),
+sem pesos por quantidade/posição — informação pura de mercado.
 """
 import json, urllib.request, time, os
 from datetime import datetime
@@ -50,14 +53,12 @@ def fetch_raw(symbol, interval, range_):
         return {}
 
 def normalize(prices):
-    """% from first price in period, sorted."""
+    """% desde o primeiro preço do período, ordenado por data/hora."""
     if not prices: return {}
     items = sorted(prices.items())
     base  = items[0][1]
     if not base or base <= 0: return {}
     return {d: round((v / base - 1) * 100, 4) for d, v in items}
-
-p_map = {p["ticker"]: p for p in positions}
 
 # ── Fetch raw prices for every ticker × range ─────────────────────────────
 print(f"Fetching {len(positions)} tickers × {len(RANGES)} ranges...")
@@ -75,45 +76,44 @@ for p in positions:
         raw[ticker][rk] = fetch_raw(yf_sym, interval, range_)
         time.sleep(0.2)
 
-# ── Normalised stock series ────────────────────────────────────────────────
+# ── Normalised stock series (% desde início do período) ───────────────────
 stock_series = {}
 for ticker, r_data in raw.items():
     stock_series[ticker] = {rk: normalize(r_data[rk]) for rk, _, _ in RANGES}
 
-# ── Portfolio series per range (weighted avg % from period start) ──────────
-# Os pesos são calculados com base nos preços do INÍCIO do período,
-# não nos preços actuais — evita distorção por stocks que apreciaram muito
-# (ex: NVDA ×10 em 5 anos daria peso enorme se usássemos preço actual).
+# ── Pesos por valor actual de posição em EUR ──────────────────────────────
+# Peso = qty × preço_actual × fx  →  reflecte o peso real de cada stock
+# na carteira, sem precisar de histórico de ordens.
+position_eur = {}
+for p in positions:
+    ticker  = p["ticker"]
+    fx_rate = FX.get(p.get("cur", "€"), 1.0)
+    val_eur = p.get("qty", 0) * p.get("curPrice", 0) * fx_rate
+    if val_eur > 0:
+        position_eur[ticker] = val_eur
+
+total_eur = sum(position_eur.values()) or 1
+weights   = {t: v / total_eur for t, v in position_eur.items()}
+print("Portfolio weights (EUR):")
+for t, w in sorted(weights.items(), key=lambda x: -x[1]):
+    print(f"  {t:12s} {w*100:5.1f}%  (€{position_eur[t]:,.0f})")
+
+# ── Portfolio series: média ponderada por valor de posição em EUR ──────────
+# Cada acção contribui proporcionalmente ao seu peso actual na carteira.
 portfolio_series = {}
 for rk, _, _ in RANGES:
-    all_keys = sorted(set(k for t in raw.values() for k in t[rk]))
-
-    # Preço inicial do período para cada ticker
-    bases = {}
-    for ticker, r_data in raw.items():
-        items = sorted(r_data[rk].items())
-        if items:
-            bases[ticker] = items[0][1]
-
-    # Pesos em EUR: qty × preço_inicial × taxa_de_câmbio
-    # Essencial para não misturar pence (GBP), dólares, euros sem conversão
-    initial_eur = {}
-    for ticker, init_price in bases.items():
-        pos = p_map.get(ticker)
-        if pos and init_price and init_price > 0:
-            fx = FX.get(pos["cur"], 1.0)
-            initial_eur[ticker] = pos["qty"] * init_price * fx
-    total_initial_eur = sum(initial_eur.values()) or 1
-    period_weights = {t: v / total_initial_eur for t, v in initial_eur.items()}
+    all_keys = sorted(set(k for t in stock_series.values() for k in t[rk]))
 
     port = {}
     for key in all_keys:
         wr = 0.0
-        for ticker, r_data in raw.items():
-            if key in r_data[rk] and bases.get(ticker, 0) > 0:
-                pct = (r_data[rk][key] / bases[ticker] - 1) * 100
-                wr += period_weights.get(ticker, 0) * pct
-        port[key] = round(wr, 4)
+        w_sum = 0.0
+        for ticker, t_data in stock_series.items():
+            if key in t_data[rk] and ticker in weights:
+                wr    += weights[ticker] * t_data[rk][key]
+                w_sum += weights[ticker]
+        if w_sum > 0:
+            port[key] = round(wr / w_sum, 4)
     portfolio_series[rk] = port
 
 # ── Benchmark indices ─────────────────────────────────────────────────────
