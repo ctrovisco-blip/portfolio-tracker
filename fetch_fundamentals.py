@@ -95,7 +95,7 @@ for p in positions:
             "buybackYield":     bb,
             "shareholderYield": sh,
             "payoutRatio":      pct_dec(info.get("payoutRatio")),
-            "fcfRatio":         sr(fcf/rev*100) if fcf and rev and rev > 0 else None,
+            "fcfYield":         sr(fcf/mkt_cap*100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "divCagr5y":        div_cagr_5y(t),
         }
         print(f"  PE={results[ticker][chr(112)+chr(101)]} div={results[ticker][chr(100)+chr(105)+chr(118)+chr(89)+chr(105)+chr(101)+chr(108)+chr(100)]}%")

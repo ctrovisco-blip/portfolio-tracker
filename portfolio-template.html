@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Portfolio Tracker</title>
+<title>Portfolio Tracker | Cláudio Trovisco</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><polyline points='8,72 28,42 48,57 68,24 92,34' fill='none' stroke='%233FB950' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,6 +20,11 @@ body{background:#060A12;font-family:'Inter',sans-serif;}
 .row:hover{background:#0C1420!important;}
 .pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
 select{appearance:none;-webkit-appearance:none;cursor:pointer;}
+@media(max-width:768px){
+  .main-grid{grid-template-columns:1fr!important;}
+  .right-col{border-left:none!important;border-top:1px solid #1A2535;}
+  .chart-wrap{height:150px!important;}
+}
 </style>
 </head>
 <body>
@@ -27,7 +33,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 const CHART_DATA = /*__CHART_DATA__*/;
 </script>
 <script type="text/babel">
-const { useState, useMemo, useRef } = React;
+const { useState, useMemo, useRef, useEffect } = React;
 
 const positions = /*__POSITIONS__*/;
 const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
@@ -48,6 +54,28 @@ const SECTOR_COLORS = {
 };
 
 function pctReturn(p) { return (p.curPrice - p.avgPrice) / p.avgPrice * 100; }
+
+// ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
+function LogoImg({ ticker, sector, flag, size = 20 }) {
+  const [err, setErr] = useState(false);
+  const col = SECTOR_COLORS[sector] || "#6B7280";
+  const initial = (ticker || "?")[0].toUpperCase();
+  if (err) return (
+    <div style={{width:size,height:size,borderRadius:"5px",background:col+"22",
+      border:`1px solid ${col}44`,display:"flex",alignItems:"center",justifyContent:"center",
+      fontSize:size*0.44,fontWeight:"700",color:col,flexShrink:0,fontFamily:"'Syne',sans-serif"}}>
+      {flag || initial}
+    </div>
+  );
+  return (
+    <img
+      src={`https://assets.parqet.com/logos/symbol/${ticker}?format=svg`}
+      width={size} height={size}
+      style={{borderRadius:"5px",objectFit:"contain",background:"#F9FAFB",flexShrink:0}}
+      onError={() => setErr(true)}
+      alt={ticker}/>
+  );
+}
 
 // ─── LINE CHART ───────────────────────────────────────────────────────────────
 function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
@@ -202,16 +230,25 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur }) {
       </svg>
 
       {/* Hover tooltip */}
-      {hov !== null && (
-        <div style={{position:"absolute",top:"4px",left:"56px",background:"#0D1117",
-          border:`1px solid ${lineCol}35`,borderRadius:"6px",padding:"5px 10px",
-          pointerEvents:"none",zIndex:10}}>
-          <div style={{color:"#4B5563",fontSize:"9px",marginBottom:"2px"}}>{dates[hov]}</div>
-          <div style={{color:lineCol,fontWeight:"700",fontSize:"13px",fontFamily:"'Syne',sans-serif"}}>
-            {values[hov]>=0?"+":""}{values[hov].toFixed(2)}%
+      {hov !== null && (() => {
+        const d   = new Date(dates[hov] + "T12:00:00Z");
+        const dFmt = d.toLocaleDateString("pt-PT", {day:"numeric",month:"short",year:"numeric"});
+        const v   = values[hov];
+        const svgW = svgRef.current?.getBoundingClientRect().width || 700;
+        const xPx  = (xS(hov) / W) * svgW;
+        const toLeft = xPx > svgW * 0.6;
+        return (
+          <div style={{position:"absolute",top:"6px",
+            ...(toLeft ? {right: `${svgW - xPx + 12}px`} : {left:`${xPx + 12}px`}),
+            background:"#0D1117",border:`1px solid ${lineCol}50`,borderRadius:"7px",
+            padding:"6px 12px",pointerEvents:"none",zIndex:10,minWidth:"90px"}}>
+            <div style={{color:"#4B5563",fontSize:"8px",marginBottom:"3px",letterSpacing:"0.3px"}}>{dFmt}</div>
+            <div style={{color:lineCol,fontWeight:"700",fontSize:"14px",fontFamily:"'Syne',sans-serif",letterSpacing:"-0.3px"}}>
+              {v>=0?"+":""}{v.toFixed(2)}%
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -233,12 +270,18 @@ function ChartPanel({ sel, positions }) {
     <div style={{background:"#080C14",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         padding:"8px 14px 4px",flexShrink:0}}>
-        <div>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px"}}>
-            {isTotal ? "Portfolio Total" : pos?.name}
-          </div>
-          <div style={{fontSize:"9px",color:"#374151",marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
-            {isTotal ? "Retorno ponderado · últimos 12 meses" : `vs preço médio de compra · ${pos?.exchange}`}
+        <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
+          {!isTotal && pos && (
+            <LogoImg ticker={pos.ticker} sector={pos.sector} flag={pos.flag} size={28}/>
+          )}
+          <div style={{minWidth:0}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px",
+              whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {isTotal ? "Portfolio Total" : pos?.name}
+            </div>
+            <div style={{fontSize:"9px",color:"#374151",marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
+              {isTotal ? "Retorno ponderado · últimos 12 meses" : `vs preço médio de compra · ${pos?.exchange}`}
+            </div>
           </div>
         </div>
         <div style={{textAlign:"right"}}>
@@ -305,7 +348,7 @@ function PositionRow({ p, selected, onClick }) {
         background: selected ? "#0D1828" : "transparent",
         borderLeft: selected ? `2px solid ${col}` : "2px solid transparent",
         transition:"background 0.1s"}}>
-      <span style={{fontSize:"13px"}}>{p.flag}</span>
+      <LogoImg ticker={p.ticker} sector={p.sector} flag={p.flag} size={20}/>
       <div style={{minWidth:0}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#F9FAFB":"#C9D1D9",
           whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
@@ -401,7 +444,7 @@ function Detail({ p }) {
         <Section title="Margens"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
           <Card label="Gross Margin"  value={fmtPct(f.grossMargin)} color={marginCol(f.grossMargin)}/>
-          <Card label="FCF / Revenue" value={fmtPct(f.fcfRatio)}    color={fcfCol(f.fcfRatio)}/>
+          <Card label="FCF Yield"     value={fmtPct(f.fcfYield)}    color={fcfCol(f.fcfYield)}/>
         </div>
 
         <Section title="Retorno ao Acionista"/>
@@ -578,6 +621,9 @@ function App() {
         <span style={{fontFamily:"'Syne',sans-serif",fontSize:"14px",fontWeight:"800",
           color:"#F0F6FC",letterSpacing:"-0.3px"}}>Portfolio Tracker</span>
         <div style={{width:"1px",height:"16px",background:"#1A2535"}}/>
+        <span style={{fontFamily:"'Syne',sans-serif",fontSize:"12px",fontWeight:"700",
+          color:"#4B5563",letterSpacing:"-0.2px"}}>Cláudio Trovisco</span>
+        <div style={{width:"1px",height:"16px",background:"#1A2535"}}/>
         <span style={{fontSize:"8px",color:"#374151",letterSpacing:"1.5px"}}>
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
@@ -596,13 +642,13 @@ function App() {
       <Summary positions={positions}/>
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 310px",flex:1,minHeight:0}}>
+      <div className="main-grid" style={{display:"grid",gridTemplateColumns:"1fr 310px",flex:1,minHeight:0}}>
 
         {/* ── LEFT COLUMN ── */}
         <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #1A2535",overflow:"hidden"}}>
 
           {/* Chart */}
-          <div style={{flexShrink:0,height:"175px",borderBottom:"1px solid #1A2535"}}>
+          <div className="chart-wrap" style={{flexShrink:0,height:"148px",borderBottom:"1px solid #1A2535"}}>
             <ChartPanel sel={sel} positions={positions}/>
           </div>
 
@@ -664,7 +710,7 @@ function App() {
         </div>
 
         {/* ── RIGHT COLUMN: Detail (full height) ── */}
-        <div style={{overflowY:"auto",background:"#080C14"}}>
+        <div className="right-col" style={{overflowY:"auto",background:"#080C14"}}>
           {selPos
             ? <Detail p={selPos}/>
             : <PortfolioOverview positions={positions} onSelect={setSel}/>
