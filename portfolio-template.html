@@ -460,11 +460,13 @@ function Summary({ positions }) {
 
 // ─── POSITION ROW ─────────────────────────────────────────────────────────────
 function PositionRow({ p, selected, onClick }) {
-  const ret = pctReturn(p);
-  const col = SECTOR_COLORS[p.sector] || "#6B7280";
+  const ret      = pctReturn(p);
+  const col      = SECTOR_COLORS[p.sector] || "#6B7280";
+  const valEur   = toEur(p.qty * p.curPrice, p.cur);
+  const costEur  = toEur(p.qty * p.avgPrice, p.cur);
   return (
     <div className="row cb" onClick={onClick}
-      style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
+      style={{display:"grid",gridTemplateColumns:"20px 1fr 78px 62px",gap:"4px",
         alignItems:"center",padding:"5px 12px",
         borderBottom:"1px solid #0A0F1A",
         background: selected ? "#0D1828" : "transparent",
@@ -476,18 +478,23 @@ function PositionRow({ p, selected, onClick }) {
           whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
         <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>{p.ticker}</div>
       </div>
+      {/* Valor actual (cima) + Investido (baixo) */}
       <div style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",color:"#8B949E",fontVariantNumeric:"tabular-nums"}}>
-          {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
+        <div style={{fontSize:"10px",fontWeight:"600",color:"#C9D1D9",fontVariantNumeric:"tabular-nums"}}>
+          {fmtEur(valEur)}
+        </div>
+        <div style={{fontSize:"8px",color:"#4B5563",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
+          {fmtEur(costEur)}
         </div>
       </div>
+      {/* Retorno % (cima) + P&L EUR (baixo) */}
       <div style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#3FB950":"#F85149",
           fontVariantNumeric:"tabular-nums"}}>
           {ret>=0?"+":""}{ret.toFixed(1)}%
         </div>
         <div style={{fontSize:"8px",color:ret>=0?"#238636":"#DA3633",fontVariantNumeric:"tabular-nums"}}>
-          {p.ppl>=0?"+":""}{p.ppl.toFixed(0)}{p.cur}
+          {fmtEur(toEur(p.ppl, p.cur))}
         </div>
       </div>
     </div>
@@ -943,9 +950,9 @@ function App() {
     if (filter === "ganhos") list = list.filter(p => p.ppl > 0);
     else if (filter === "perdas") list = list.filter(p => p.ppl < 0);
     if (sector !== "all") list = list.filter(p => p.sector === sector);
-    if (sort === "ppl")   list.sort((a,b) => b.ppl - a.ppl);
+    if (sort === "ppl")   list.sort((a,b) => toEur(b.ppl, b.cur) - toEur(a.ppl, a.cur));
     if (sort === "pct")   list.sort((a,b) => pctReturn(b) - pctReturn(a));
-    if (sort === "value") list.sort((a,b) => (b.qty*b.curPrice) - (a.qty*a.curPrice));
+    if (sort === "value") list.sort((a,b) => toEur(b.qty*b.curPrice, b.cur) - toEur(a.qty*a.curPrice, a.cur));
     if (sort === "name")  list.sort((a,b) => a.name.localeCompare(b.name));
     return list;
   }, [filter, sector, sort]);
@@ -1044,12 +1051,18 @@ function App() {
           </div>
 
           {/* Table header */}
-          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 70px 72px",gap:"4px",
+          <div style={{display:"grid",gridTemplateColumns:"20px 1fr 78px 62px",gap:"4px",
             padding:"5px 12px",background:"#0A0F1A",borderBottom:"1px solid #0F1520",flexShrink:0}}>
-            {["","Empresa","Preço","Retorno"].map((h,i) => (
-              <div key={i} style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px",
-                textAlign:i>=2?"right":"left"}}>{h.toUpperCase()}</div>
-            ))}
+            <div/>
+            <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>EMPRESA</div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>VALOR</div>
+              <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"0.4px",marginTop:"1px"}}>investido</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"8px",color:"#4B5563",letterSpacing:"0.5px"}}>RETORNO</div>
+              <div style={{fontSize:"7px",color:"#30363D",letterSpacing:"0.4px",marginTop:"1px"}}>P&L €</div>
+            </div>
           </div>
 
           {/* Rows */}
@@ -1059,9 +1072,6 @@ function App() {
                 selected={sel===p.ticker}
                 onClick={() => setSel(sel===p.ticker ? null : p.ticker)}/>
             ))}
-            <div style={{padding:"8px 12px",fontSize:"8px",color:"#21262D",fontStyle:"italic"}}>
-              * P&L em moeda local — sem conversão cambial
-            </div>
           </div>
         </div>
 
