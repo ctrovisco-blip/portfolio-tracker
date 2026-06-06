@@ -33,5 +33,5 @@ with open("index.html", "w", encoding="utf-8") as f:
 
 print(f"Done! index.html written ({len(html)//1024}KB)")
 print(f"  Positions: {len(positions)}")
-print(f"  Portfolio days: {len(chart_data.get('portfolio', {}))}")
+print(f"  Portfolio days (1y): {len(chart_data.get('portfolio', {}).get('1y', {}))}")
 print(f"  Updated: {updated}")

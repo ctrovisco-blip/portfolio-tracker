@@ -78,7 +78,7 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
 }
 
 // ─── LINE CHART ───────────────────────────────────────────────────────────────
-function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays=[] }) {
+function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y" }) {
   const [hoverIdx, setHoverIdx] = useState(null);
   const svgRef = useRef(null);
 
@@ -103,10 +103,10 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
   overlays.forEach(ov => { if(ov.entries) allVals.push(...ov.entries.map(([,v])=>v)); });
   const minV   = Math.min(...allVals, -1);
   const maxV   = Math.max(...allVals,  1);
-  const range  = maxV - minV || 1;
+  const cRange = maxV - minV || 1;
 
   const xS = i => PAD.left + (i / Math.max(entries.length - 1, 1)) * cW;
-  const yS = v => PAD.top  + cH - ((v - minV) / range) * cH;
+  const yS = v => PAD.top  + cH - ((v - minV) / cRange) * cH;
   const zeroY = yS(0);
 
   const pts      = values.map((v,i) => `${xS(i).toFixed(1)},${yS(v).toFixed(1)}`);
@@ -118,18 +118,27 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
   const lineCol = color || (isPos ? "#10B981" : "#EF4444");
   const safeId  = "c" + label.replace(/[^a-zA-Z0-9]/g, "_");
 
-  // X labels
+  // X labels — time for 1D, date otherwise
   const xLabels = [];
   const step = Math.max(1, Math.floor(entries.length / 6));
+  const isIntraday = range === "1d";
   for (let i = 0; i < entries.length; i += step) {
-    const d = new Date(dates[i] + "T12:00:00Z");
-    xLabels.push({ x: xS(i), label: d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"}) });
+    let lbl;
+    if (isIntraday) {
+      lbl = dates[i]; // already "HH:MM"
+    } else {
+      const d = new Date(dates[i] + "T12:00:00Z");
+      lbl = range === "5y"
+        ? d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"})
+        : d.toLocaleDateString("pt-PT",{month:"short",year:"2-digit"});
+    }
+    xLabels.push({ x: xS(i), label: lbl });
   }
 
   // Y ticks
   const yTicks = [];
   for (let i = 0; i <= 4; i++) {
-    const v = minV + (range / 4) * i;
+    const v = minV + (cRange / 4) * i;
     yTicks.push({ y: yS(v), label: (v >= 0 ? "+" : "") + v.toFixed(1) + "%" });
   }
 
@@ -175,51 +184,36 @@ function LineChart({ seriesData, color, label, buyDates, avgPrice, cur, overlays
             stroke="#111827" strokeWidth="0.5"/>
         ))}
 
-        {/* Overlay index lines — rebased to match main series at first common date */}
+        {/* Overlay index lines — both series start at 0%, aligned by date/time */}
         {(() => {
-          const t0 = new Date(dates[0]+"T12:00:00Z").getTime();
-          const t1 = new Date(dates[dates.length-1]+"T12:00:00Z").getTime();
-          const tRange = t1 - t0 || 1;
-          const dateToX = d => {
-            const t = new Date(d+"T12:00:00Z").getTime();
-            return PAD.left + Math.max(0, Math.min(1, (t-t0)/tRange)) * cW;
-          };
-          // Build a date→value map for the main series for fast lookup
-          const mainMap = Object.fromEntries(entries);
+          // Map key→x based on main series time span
+          const isIntra = range === "1d";
+          const toMs = k => isIntra
+            ? (parseInt(k.split(":")[0])*60 + parseInt(k.split(":")[1])) // minutes
+            : new Date(k+"T12:00:00Z").getTime();
+          const ms0 = toMs(dates[0]);
+          const ms1 = toMs(dates[dates.length-1]);
+          const msR = ms1 - ms0 || 1;
+          const keyToX = k => PAD.left + Math.max(0, Math.min(1, (toMs(k)-ms0)/msR)) * cW;
 
           return overlays.map(ov => {
             if (!ov.entries || !ov.entries.length) return null;
-
-            // Rebase: find first overlay date that exists in main series,
-            // then shift overlay so it starts at the same value as the main series
-            let shift = 0;
-            for (const [d, ovV] of ov.entries) {
-              if (mainMap[d] !== undefined) {
-                shift = mainMap[d] - ovV;  // align to main series value at that date
-                break;
-              }
-            }
-            const rebasedEntries = ov.entries.map(([d,v]) => [d, v + shift]);
-            const lastRebased = rebasedEntries[rebasedEntries.length-1][1];
-            // Raw last value (unshifted) for displaying absolute index return
-            const rawLast = ov.entries[ov.entries.length-1][1];
-
-            const pts = rebasedEntries
-              .map(([d,v]) => `${dateToX(d).toFixed(1)},${(PAD.top+cH-((v-minV)/range)*cH).toFixed(1)}`)
+            const pts = ov.entries
+              .map(([k,v]) => `${keyToX(k).toFixed(1)},${(PAD.top+cH-((v-minV)/cRange)*cH).toFixed(1)}`)
               .join(" ");
-            const lastOvX = dateToX(rebasedEntries[rebasedEntries.length-1][0]);
-            const lastOvY = PAD.top + cH - ((lastRebased-minV)/range)*cH;
-
+            const [lastK, lastV] = ov.entries[ov.entries.length-1];
+            const lastOvX = keyToX(lastK);
+            const lastOvY = PAD.top + cH - ((lastV-minV)/cRange)*cH;
             return (
               <g key={ov.label}>
                 <polyline points={pts} fill="none" stroke={ov.color}
                   strokeWidth="1.4" strokeDasharray="5,3" opacity="0.8"
                   clipPath={`url(#clip_${safeId})`}/>
                 <circle cx={lastOvX} cy={lastOvY} r="2.5" fill={ov.color} opacity="0.9"/>
-                <text x={lastOvX+5} y={lastOvY+3} fill={ov.color} fontSize="7.5" fontWeight="700"
-                  textAnchor="start">{ov.label}</text>
-                <text x={lastOvX+5} y={lastOvY+12} fill={ov.color} fontSize="7" opacity="0.85"
-                  textAnchor="start">{rawLast>=0?"+":""}{rawLast.toFixed(1)}%</text>
+                <text x={lastOvX+5} y={lastOvY+3} fill={ov.color} fontSize="7.5" fontWeight="700">{ov.label}</text>
+                <text x={lastOvX+5} y={lastOvY+12} fill={ov.color} fontSize="7" opacity="0.85">
+                  {lastV>=0?"+":""}{lastV.toFixed(1)}%
+                </text>
               </g>
             );
           });
@@ -315,61 +309,78 @@ const IDX_META = {
   NASDAQ:  { label:"Nasdaq",  color:"#38BDF8" },
 };
 
+const RANGE_LABELS = { "1d":"1D", "3mo":"3M", "ytd":"YTD", "1y":"1A", "5y":"5A" };
+
 function ChartPanel({ sel, positions }) {
   const [activeIdxs, setActiveIdxs] = useState([]);
+  const [range, setRange]           = useState("1y");
   const toggleIdx = k => setActiveIdxs(p => p.includes(k) ? p.filter(x=>x!==k) : [...p, k]);
 
   const isTotal = !sel || sel === "__total__";
   const pos     = positions.find(p => p.ticker === sel);
   const col     = pos ? (SECTOR_COLORS[pos.sector] || "#6B7280") : "#6366F1";
-  const lastPortVal = CHART_DATA.portfolio[Object.keys(CHART_DATA.portfolio).pop()] || 0;
-  const isPos   = pos ? pctReturn(pos) >= 0 : lastPortVal >= 0;
-  const lineCol = isTotal ? (isPos ? "#10B981" : "#EF4444") : col;
 
-  const seriesData = isTotal ? CHART_DATA.portfolio : (CHART_DATA.stocks[sel] || {});
-  const label      = isTotal ? "portfolio" : (sel || "stock");
-  const lastVal    = Object.values(seriesData).pop() || 0;
+  const port1y      = CHART_DATA.portfolio?.["1y"] || {};
+  const lastPortVal = Object.values(port1y).pop() || 0;
+  const isPos       = pos ? pctReturn(pos) >= 0 : lastPortVal >= 0;
+  const lineCol     = isTotal ? (isPos ? "#10B981" : "#EF4444") : col;
 
-  const overlays = activeIdxs.map(k => {
-    const idxData = (CHART_DATA.indexes || {})[k] || {};
-    return {
-      label: IDX_META[k].label,
-      color: IDX_META[k].color,
-      entries: Object.entries(idxData).sort((a,b)=>a[0]>b[0]?1:-1),
-    };
+  const seriesData = isTotal
+    ? (CHART_DATA.portfolio?.[range] || {})
+    : (CHART_DATA.stocks?.[sel]?.[range] || {});
+  const label  = isTotal ? "portfolio" : (sel || "stock");
+  const lastVal = Object.values(seriesData).pop() || 0;
+
+  const overlays = activeIdxs.map(k => ({
+    label:   IDX_META[k].label,
+    color:   IDX_META[k].color,
+    entries: Object.entries(CHART_DATA.indexes?.[k]?.[range] || {}).sort((a,b)=>a[0]>b[0]?1:-1),
+  }));
+
+  const pillStyle = (active, color) => ({
+    padding:"2px 7px", borderRadius:"4px", fontSize:"9px", fontWeight:"600",
+    border:`1px solid ${active ? (color||"#C9D1D9") : "#1A2535"}`,
+    background: active ? (color ? color+"22" : "#161D2B") : "transparent",
+    color: active ? (color||"#C9D1D9") : "#4B5563",
+    cursor:"pointer", transition:"all 0.12s", letterSpacing:"0.3px",
   });
 
-  const idxPillStyle = (k) => ({
-    padding:"2px 8px", borderRadius:"20px", fontSize:"9px", fontWeight:"500",
-    border:`1px solid ${activeIdxs.includes(k) ? IDX_META[k].color : "#1A2535"}`,
-    background: activeIdxs.includes(k) ? IDX_META[k].color+"22" : "transparent",
-    color: activeIdxs.includes(k) ? IDX_META[k].color : "#4B5563",
-    cursor:"pointer", transition:"all 0.12s", whiteSpace:"nowrap",
-  });
+  const RANGE_SUBTITLES = {
+    "1d":"hoje · intraday", "3mo":"últimos 3 meses",
+    "ytd":"desde 1 Jan", "1y":"últimos 12 meses", "5y":"últimos 5 anos"
+  };
 
   return (
     <div style={{background:"#080C14",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"6px 14px 3px",flexShrink:0}}>
+
+      {/* ── Header row ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+        padding:"6px 14px 4px",flexShrink:0}}>
+
+        {/* Left: logo + name */}
         <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
           {!isTotal && pos && (
             <LogoImg ticker={pos.ticker} sector={pos.sector} flag={pos.flag} size={26}/>
           )}
           <div style={{minWidth:0}}>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",color:"#F9FAFB",letterSpacing:"-0.3px",
-              whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:"13px",fontWeight:"800",
+              color:"#F9FAFB",letterSpacing:"-0.3px",whiteSpace:"nowrap",
+              overflow:"hidden",textOverflow:"ellipsis"}}>
               {isTotal ? "Portfolio Total" : pos?.name}
             </div>
-            <div style={{fontSize:"8px",color:"#374151",marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
-              {isTotal ? "Retorno ponderado · últimos 12 meses" : `vs preço médio de compra · ${pos?.exchange}`}
+            <div style={{fontSize:"8px",color:"#374151",marginTop:"1px"}}>
+              {isTotal ? `Retorno ponderado · ${RANGE_SUBTITLES[range]}` : `${RANGE_SUBTITLES[range]} · ${pos?.exchange}`}
             </div>
           </div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
+
+        {/* Right: value + controls */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"5px",flexShrink:0,marginLeft:"8px"}}>
+          {/* Return value */}
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:"15px",fontWeight:"800",
-              color: lastVal >= 0 ? "#10B981" : "#EF4444",letterSpacing:"-0.3px"}}>
-              {lastVal >= 0 ? "+" : ""}{lastVal.toFixed(2)}%
+              color:lastVal>=0?"#10B981":"#EF4444",letterSpacing:"-0.3px"}}>
+              {lastVal>=0?"+":""}{lastVal.toFixed(2)}%
             </div>
             {!isTotal && pos && (
               <div style={{fontSize:"9px",color:pos.ppl>=0?"#10B981":"#EF4444",fontWeight:"500"}}>
@@ -377,22 +388,33 @@ function ChartPanel({ sel, positions }) {
               </div>
             )}
           </div>
+
+          {/* Range buttons */}
+          <div style={{display:"flex",gap:"2px"}}>
+            {Object.entries(RANGE_LABELS).map(([k,l]) => (
+              <button key={k} className="cb" style={pillStyle(range===k)}
+                onClick={()=>setRange(k)}>{l}</button>
+            ))}
+          </div>
+
           {/* Index toggles */}
-          <div style={{display:"flex",gap:"3px"}}>
+          <div style={{display:"flex",gap:"2px"}}>
             {Object.keys(IDX_META).map(k => (
-              <button key={k} className="cb" style={idxPillStyle(k)} onClick={()=>toggleIdx(k)}>
+              <button key={k} className="cb"
+                style={pillStyle(activeIdxs.includes(k), IDX_META[k].color)}
+                onClick={()=>toggleIdx(k)}>
                 {IDX_META[k].label}
               </button>
             ))}
           </div>
         </div>
       </div>
+
+      {/* ── Chart ── */}
       <div style={{padding:"0 10px 4px",flex:1,minHeight:0}}>
         <LineChart seriesData={seriesData} color={lineCol} label={label}
-          buyDates={!isTotal ? pos?.buyDates : null}
-          avgPrice={!isTotal ? pos?.avgPrice : null}
-          cur={!isTotal ? pos?.cur : null}
-          overlays={overlays}/>
+          buyDates={range!=="1d" && range!=="5y" && !isTotal ? pos?.buyDates : null}
+          overlays={overlays} range={range}/>
       </div>
     </div>
   );
