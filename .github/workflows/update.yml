@@ -38,6 +38,14 @@ jobs:
 
       # ── Fetch de dados (continue-on-error: cada fonte falha de forma independente) ──
 
+      - name: Auto-discover new positions
+        id: discover
+        continue-on-error: true
+        env:
+          T212_API_KEY:    ${{ secrets.T212_API_KEY }}
+          T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
+        run: python auto_discover.py
+
       - name: Fetch positions from Trading212
         id: positions
         continue-on-error: true
@@ -80,13 +88,20 @@ jobs:
       - name: Build HTML
         run: python build_html.py
 
+      - name: Generate weekly report
+        # Corre ao sábado (após fetch completo) e em execuções manuais
+        if: >-
+          github.event.schedule == '0 10 * * 6' ||
+          github.event_name == 'workflow_dispatch'
+        run: python generate_report.py
+
       # ── Push robusto: pull --rebase antes de push para evitar conflitos ──────
 
       - name: Commit & push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html data/*.json
+          git add index.html data/*.json metadata.json weekly_report.html
           # Só commita se houver mudanças
           if git diff --staged --quiet; then
             echo "Sem alteracoes, nada a commitar."
