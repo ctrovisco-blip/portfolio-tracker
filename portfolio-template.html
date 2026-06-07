@@ -73,9 +73,25 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   .pos-row{min-height:50px;}
   .pill{padding:5px 12px!important;font-size:11px!important;}
 
-  /* Summary bar: scroll horizontal */
-  .summary-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .summary-bar::-webkit-scrollbar{display:none;}
+  /* Summary bar: grid 3×2 no mobile (todas as stats visíveis) */
+  .summary-bar{
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    height:auto!important;
+    overflow-x:hidden!important;
+  }
+  .summary-bar > div{
+    padding:8px 12px!important;
+    border-right:1px solid #2a3042!important;
+    border-bottom:1px solid #2a3042!important;
+  }
+  .summary-bar > div:nth-child(3),
+  .summary-bar > div:nth-child(6){border-right:none!important;}
+  .summary-bar > div:nth-child(4),
+  .summary-bar > div:nth-child(5),
+  .summary-bar > div:nth-child(6){border-bottom:none!important;}
+  .summary-bar > div > div:nth-child(2){font-size:13px!important;}
+  .summary-bar > div > div:nth-child(3){font-size:9px!important;}
 
   /* Botão "Visão Geral" — só mobile */
   .mob-overview-btn{display:flex!important;}
