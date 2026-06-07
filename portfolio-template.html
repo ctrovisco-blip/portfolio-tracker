@@ -76,6 +76,12 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   /* Summary bar: scroll horizontal */
   .summary-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .summary-bar::-webkit-scrollbar{display:none;}
+
+  /* Botão "Visão Geral" — só mobile */
+  .mob-overview-btn{display:flex!important;}
+
+  /* Esconder botão "← Portfolio" do header no mobile (o mob-back trata disso) */
+  .hdr-back{display:none!important;}
 }
 </style>
 </head>
@@ -220,6 +226,15 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
   };
 
+  const handleTouchMove = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = (touch.clientX - rect.left) * (W / rect.width) - PAD.left;
+    const idx = Math.round((mouseX / cW) * (entries.length - 1));
+    setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
+  };
+
   const hov = hoverIdx;
 
   // Last label: position to left if near right edge
@@ -234,7 +249,9 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
         style={{display:"block"}}
-        onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
+        onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}
+        onTouchMove={handleTouchMove} onTouchEnd={() => setHoverIdx(null)}
+        style={{display:"block",touchAction:"pan-y"}}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.22":"0.18"}/>
@@ -1010,10 +1027,11 @@ function FreshnessIndicator() {
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
-  const [sel, setSel]       = useState(null);
-  const [filter, setFilter] = useState("all");
-  const [sector, setSector] = useState("all");
-  const [sort, setSort]     = useState("ppl");
+  const [sel, setSel]           = useState(null);
+  const [mobPanel, setMobPanel] = useState(null); // null | "overview"
+  const [filter, setFilter]     = useState("all");
+  const [sector, setSector]     = useState("all");
+  const [sort, setSort]         = useState("ppl");
 
   const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))].sort(), []);
 
@@ -1030,6 +1048,7 @@ function App() {
   }, [filter, sector, sort]);
 
   const selPos = sel ? positions.find(p => p.ticker === sel) : null;
+  const panelOpen = !!(selPos || mobPanel === "overview");
 
   const pillStyle = (active) => ({
     padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"500",
@@ -1057,8 +1076,15 @@ function App() {
         <div style={{flex:1}}/>
         <FreshnessIndicator/>
         <DeployButton/>
+        {/* Botão "Visão Geral" — só visível no mobile via CSS */}
+        <button className="mob-overview-btn cb" style={{display:"none",
+          fontSize:"9px",color:"#787b86",background:"#1e2438",
+          border:"1px solid #353d52",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}
+          onClick={() => { setSel(null); setMobPanel("overview"); }}>
+          ≡ Overview
+        </button>
         {sel && (
-          <button className="cb" onClick={()=>setSel(null)}
+          <button className="hdr-back cb" onClick={()=>setSel(null)}
             style={{fontSize:"9px",color:"#787b86",background:"#1e2438",
               border:"1px solid #353d52",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
             ← Portfolio
@@ -1131,13 +1157,13 @@ function App() {
             {filtered.map(p => (
               <PositionRow key={p.ticker} p={p}
                 selected={sel===p.ticker}
-                onClick={() => setSel(sel===p.ticker ? null : p.ticker)}/>
+                onClick={() => { setSel(sel===p.ticker ? null : p.ticker); setMobPanel(null); }}/>
             ))}
           </div>
         </div>
 
         {/* ── RIGHT COLUMN: Detail (full height; slide-in overlay no mobile) ── */}
-        <div className={`right-col${selPos ? " open" : ""}`}
+        <div className={`right-col${panelOpen ? " open" : ""}`}
           style={{overflowY:"auto",background:"#131722",borderLeft:"1px solid #2a3042"}}>
 
           {/* Botão voltar — só visível no mobile (display:none no desktop via CSS) */}
@@ -1147,23 +1173,21 @@ function App() {
             padding:"0 16px", height:"48px",
             alignItems:"center", gap:"10px", flexShrink:0,
           }}>
-            <button className="cb" onClick={()=>setSel(null)} style={{
+            <button className="cb" onClick={() => { setSel(null); setMobPanel(null); }} style={{
               fontSize:"12px", color:"#c8ccd4", background:"transparent",
               border:"none", padding:"8px 0", display:"flex", alignItems:"center", gap:"6px",
             }}>
               ← Voltar
             </button>
-            {selPos && (
-              <span style={{fontSize:"12px", fontWeight:"600", color:"#e0e3eb",
-                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-                {selPos.name}
-              </span>
-            )}
+            <span style={{fontSize:"12px", fontWeight:"600", color:"#e0e3eb",
+              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+              {selPos ? selPos.name : "Visão Geral"}
+            </span>
           </div>
 
           {selPos
             ? <Detail p={selPos}/>
-            : <PortfolioOverview positions={positions} onSelect={setSel}/>
+            : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); }}/>
           }
         </div>
 
