@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Reports Archive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --bg:     #060A12;
+  --bg2:    #0D1117;
+  --bg3:    #161B22;
+  --border: #21262D;
+  --text:   #E6EDF3;
+  --text2:  #8B949E;
+  --accent: #3FB950;
+  --link:   #58A6FF;
+  --radius: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 15px;
+}
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 32px 24px;
+  text-align: center;
+}
+header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+header p { color: var(--text2); font-size: 14px; }
+main { max-width: 800px; margin: 40px auto; padding: 0 24px 80px; }
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: var(--bg2);
+}
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,.03); }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text2);
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Market Reports</h1>
+  <p>Arquivo de relatórios semanais de mercado</p>
+</header>
+<main>
+  <h2>Todos os relatórios</h2>
+  <table>
+    <thead>
+      <tr><th>Data</th><th>Link</th></tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td>07 June 2026 <small style="color:#8B949E">✦ Mais recente</small></td>
+          <td><a href="market-report-2026-06-07.html">Ver relatório →</a></td>
+        </tr>
+    </tbody>
+  </table>
+</main>
+<footer>Atualizado a 2026-06-07 00:03 UTC</footer>
+</body>
+</html>
