@@ -26,12 +26,5 @@
   "M4Id_EQ": "MA",
   "LOMd_EQ": "LMT",
   "CHVd_EQ": "CVX",
-  "KMYd_EQ": "KMB",
-  "NKEd_EQ": "NKE",
-  "FB_US_EQ": "META",
-  "MSFd_EQ": "MSF",
-  "SPCX_US_EQ": "SPCX",
-  "ITUd_EQ": "ITU",
-  "VICI_US_EQ": "VICI",
-  "GLWd_EQ": "GLW"
+  "KMYd_EQ": "KMB"
 }

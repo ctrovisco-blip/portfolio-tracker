@@ -27,37 +27,10 @@ def get(path):
 with open("metadata.json", encoding="utf-8") as f:
     METADATA = json.load(f)
 
-# T212 internal ticker → display ticker mapping (built from metadata + known map)
-T212_TO_DISPLAY = {
-    "4GLDd_EQ":    "XETRA-GOLD",
-    "2FEd_EQ":     "RACE",
-    "EN3d_EQ":     "ENB",
-    "PTXd_EQ":     "PLTR",
-    "NVDd_EQ":     "NVDA",
-    "PHM7d_EQ":    "MO",
-    "RHMd_EQ":     "RHM",
-    "ALCC1_US_EQ": "OKLO",
-    "PEPd_EQ":     "PEP",
-    "EGL_PT_EQ":   "EGL",
-    "MNST_US_EQ":  "MNST",
-    "O_US_EQ":     "O",
-    "SRPl_EQ":     "SRP",
-    "NOS_PT_EQ":   "NOS",
-    "NVG_PT_EQ":   "NVG",
-    "CSGa_EQ":     "CSG",
-    "PG_US_EQ":    "PG",
-    "JNJd_EQ":     "JNJ",
-    "PFEd_EQ":     "PFE",
-    "VUAAm_EQ":    "VUAA",
-    "RRl_EQ":      "RR",
-    "GALP_PT_EQ":  "GALP",
-    "BACd_EQ":     "VZ",
-    "LOW_US_EQ":   "LOW",
-    "M4Id_EQ":     "MA",
-    "LOMd_EQ":     "LMT",
-    "CHVd_EQ":     "CVX",
-    "KMYd_EQ":     "KMB",
-}
+# T212 internal ticker → display ticker mapping (lido de data/t212_map.json)
+# Actualizado automaticamente pelo auto_discover.py quando há novas posições
+with open("data/t212_map.json", encoding="utf-8") as f:
+    T212_TO_DISPLAY = json.load(f)
 DISPLAY_TO_T212 = {v: k for k, v in T212_TO_DISPLAY.items()}
 
 print("Fetching portfolio positions...")
