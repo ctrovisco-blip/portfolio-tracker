@@ -29,7 +29,21 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   align-items:center;
 }
 
-/* ── Mobile ───────────────────────────────────────────────────────── */
+/* ── Resizable dividers ───────────────────────────────────────────── */
+.divider-v{
+  width:4px;cursor:col-resize;background:transparent;flex-shrink:0;
+  position:relative;z-index:10;transition:background 0.15s;
+}
+.divider-v:hover,.divider-v.dragging{background:#3d4760;}
+.divider-h{
+  height:4px;cursor:row-resize;background:transparent;flex-shrink:0;
+  position:relative;z-index:10;transition:background 0.15s;
+}
+.divider-h:hover,.divider-h.dragging{background:#3d4760;}
+@media(max-width:768px){
+  .divider-v,.divider-h{display:none!important;}
+}
+
 @media(max-width:768px){
   /* Layout geral */
   .main-grid{grid-template-columns:1fr!important;}
@@ -1049,6 +1063,60 @@ function App() {
   const [sector, setSector]     = useState("all");
   const [sort, setSort]         = useState("ppl");
 
+  // ── Resizable panes ────────────────────────────────────────────────
+  const [rightW, setRightW]   = useState(() => {
+    const v = parseInt(localStorage.getItem("pane_rightW"));
+    return (v >= 180 && v <= 700) ? v : 310;
+  });
+  const [chartH, setChartH]   = useState(() => {
+    const v = parseInt(localStorage.getItem("pane_chartH"));
+    return (v >= 80 && v <= 600) ? v : 240;
+  });
+  const dragV = useRef(null); // { startX, startW }
+  const dragH = useRef(null); // { startY, startH }
+
+  useEffect(() => { localStorage.setItem("pane_rightW", rightW); }, [rightW]);
+  useEffect(() => { localStorage.setItem("pane_chartH", chartH); }, [chartH]);
+
+  function onDividerVMouseDown(e) {
+    e.preventDefault();
+    dragV.current = { startX: e.clientX, startW: rightW };
+    const el = e.currentTarget;
+    el.classList.add("dragging");
+    function onMove(e) {
+      const delta = dragV.current.startX - e.clientX;
+      const next = Math.max(180, Math.min(700, dragV.current.startW + delta));
+      setRightW(next);
+    }
+    function onUp() {
+      el.classList.remove("dragging");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function onDividerHMouseDown(e) {
+    e.preventDefault();
+    dragH.current = { startY: e.clientY, startH: chartH };
+    const el = e.currentTarget;
+    el.classList.add("dragging");
+    function onMove(e) {
+      const delta = e.clientY - dragH.current.startY;
+      const next = Math.max(80, Math.min(600, dragH.current.startH + delta));
+      setChartH(next);
+    }
+    function onUp() {
+      el.classList.remove("dragging");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+  // ──────────────────────────────────────────────────────────────────
+
   const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))].sort(), []);
 
   const filtered = useMemo(() => {
@@ -1112,15 +1180,18 @@ function App() {
       <Summary positions={positions} className="summary-bar"/>
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
-      <div className="main-grid" style={{display:"grid",gridTemplateColumns:"1fr 310px",flex:1,minHeight:0}}>
+      <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
 
         {/* ── LEFT COLUMN ── */}
-        <div style={{display:"flex",flexDirection:"column",borderRight:"1px solid #2a3042",overflow:"hidden"}}>
+        <div style={{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
 
           {/* Chart */}
-          <div className="chart-wrap" style={{flexShrink:0,height:"240px",borderBottom:"1px solid #2a3042"}}>
+          <div className="chart-wrap" style={{flexShrink:0,height:`${chartH}px`,borderBottom:"1px solid #2a3042"}}>
             <ChartPanel sel={sel} positions={positions}/>
           </div>
+
+          {/* Horizontal divider — resize chart height */}
+          <div className="divider-h" onMouseDown={onDividerHMouseDown} title="Arrastar para redimensionar"/>
 
           {/* Filter bar */}
           <div className="filter-bar" style={{padding:"6px 12px",borderBottom:"1px solid #2a3042",
@@ -1178,9 +1249,12 @@ function App() {
           </div>
         </div>
 
+        {/* Vertical divider — resize right column width */}
+        <div className="divider-v" onMouseDown={onDividerVMouseDown} title="Arrastar para redimensionar"/>
+
         {/* ── RIGHT COLUMN: Detail (full height; slide-in overlay no mobile) ── */}
         <div className={`right-col${panelOpen ? " open" : ""}`}
-          style={{overflowY:"auto",background:"#131722",borderLeft:"1px solid #2a3042"}}>
+          style={{width:`${rightW}px`,flexShrink:0,overflowY:"auto",background:"#131722"}}>
 
           {/* Botão voltar — só visível no mobile (display:none no desktop via CSS) */}
           <div className="mob-back" style={{
