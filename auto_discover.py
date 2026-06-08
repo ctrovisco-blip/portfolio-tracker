@@ -21,10 +21,20 @@ HEADERS    = {
 }
 BASE = "https://live.trading212.com"
 
-def get_t212(path):
-    req = urllib.request.Request(BASE + path, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+def get_t212(path, retries=5):
+    delays = [10, 30, 60, 120, 180]
+    for attempt in range(retries):
+        req = urllib.request.Request(BASE + path, headers=HEADERS)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < retries - 1:
+                wait = delays[attempt]
+                print(f"  Rate limit (429), aguardando {wait}s antes de retry {attempt + 1}/{retries - 1}...")
+                time.sleep(wait)
+            else:
+                raise
 
 # ── Carregar ficheiros existentes ─────────────────────────────────────────────
 os.makedirs("data", exist_ok=True)
