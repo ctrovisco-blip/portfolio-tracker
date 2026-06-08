@@ -1351,19 +1351,49 @@ function ScreenerCard({ ticker, data, onRemove }) {
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
   const fmtStr = (v)       => v == null ? "—" : String(v);
 
-  const yieldCol  = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
-  const peCol     = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
-  const cagrCol   = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const payoutCol = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
-  const marginCol = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
-  const fcfCol    = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const yieldCol   = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
+  const peCol      = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
+  const pbCol      = v => v==null?"#6b7280":v<1?"#089981":v<3?"#c8ccd4":v<10?"#F0883E":"#ef5350";
+  const betaCol    = v => v==null?"#6b7280":v<0.8?"#5b8af5":v<1.2?"#c8ccd4":v<1.5?"#F0883E":"#ef5350";
+  const deCol      = v => v==null?"#6b7280":v<50?"#089981":v<100?"#c8ccd4":v<200?"#F0883E":"#ef5350";
+  const crCol      = v => v==null?"#6b7280":v>=2?"#089981":v>=1?"#c8ccd4":"#ef5350";
+  const cagrCol    = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const payoutCol  = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
+  const marginCol  = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
+  const fcfCol     = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const roeCol     = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const growthCol  = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const epsGrCol   = v => v==null?"#6b7280":v>20?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
 
-  const CardItem = ({label, value, color}) => (
+  // Mini sparkline SVG for historical trends
+  const MiniSparkline = ({ values, color: sc = "#5a6478" }) => {
+    if (!values || values.length < 2) return null;
+    const mn = Math.min(...values), mx = Math.max(...values);
+    const range = mx - mn || 1;
+    const W = 48, H = 18, pad = 2;
+    const pts = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+      const y = (H - pad) - ((v - mn) / range) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const lx = (W - pad).toFixed(1);
+    const ly = ((H - pad) - ((values[values.length-1] - mn) / range) * (H - pad * 2)).toFixed(1);
+    return (
+      <svg width={W} height={H} style={{flexShrink:0,opacity:0.9}}>
+        <polyline points={pts} fill="none" stroke={sc} strokeWidth="1.5"
+          strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={lx} cy={ly} r="2" fill={sc}/>
+      </svg>
+    );
+  };
+
+  const CardItem = ({label, value, color, history}) => (
     <div style={{background:"#131722",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
       <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
-      <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:"4px"}}>
+        <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+        {history && history.length >= 2 && <MiniSparkline values={history} color={color||"#5a6478"}/>}
+      </div>
     </div>
   );
 
@@ -1372,6 +1402,37 @@ function ScreenerCard({ ticker, data, onRemove }) {
   );
 
   const currencySymbol = {EUR:"€",GBP:"£",USD:"$"}[data.currency] || data.currency || "$";
+
+  // 52-week range bar
+  const WeekRange = () => {
+    if (!data.week52Low || !data.week52High || !data.curPrice) return null;
+    const pct = Math.max(0, Math.min(100,
+      (data.curPrice - data.week52Low) / (data.week52High - data.week52Low) * 100));
+    return (
+      <div style={{background:"#131722",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"5px",alignItems:"center"}}>
+          <span style={{fontSize:"9px",color:"#5a6478"}}>{currencySymbol}{data.week52Low.toFixed(2)}</span>
+          <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>52 semanas</span>
+          <span style={{fontSize:"9px",color:"#5a6478"}}>{currencySymbol}{data.week52High.toFixed(2)}</span>
+        </div>
+        <div style={{position:"relative",height:"4px",borderRadius:"2px",background:"#1e2438"}}>
+          <div style={{
+            position:"absolute",height:"100%",borderRadius:"2px",
+            background:"linear-gradient(90deg,#ef5350 0%,#F0883E 45%,#089981 100%)",
+            width:`${pct}%`,
+          }}/>
+          <div style={{
+            position:"absolute",top:"-4px",width:"2px",height:"12px",
+            background:"#e0e3eb",borderRadius:"1px",
+            left:`calc(${pct}% - 1px)`,
+          }}/>
+        </div>
+        <div style={{textAlign:"center",marginTop:"4px",fontSize:"8px",color:"#5a6478"}}>
+          {pct.toFixed(0)}% do intervalo anual
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="screener-card" style={{
@@ -1420,25 +1481,40 @@ function ScreenerCard({ ticker, data, onRemove }) {
         )}
       </div>
 
+      {/* 52-week range */}
+      <WeekRange/>
+
       <Section title="Avaliação"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Market Cap"  value={fmtStr(data.marketCap)}  color="#c8ccd4"/>
-        <CardItem label="Total Debt"  value={fmtStr(data.totalDebt)}  color={data.totalDebt?"#F0883E":"#6b7280"}/>
-        <CardItem label="P/E Ratio"   value={fmtNum(data.pe)}         color={peCol(data.pe)}/>
+        <CardItem label="Market Cap"   value={fmtStr(data.marketCap)}   color="#c8ccd4"/>
+        <CardItem label="Total Debt"   value={fmtStr(data.totalDebt)}   color={data.totalDebt?"#F0883E":"#6b7280"}/>
+        <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}          color={peCol(data.pe)}/>
+        <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)} color={pbCol(data.priceToBook)}/>
+        <CardItem label="Beta"         value={fmtNum(data.beta, 2)}     color={betaCol(data.beta)}/>
+        <CardItem label="Debt/Equity"  value={data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : "—"} color={deCol(data.debtToEquity)}/>
       </div>
 
       <Section title="Rentabilidade"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Gross Margin"   value={fmtPct(data.grossMargin)}   color={marginCol(data.grossMargin)}/>
-        <CardItem label="Net Margin"     value={fmtPct(data.netMargin)}     color={marginCol(data.netMargin)}/>
-        <CardItem label="ROE"            value={fmtPct(data.roe)}           color={roeCol(data.roe)}/>
+        <CardItem label="Gross Margin"    value={fmtPct(data.grossMargin)}   color={marginCol(data.grossMargin)} history={data.grossMarginHistory}/>
+        <CardItem label="Net Margin"      value={fmtPct(data.netMargin)}     color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
+        <CardItem label="ROE"             value={fmtPct(data.roe)}           color={roeCol(data.roe)}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
         <CardItem label="FCF Yield"
-          value={fmtPct(data.fcfYield)} color={fcfCol(data.fcfYield)}/>
-        <CardItem label="Revenue Growth"
+          value={fmtPct(data.fcfYield)} color={fcfCol(data.fcfYield)} history={data.fcfHistory?.map(v => v)}/>
+        <CardItem label="Rev. Growth"
           value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
-          color={growthCol(data.revenueGrowth)}/>
+          color={growthCol(data.revenueGrowth)} history={data.revenueHistory}/>
+        <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
+      </div>
+
+      <Section title="Por Ação"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+        <CardItem label="EPS"         value={data.eps != null ? `${currencySymbol}${data.eps.toFixed(2)}` : "—"} color="#c8ccd4"/>
+        <CardItem label="EPS Growth"
+          value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"}
+          color={epsGrCol(data.epsGrowth)}/>
       </div>
 
       <Section title="Retorno ao Acionista"/>
