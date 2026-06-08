@@ -2062,10 +2062,7 @@ function App() {
   const selPos = sel ? positions.find(p => p.ticker === sel) : null;
   // Desktop: auto-open detail panel when a stock is selected.
   // Mobile: only opens when user explicitly taps "Ver Indicadores" (mobDetail) or opens overview.
-  useEffect(() => {
-    if (window.innerWidth > 768) setMobDetail(!!sel);
-  }, [sel]);
-
+  const isMobile = () => window.matchMedia('(max-width:768px)').matches;
   const panelOpen = !!(mobDetail || mobPanel === "overview");
 
   const pillStyle = (active) => ({
@@ -2213,7 +2210,7 @@ function App() {
             {filtered.map(p => (
               <PositionRow key={p.ticker} p={p}
                 selected={sel===p.ticker}
-                onClick={() => { const next = sel===p.ticker ? null : p.ticker; setSel(next); setMobPanel(null); if (!next) setMobDetail(false); }}/>
+                onClick={() => { const next = sel===p.ticker ? null : p.ticker; setSel(next); setMobPanel(null); setMobDetail(!isMobile() && !!next); }}/>
             ))}
           </div>
         </div>
@@ -2246,7 +2243,7 @@ function App() {
 
           {selPos
             ? <Detail p={selPos}/>
-            : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); }}/>
+            : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); setMobDetail(!isMobile()); }}/>
           }
         </div>
 
