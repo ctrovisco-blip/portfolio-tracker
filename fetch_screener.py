@@ -104,6 +104,29 @@ def find_row(df, *keywords):
     return None
 
 
+def get_price_history(t):
+    """Fetch OHLC price history for 4 periods. Returns compact close-price arrays."""
+    out = {}
+    import math
+    periods = [
+        ("ph1D",  "1d",   "5m"),
+        ("ph6M",  "6mo",  "1d"),
+        ("ph5Y",  "5y",   "1wk"),
+        ("phAll", "max",  "1mo"),
+    ]
+    for key, period, interval in periods:
+        try:
+            hist = t.history(period=period, interval=interval)
+            if not hist.empty:
+                closes = [round(float(v), 4) for v in hist["Close"].tolist()
+                          if not math.isnan(float(v))]
+                if len(closes) >= 2:
+                    out[key] = closes
+        except Exception as e:
+            print(f"  Price history {key} error: {e}")
+    return out
+
+
 def get_history(t):
     """Extract up to 5 years of annual history for key metrics. Returns oldest-first arrays."""
     out = {}
@@ -224,10 +247,13 @@ for ticker in tickers:
             "totalDebt":        fmt_large(info.get("totalDebt")),
             "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
             "priceToBook":      sr(info.get("priceToBook"), 1),
+            "priceToSales":     sr(info.get("priceToSalesTrailing12Months"), 1),
             "beta":             sr(info.get("beta"), 2),
             "week52Low":        sr(info.get("fiftyTwoWeekLow"), 2),
             "week52High":       sr(info.get("fiftyTwoWeekHigh"), 2),
+            "targetPrice":      sr(info.get("targetMeanPrice"), 2),
             # Profitability
+            "operatingMargin":  pct_dec(info.get("operatingMargins")),
             "grossMargin":      pct_dec(info.get("grossMargins")),
             "netMargin":        pct_dec(info.get("profitMargins")),
             "roe":              pct_dec(info.get("returnOnEquity")),
@@ -250,6 +276,8 @@ for ticker in tickers:
 
         # Historical arrays (oldest first)
         entry.update(get_history(t))
+        # Price history for chart (4 periods)
+        entry.update(get_price_history(t))
 
         results[ticker] = entry
         print(f"  OK: {name} @ {price} {info.get('currency', '')}")
