@@ -14,6 +14,12 @@ on:
   # Execução manual pelo botão "Run workflow" no GitHub
   workflow_dispatch:
 
+# Impede duas execuções simultâneas — a nova aguarda até a anterior terminar.
+# Sem isto, dois runs em paralelo causam rate limit 429 na API da Trading212.
+concurrency:
+  group: update-portfolio
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -25,7 +31,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          # Garante que temos o estado mais recente (evita conflitos de push)
           fetch-depth: 0
 
       - name: Set up Python
@@ -36,7 +41,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # ── Fetch de dados (continue-on-error: cada fonte falha de forma independente) ──
+      # ── Fetch sequencial: cada passo depende do anterior ──────────────────
+      # Ordem importa: auto_discover → positions → fx → charts → fundamentals
+      # charts lê positions.json e fx.json, por isso positions e fx têm de correr primeiro.
 
       - name: Auto-discover new positions
         id: discover
@@ -78,12 +85,18 @@ jobs:
 
       - name: Log fetch results
         run: |
+          echo "discover=${{ steps.discover.outcome }}"
           echo "positions=${{ steps.positions.outcome }}"
           echo "fx=${{ steps.fx.outcome }}"
           echo "charts=${{ steps.charts.outcome }}"
           echo "fundamentals=${{ steps.fundamentals.outcome }}"
+          # Falha o workflow se positions falhou — dados desatualizados são perigosos
+          if [ "${{ steps.positions.outcome }}" = "failure" ]; then
+            echo "::error::fetch_positions.py falhou — dados de posições podem estar desatualizados"
+            exit 1
+          fi
 
-      # ── Build sempre (mesmo que alguns fetches tenham falhado) ────────────────
+      # ── Build sempre (mesmo que alguns fetches secundários tenham falhado) ──
 
       - name: Build HTML
         run: python build_html.py

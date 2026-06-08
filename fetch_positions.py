@@ -85,10 +85,13 @@ while path:
 
 print(f"  {len(all_orders)} total orders")
 
-# Save full order history for portfolio history reconstruction (used by fetch_chart_data.py)
-with open("data/orders.json", "w", encoding="utf-8") as f:
-    json.dump(all_orders, f, ensure_ascii=False)
-print(f"  Saved {len(all_orders)} orders to data/orders.json")
+# Save order history — só sobrescreve se obtivemos dados (evita apagar histórico com array vazio)
+if all_orders:
+    with open("data/orders.json", "w", encoding="utf-8") as f:
+        json.dump(all_orders, f, ensure_ascii=False)
+    print(f"  Saved {len(all_orders)} orders to data/orders.json")
+else:
+    print("  Sem ordens obtidas — orders.json não foi sobrescrito")
 
 # Build buy dates per ticker from filled buy orders
 buy_dates = {}  # display_ticker -> set of date strings
