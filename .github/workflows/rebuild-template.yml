@@ -30,18 +30,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build HTML
-        run: python build_html.py
-
       - name: Commit & push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Pull first so we build on top of any concurrent index.html commits
+          git pull --rebase origin $(git rev-parse --abbrev-ref HEAD)
+          python build_html.py
           git add index.html
           if git diff --staged --quiet; then
             echo "Sem alteracoes no index.html."
             exit 0
           fi
           git commit -m "chore: rebuild index.html from template [skip ci]"
-          git pull --rebase origin $(git rev-parse --abbrev-ref HEAD)
           git push origin HEAD
