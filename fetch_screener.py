@@ -104,6 +104,102 @@ def find_row(df, *keywords):
     return None
 
 
+def generate_summary(e):
+    """Build a rule-based fundamental summary + verdict from the entry dict."""
+    parts = []
+    sym = {"EUR": "€", "GBP": "£", "USD": "$"}.get(e.get("currency", "USD"), "$")
+
+    # --- Valuation sentence ---
+    val = []
+    pe = e.get("pe")
+    if pe is not None:
+        if pe < 0:   val.append("empresa ainda sem lucros (P/E negativo)")
+        elif pe < 15: val.append(f"P/E de {pe:.0f}x (atrativo)")
+        elif pe < 25: val.append(f"P/E de {pe:.0f}x (razoável)")
+        elif pe < 40: val.append(f"P/E de {pe:.0f}x (premium)")
+        else:         val.append(f"P/E de {pe:.0f}x (muito elevado)")
+    ps = e.get("priceToSales")
+    if ps is not None:
+        val.append(f"P/S {ps:.1f}x")
+    pb = e.get("priceToBook")
+    if pb is not None and pb > 0:
+        val.append(f"P/B {pb:.1f}x")
+    if val:
+        parts.append(f"Negoceia a {', '.join(val)}.")
+
+    # --- Growth & margins sentence ---
+    gm = []
+    rg = e.get("revenueGrowth")
+    if rg is not None:
+        if rg > 30:   gm.append(f"crescimento de receita forte (+{rg:.0f}%)")
+        elif rg > 10: gm.append(f"crescimento de receita de +{rg:.0f}%")
+        elif rg > 0:  gm.append(f"crescimento de receita moderado (+{rg:.0f}%)")
+        else:         gm.append(f"receita em queda ({rg:.0f}%)")
+    nm = e.get("netMargin")
+    if nm is not None:
+        if nm > 25:   gm.append(f"margens excelentes (net {nm:.0f}%)")
+        elif nm > 10: gm.append(f"margens sólidas (net {nm:.0f}%)")
+        elif nm > 0:  gm.append(f"margens reduzidas (net {nm:.0f}%)")
+        else:         gm.append(f"margem líquida negativa ({nm:.0f}%)")
+    roe = e.get("roe")
+    if roe is not None and roe > 20:
+        gm.append(f"ROE de {roe:.0f}%")
+    if gm:
+        parts.append(f"{', '.join(gm[:2]).capitalize()}.")
+
+    # --- Target price sentence ---
+    tp = e.get("targetPrice")
+    cp = e.get("curPrice")
+    upside = None
+    if tp and cp:
+        upside = (tp / cp - 1) * 100
+        direction = f"+{upside:.0f}% upside" if upside >= 0 else f"{upside:.0f}% downside"
+        parts.append(f"Analistas têm preço-alvo de {sym}{tp:.2f} ({direction}).")
+
+    # --- Score → verdict ---
+    score = 0
+    if pe is not None:
+        if pe < 0: score -= 1
+        elif pe < 20: score += 2
+        elif pe < 35: score += 1
+        else: score -= 1
+    if rg is not None:
+        if rg > 20: score += 2
+        elif rg > 5: score += 1
+        elif rg < 0: score -= 1
+    if nm is not None:
+        if nm > 20: score += 2
+        elif nm > 5: score += 1
+        elif nm < 0: score -= 2
+    de = e.get("debtToEquity")
+    if de is not None:
+        if de < 50: score += 1
+        elif de > 200: score -= 1
+    if upside is not None:
+        if upside > 20: score += 2
+        elif upside > 0: score += 1
+        elif upside < -10: score -= 1
+    fcfy = e.get("fcfYield")
+    if fcfy is not None:
+        if fcfy > 5: score += 1
+        elif fcfy < 0: score -= 1
+
+    if pe is not None and pe < 0 and (nm is None or nm < 0):
+        verdict, vcolor = "Especulativo", "#F0883E"
+    elif score >= 6:
+        verdict, vcolor = "Muito Favorável", "#089981"
+    elif score >= 3:
+        verdict, vcolor = "Favorável", "#089981"
+    elif score >= 0:
+        verdict, vcolor = "Neutro", "#c8ccd4"
+    elif score >= -2:
+        verdict, vcolor = "Cauteloso", "#F0883E"
+    else:
+        verdict, vcolor = "Desfavorável", "#ef5350"
+
+    return {"text": " ".join(parts), "verdict": verdict, "verdictColor": vcolor}
+
+
 def get_price_history(t):
     """Fetch OHLC price history for 4 periods. Returns compact close-price arrays."""
     out = {}
@@ -278,6 +374,8 @@ for ticker in tickers:
         entry.update(get_history(t))
         # Price history for chart (4 periods)
         entry.update(get_price_history(t))
+        # Rule-based fundamental summary
+        entry["summary"] = generate_summary(entry)
 
         results[ticker] = entry
         print(f"  OK: {name} @ {price} {info.get('currency', '')}")
