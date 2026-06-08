@@ -116,14 +116,30 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   /* Esconder botão Portfolio do header no mobile */
   .hdr-back{display:none!important;}
 }
+
+/* ── Print / PDF export ─────────────────────────────────────────────────── */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+  .screener-print-header { display: block !important; }
+  .screener-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 0 !important;
+  }
+  .screener-card { break-inside: avoid; page-break-inside: avoid; }
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-const CHART_DATA  = /*__CHART_DATA__*/;
-const FX_RATES    = /*__FX_RATES__*/;
-const TIMESTAMPS  = /*__TIMESTAMPS__*/;
+const CHART_DATA    = /*__CHART_DATA__*/;
+const FX_RATES      = /*__FX_RATES__*/;
+const SCREENER_DATA = /*__SCREENER_DATA__*/;
+const TIMESTAMPS    = /*__TIMESTAMPS__*/;
 </script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
@@ -1156,8 +1172,404 @@ function FreshnessIndicator() {
   );
 }
 
+// ─── SCREENER ─────────────────────────────────────────────────────────────────
+
+const GH_SCREENER_WORKFLOW = "screener.yml";
+
+function ScreenerFetchBar() {
+  const [tickers,  setTickers]  = useState("");
+  const [mode,     setMode]     = useState("add");
+  const [status,   setStatus]   = useState("idle"); // idle | pat-needed | running | ok | err
+  const [token,    setToken]    = useState(() => localStorage.getItem("gh_pat") || "");
+  const [patInput, setPatInput] = useState("");
+  const [errMsg,   setErrMsg]   = useState("");
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    if (status !== "pat-needed") return;
+    const h = e => { if (modalRef.current && !modalRef.current.contains(e.target)) setStatus("idle"); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [status]);
+
+  const doFetch = async (pat) => {
+    setStatus("running");
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_SCREENER_WORKFLOW}/dispatches`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${pat}`,
+            "Accept":        "application/vnd.github+json",
+            "Content-Type":  "application/json",
+          },
+          body: JSON.stringify({ ref: "main", inputs: { tickers: tickers.trim(), mode } }),
+        }
+      );
+      if (res.status === 204) {
+        setStatus("ok");
+        setTimeout(() => setStatus("idle"), 10000);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.message || `HTTP ${res.status}`);
+      }
+    } catch(e) {
+      setErrMsg(e.message);
+      setStatus("err");
+      setTimeout(() => setStatus("idle"), 5000);
+    }
+  };
+
+  const handleFetch = () => {
+    if (!tickers.trim() || status === "running") return;
+    if (token) { doFetch(token); return; }
+    setStatus("pat-needed");
+  };
+
+  const handlePatSave = () => {
+    const pat = patInput.trim();
+    if (!pat) return;
+    localStorage.setItem("gh_pat", pat);
+    setToken(pat);
+    doFetch(pat);
+  };
+
+  const btnColor = status==="ok"?"#22C55E":status==="err"?"#ef5350":status==="running"?"#F59E0B":"#2962ff";
+  const btnLabel = status==="running"?"⏳ A correr...":status==="ok"?"✓ Pedido enviado!":status==="err"?"✗ Erro":"Obter dados";
+
+  return (
+    <div style={{display:"flex",gap:"8px",alignItems:"center",flexWrap:"wrap"}}>
+      {/* Ticker input */}
+      <input
+        value={tickers}
+        onChange={e => setTickers(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && handleFetch()}
+        placeholder="AAPL, MSFT, NVDA..."
+        style={{
+          minWidth:"200px",maxWidth:"360px",flex:"1",
+          background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
+          padding:"6px 10px",color:"#c8ccd4",fontSize:"11px",
+          fontFamily:"'Inter',sans-serif",outline:"none",
+        }}
+      />
+
+      {/* Mode toggle */}
+      <div style={{display:"flex",gap:"2px",flexShrink:0}}>
+        {[["add","Adicionar"],["replace","Substituir"]].map(([k,l]) => (
+          <button key={k} onClick={() => setMode(k)} style={{
+            fontSize:"9px",padding:"5px 10px",borderRadius:"20px",cursor:"pointer",
+            border: mode===k?"1px solid #5a6478":"1px solid transparent",
+            background: mode===k?"#1e2438":"transparent",
+            color: mode===k?"#c8ccd4":"#6b7280",
+            transition:"all 0.12s",fontFamily:"'Inter',sans-serif",
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Fetch button */}
+      <div style={{position:"relative",flexShrink:0}}>
+        <button onClick={handleFetch}
+          disabled={!tickers.trim() || status === "running"}
+          style={{
+            fontSize:"10px",fontWeight:"600",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",
+            background: !tickers.trim()?"#1e2438":`${btnColor}22`,
+            border: `1px solid ${!tickers.trim()?"#2a3042":btnColor}`,
+            color: !tickers.trim()?"#5a6478":btnColor,
+            fontFamily:"'Inter',sans-serif",transition:"all 0.15s",
+          }}>
+          {btnLabel}
+        </button>
+
+        {/* PAT modal */}
+        {status === "pat-needed" && (
+          <div ref={modalRef} style={{
+            position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200,
+            background:"#1e2438",border:"1px solid #2a3042",borderRadius:"10px",
+            padding:"14px",width:"270px",boxShadow:"0 8px 32px #00000099",
+          }}>
+            <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
+              GitHub Personal Access Token
+            </div>
+            <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"10px",lineHeight:1.6}}>
+              Scope necessário: <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.{" "}
+              <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Screener"
+                target="_blank" rel="noopener" style={{color:"#2962ff",textDecoration:"none"}}>
+                Criar token ↗
+              </a>
+            </div>
+            <input autoFocus value={patInput} onChange={e => setPatInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handlePatSave()}
+              type="password" placeholder="ghp_xxxxxxxxxxxx"
+              style={{width:"100%",background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
+                padding:"6px 8px",color:"#c8ccd4",fontSize:"10px",fontFamily:"monospace",
+                outline:"none",marginBottom:"8px"}}/>
+            <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
+              <button onClick={() => setStatus("idle")}
+                style={{fontSize:"9px",color:"#6b7280",background:"transparent",
+                  border:"1px solid #2a3042",borderRadius:"5px",padding:"4px 10px",cursor:"pointer",
+                  fontFamily:"'Inter',sans-serif"}}>
+                Cancelar
+              </button>
+              <button onClick={handlePatSave}
+                style={{fontSize:"9px",color:"#e0e3eb",background:"#2962ff",
+                  border:"1px solid #2962ff",borderRadius:"5px",padding:"4px 12px",
+                  fontWeight:"600",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+                Guardar & Correr
+              </button>
+            </div>
+            <div style={{fontSize:"9px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
+              Token guardado apenas neste browser (localStorage).
+            </div>
+          </div>
+        )}
+
+        {/* Error tooltip */}
+        {status === "err" && (
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:200,
+            background:"#1A0000",border:"1px solid #7F1D1D",borderRadius:"6px",
+            padding:"8px 10px",width:"220px",fontSize:"9px",color:"#F87171"}}>
+            {errMsg}
+          </div>
+        )}
+      </div>
+
+      {status === "ok" && (
+        <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
+          Aguarda ~1-2 min e actualiza a página
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ScreenerCard({ ticker, data, onRemove }) {
+  const inPortfolio = positions.some(p => p.ticker === ticker);
+  const col = SECTOR_COLORS[data.sector] || "#5a6478";
+
+  const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
+  const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
+  const fmtStr = (v)       => v == null ? "—" : String(v);
+
+  const yieldCol  = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
+  const peCol     = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
+  const cagrCol   = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const payoutCol = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
+  const marginCol = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
+  const fcfCol    = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+
+  const CardItem = ({label, value, color}) => (
+    <div style={{background:"#131722",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
+      <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+    </div>
+  );
+
+  const Section = ({title}) => (
+    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
+  );
+
+  const currencySymbol = {EUR:"€",GBP:"£",USD:"$"}[data.currency] || data.currency || "$";
+
+  return (
+    <div className="screener-card" style={{
+      background:"#1a1f2e",borderRadius:"8px",border:"1px solid #2a3042",padding:"12px",
+    }}>
+      {/* Header */}
+      <div style={{borderLeft:"3px solid #2962ff",paddingLeft:"10px",marginBottom:"12px",
+        display:"flex",alignItems:"flex-start",gap:"8px"}}>
+        <LogoImg ticker={ticker} sector={data.sector} flag={data.flag} size={24}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px",display:"flex",
+            alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+            <span>{data.flag} {data.exchange} · <span style={{color:"#2962ff"}}>{ticker}</span></span>
+            {inPortfolio && (
+              <span style={{background:"#2962ff22",color:"#5b8af5",
+                border:"1px solid #2962ff33",borderRadius:"3px",padding:"0 5px",
+                fontSize:"8px",fontWeight:"600"}}>
+                portfolio
+              </span>
+            )}
+          </div>
+          <div style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb",
+            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{data.name}</div>
+          <div style={{display:"flex",gap:"8px",marginTop:"4px",alignItems:"center",flexWrap:"wrap"}}>
+            {data.curPrice != null && (
+              <span style={{fontSize:"14px",fontWeight:"600",color:"#c8ccd4",
+                fontVariantNumeric:"tabular-nums"}}>
+                {currencySymbol}{data.curPrice.toFixed(2)}
+              </span>
+            )}
+            <span style={{fontSize:"9px",background:col+"22",color:col,
+              border:`1px solid ${col}44`,borderRadius:"3px",padding:"2px 7px"}}>
+              {data.sector}
+            </span>
+          </div>
+        </div>
+        {onRemove && (
+          <button className="no-print" onClick={() => onRemove(ticker)}
+            style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
+              cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,flexShrink:0,
+              borderRadius:"4px",transition:"all 0.12s"}}
+            onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
+            onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
+            ×
+          </button>
+        )}
+      </div>
+
+      <Section title="Avaliação"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
+        <CardItem label="Market Cap"  value={fmtStr(data.marketCap)}  color="#c8ccd4"/>
+        <CardItem label="Total Debt"  value={fmtStr(data.totalDebt)}  color={data.totalDebt?"#F0883E":"#6b7280"}/>
+        <CardItem label="P/E Ratio"   value={fmtNum(data.pe)}         color={peCol(data.pe)}/>
+      </div>
+
+      <Section title="Rentabilidade"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
+        <CardItem label="Gross Margin"   value={fmtPct(data.grossMargin)}   color={marginCol(data.grossMargin)}/>
+        <CardItem label="Net Margin"     value={fmtPct(data.netMargin)}     color={marginCol(data.netMargin)}/>
+        <CardItem label="ROE"            value={fmtPct(data.roe)}           color={roeCol(data.roe)}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
+        <CardItem label="FCF Yield"
+          value={fmtPct(data.fcfYield)} color={fcfCol(data.fcfYield)}/>
+        <CardItem label="Revenue Growth"
+          value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
+          color={growthCol(data.revenueGrowth)}/>
+      </div>
+
+      <Section title="Retorno ao Acionista"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+        <CardItem label="Dividend Yield"    value={fmtPct(data.divYield)}         color={yieldCol(data.divYield)}/>
+        <CardItem label="Buyback Yield"     value={fmtPct(data.buybackYield)}     color={yieldCol(data.buybackYield)}/>
+        <CardItem label="Shareholder Yield" value={fmtPct(data.shareholderYield)} color={yieldCol(data.shareholderYield)}/>
+        <CardItem label="Payout Ratio"      value={fmtPct(data.payoutRatio,1)}    color={payoutCol(data.payoutRatio)}/>
+      </div>
+
+      <Section title="Crescimento do Dividendo"/>
+      <div style={{background:"#131722",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438",
+        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
+          <div style={{fontSize:"15px",color:cagrCol(data.divCagr5y),fontWeight:"700",
+            fontFamily:"'Inter',sans-serif",minWidth:"52px",textAlign:"right"}}>
+            {data.divCagr5y != null ? `${data.divCagr5y>0?"+":""}${data.divCagr5y.toFixed(1)}%` : "—"}
+          </div>
+          {data.divCagr5y != null && (
+            <div style={{position:"relative",width:"50px",height:"4px",borderRadius:"2px",
+              background:"#1e2438",flexShrink:0}}>
+              <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#5a6478"}}/>
+              <div style={{
+                position:"absolute",height:"100%",borderRadius:"2px",
+                background:cagrCol(data.divCagr5y),
+                left:  data.divCagr5y>=0 ? "50%" : `${Math.max(0,50-Math.min(50,Math.abs(data.divCagr5y)*1.5))}%`,
+                width: `${Math.min(50,Math.abs(data.divCagr5y)*1.5)}%`,
+              }}/>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {data.fetchedAt && (
+        <div style={{marginTop:"10px",fontSize:"8px",color:"#5a6478",textAlign:"right",letterSpacing:"0.3px"}}>
+          Actualizado: {data.fetchedAt}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScreenerView() {
+  const allTickers = Object.keys(SCREENER_DATA);
+  const [hidden, setHidden] = useState([]);
+  const visible = allTickers.filter(t => !hidden.includes(t));
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#131722"}}>
+
+      {/* Top bar */}
+      <div className="no-print" style={{
+        padding:"10px 16px",borderBottom:"1px solid #2a3042",background:"#1a1f2e",
+        display:"flex",gap:"10px",alignItems:"center",flexShrink:0,flexWrap:"wrap",
+      }}>
+        <ScreenerFetchBar/>
+        <div style={{flex:1}}/>
+        {visible.length > 0 && (
+          <button onClick={() => window.print()}
+            style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
+              background:"#1e2438",border:"1px solid #5a6478",color:"#787b86",
+              fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"5px",
+              transition:"all 0.12s",flexShrink:0}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#c8ccd4";e.currentTarget.style.color="#c8ccd4";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#5a6478";e.currentTarget.style.color="#787b86";}}>
+            ⎙ Exportar PDF
+          </button>
+        )}
+      </div>
+
+      {/* Print-only header */}
+      <div className="screener-print-header" style={{display:"none",padding:"0 0 12px",
+        marginBottom:"12px",borderBottom:"1px solid #2a3042"}}>
+        <div style={{fontSize:"16px",fontWeight:"700",color:"#e0e3eb"}}>Análise Fundamental</div>
+        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"4px"}}>
+          Portfolio Tracker · Cláudio Trovisco · {new Date().toLocaleDateString("pt-PT")}
+        </div>
+      </div>
+
+      {/* Cards grid or empty state */}
+      {visible.length > 0 ? (
+        <div style={{overflowY:"auto",flex:1,padding:"16px"}}>
+          <div className="screener-grid" style={{
+            display:"grid",
+            gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",
+            gap:"12px",
+          }}>
+            {visible.map(ticker => (
+              <ScreenerCard
+                key={ticker}
+                ticker={ticker}
+                data={SCREENER_DATA[ticker]}
+                onRemove={t => setHidden(h => [...h, t])}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+          justifyContent:"center",color:"#5a6478",gap:"14px",padding:"24px"}}>
+          <div style={{fontSize:"36px",opacity:0.2}}>🔍</div>
+          <div style={{fontSize:"12px",color:"#6b7280",textAlign:"center"}}>
+            {allTickers.length === 0
+              ? "Sem dados. Introduz tickers acima e clica em \"Obter dados\"."
+              : "Todos os cards foram ocultados."}
+          </div>
+          {allTickers.length === 0 && (
+            <div style={{fontSize:"10px",color:"#3d4760",textAlign:"center",maxWidth:"300px",lineHeight:1.7}}>
+              Os dados são obtidos via GitHub Actions (~1-2 min).{" "}
+              Precisas de um token GitHub com scope{" "}
+              <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.
+            </div>
+          )}
+          {hidden.length > 0 && (
+            <button onClick={() => setHidden([])}
+              style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
+                background:"#1e2438",border:"1px solid #2a3042",color:"#787b86",
+                fontFamily:"'Inter',sans-serif"}}>
+              Mostrar todos ({allTickers.length})
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
+  const [tab, setTab]           = useState("portfolio");
   const [sel, setSel]           = useState(null);
   const [mobPanel, setMobPanel] = useState(null); // null | "overview"
   const [filter, setFilter]     = useState("all");
@@ -1259,6 +1671,22 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
+        {/* Tab navigation */}
+        <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
+          {[
+            ["portfolio", "Portfolio"],
+            ["screener",  "Screener" + (Object.keys(SCREENER_DATA).length > 0 ? ` (${Object.keys(SCREENER_DATA).length})` : "")],
+          ].map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} style={{
+              fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
+              border:      tab===k ? "1px solid #2962ff"    : "1px solid transparent",
+              background:  tab===k ? "#2962ff22"            : "transparent",
+              color:       tab===k ? "#5b8af5"              : "#6b7280",
+              fontFamily:"'Inter',sans-serif",fontWeight: tab===k?"600":"400",
+              transition:"all 0.12s",
+            }}>{l}</button>
+          ))}
+        </div>
         <FreshnessIndicator/>
         <div className="hdr-deploy"><DeployButton/></div>
         {/* Botão "Visão Geral" — só visível no mobile via CSS */}
@@ -1277,11 +1705,14 @@ function App() {
         )}
       </div>
 
-      {/* ── Summary bar ── */}
-      <Summary positions={positions} className="summary-bar"/>
+      {/* ── Summary bar (portfolio only) ── */}
+      {tab === "portfolio" && <Summary positions={positions} className="summary-bar"/>}
+
+      {/* ── Screener view ── */}
+      {tab === "screener" && <ScreenerView/>}
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
-      <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
+      {tab === "portfolio" && <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
 
         {/* ── LEFT COLUMN ── */}
         <div style={{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
@@ -1382,7 +1813,7 @@ function App() {
           }
         </div>
 
-      </div>
+      </div>}
     </div>
   );
 }

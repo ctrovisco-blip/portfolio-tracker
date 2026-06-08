@@ -1,12 +1,11 @@
 """
 Fetch fundamental data for arbitrary tickers (screener).
 Env vars:
-  TICKERS        — comma-separated ticker symbols, e.g. "AAPL,MSFT,NVDA"
-  MODE           — "add" (default) or "replace"
-  FISCAL_API_KEY — API key for fiscal.ai (primary source); falls back to yfinance
+  TICKERS  — comma-separated ticker symbols, e.g. "AAPL,MSFT,NVDA"
+  MODE     — "add" (default) or "replace"
 Writes: data/screener.json
 """
-import json, time, os, sys, urllib.request, urllib.parse, urllib.error
+import json, time, os, sys
 import yfinance as yf
 from datetime import datetime, timezone
 
@@ -18,119 +17,6 @@ COUNTRY_FLAG = {
     "Italy": "🇮🇹", "Belgium": "🇧🇪", "Ireland": "🇮🇪", "Taiwan": "🇹🇼",
     "South Korea": "🇰🇷", "India": "🇮🇳", "Brazil": "🇧🇷",
 }
-
-FISCAL_API_KEY = os.environ.get("FISCAL_API_KEY", "")
-FISCAL_BASE    = "https://api.fiscal.ai/v1"
-
-def fiscal_get(endpoint, params=None):
-    """Call fiscal.ai REST API. Returns parsed JSON or None on any error."""
-    if not FISCAL_API_KEY:
-        return None
-    url = f"{FISCAL_BASE}/{endpoint}"
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {FISCAL_API_KEY}",
-        "Accept":        "application/json",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.loads(r.read())
-    except Exception as e:
-        print(f"  fiscal.ai {endpoint} error: {e}")
-        return None
-
-
-def fetch_fiscal(ticker):
-    """
-    Fetch from fiscal.ai and return a normalized dict with the same keys
-    used by the yfinance path. Returns {} if not available.
-    """
-    out = {}
-
-    profile = fiscal_get("company/profile", {"ticker": ticker})
-    ratios  = fiscal_get("ratios",           {"ticker": ticker, "limit": 1})
-    fins    = fiscal_get("financials",        {"ticker": ticker, "period": "annual", "limit": 5})
-
-    if not profile and not ratios:
-        return {}
-
-    # ── Profile ───────────────────────────────────────────────────────────────
-    p = profile[0] if isinstance(profile, list) and profile else (profile or {})
-    out["name"]     = p.get("companyName") or p.get("name")
-    out["sector"]   = p.get("sector")
-    out["exchange"] = p.get("exchange") or p.get("exchangeShortName")
-    out["currency"] = p.get("currency")
-    out["curPrice"] = _sr(p.get("price"), 2)
-    out["marketCap"]= _fmt_large(p.get("mktCap") or p.get("marketCap"))
-    out["beta"]     = _sr(p.get("beta"), 2)
-    country         = p.get("country", "")
-    out["flag"]     = COUNTRY_FLAG.get(country, "🌍")
-    out["week52Low"]  = _sr(p.get("range", "").split("-")[0] if isinstance(p.get("range"), str) and "-" in str(p.get("range","")) else None, 2)
-    out["week52High"] = _sr(p.get("range", "").split("-")[1] if isinstance(p.get("range"), str) and "-" in str(p.get("range","")) else None, 2)
-
-    # ── Ratios ────────────────────────────────────────────────────────────────
-    r = ratios[0] if isinstance(ratios, list) and ratios else (ratios or {})
-    out["pe"]               = _sr(r.get("peRatio") or r.get("priceEarningsRatio"), 1)
-    out["priceToBook"]      = _sr(r.get("priceToBookRatio"), 1)
-    out["priceToSales"]     = _sr(r.get("priceToSalesRatio"), 1)
-    out["roe"]              = _pct(r.get("returnOnEquity"))
-    out["grossMargin"]      = _pct(r.get("grossProfitMargin"))
-    out["netMargin"]        = _pct(r.get("netProfitMargin"))
-    out["operatingMargin"]  = _pct(r.get("operatingProfitMargin"))
-    out["debtToEquity"]     = _sr(r.get("debtEquityRatio"), 2)
-    out["currentRatio"]     = _sr(r.get("currentRatio"), 2)
-    out["divYield"]         = _pct(r.get("dividendYield"))
-    out["payoutRatio"]      = _pct(r.get("payoutRatio"))
-    out["eps"]              = _sr(r.get("earningsPerShare") or r.get("eps"), 2)
-    fcfy = r.get("freeCashFlowYield") or r.get("fcfYield")
-    out["fcfYield"]         = _sr(fcfy if fcfy and abs(float(fcfy if fcfy else 0)) < 2 else (_pct(fcfy) if fcfy else None), 2)
-
-    # ── Financials history ────────────────────────────────────────────────────
-    if isinstance(fins, list) and len(fins) >= 2:
-        fins_sorted = sorted(fins, key=lambda x: x.get("date", ""))  # oldest first
-        rev_h, nm_h, gm_h = [], [], []
-        for f in fins_sorted:
-            rev = f.get("revenue") or f.get("totalRevenue")
-            ni  = f.get("netIncome")
-            gp  = f.get("grossProfit")
-            if rev and rev > 0:
-                rev_h.append(round(float(rev) / 1e9, 2))
-                if ni  is not None: nm_h.append(round(float(ni) / float(rev) * 100, 1))
-                if gp  is not None: gm_h.append(round(float(gp) / float(rev) * 100, 1))
-        if len(rev_h) >= 2: out["revenueHistory"]   = rev_h
-        if len(nm_h)  >= 2: out["netMarginHistory"]  = nm_h
-        if len(gm_h)  >= 2: out["grossMarginHistory"]= gm_h
-
-        # Revenue growth (last 2 years)
-        if len(rev_h) >= 2 and rev_h[-2] > 0:
-            out["revenueGrowth"] = round((rev_h[-1] / rev_h[-2] - 1) * 100, 2)
-
-    return {k: v for k, v in out.items() if v is not None}
-
-
-def _sr(v, n=2):
-    if v is None: return None
-    try: return round(float(v), n)
-    except: return None
-
-def _pct(v, n=2):
-    if v is None: return None
-    try:
-        fv = float(v)
-        # fiscal.ai may return ratios as 0.25 or as 25.0 — normalise to percentage
-        return round(fv * 100 if abs(fv) < 2 else fv, n)
-    except: return None
-
-def _fmt_large(v):
-    if v is None: return None
-    v = float(v)
-    if abs(v) >= 1e12: return f"{v/1e12:.2f}T"
-    if abs(v) >= 1e9:  return f"{v/1e9:.2f}B"
-    if abs(v) >= 1e6:  return f"{v/1e6:.1f}M"
-    return str(round(v, 2))
-
-
 
 
 def fmt_large(v):
@@ -202,269 +88,6 @@ def rev_growth(t):
     except: return None
 
 
-def safe_float(df, row, col):
-    try:
-        v = float(df.loc[row, col])
-        return None if str(v) == "nan" else v
-    except: return None
-
-
-def find_row(df, *keywords):
-    """Find first row whose name contains ALL given keywords (case-insensitive)."""
-    for r in df.index:
-        rs = str(r).lower()
-        if all(kw.lower() in rs for kw in keywords):
-            return r
-    return None
-
-
-FMP_API_KEY = os.environ.get("FMP_API_KEY", "")
-
-def fmp_get(path):
-    """Fetch a single FMP endpoint; returns parsed JSON or None on error."""
-    if not FMP_API_KEY:
-        return None
-    url = f"https://financialmodelingprep.com/api/v3/{path}&apikey={FMP_API_KEY}"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as r:
-            data = json.loads(r.read().decode())
-            return data if data else None
-    except Exception as e:
-        print(f"  FMP error ({path[:40]}): {e}")
-        return None
-
-
-def fetch_fmp(ticker):
-    """Fetch EV/EBITDA, insider/institutional ownership, short interest, analyst ratings from FMP."""
-    out = {}
-
-    # Key metrics (EV/EBITDA, EV/Revenue, etc.)
-    km = fmp_get(f"key-metrics-ttm/{ticker}?limit=1")
-    if km and isinstance(km, list) and km:
-        m = km[0]
-        ev_ebitda = m.get("enterpriseValueOverEBITDATTM")
-        if ev_ebitda and float(ev_ebitda) > 0:
-            out["evEbitda"] = sr(ev_ebitda, 1)
-        roic = m.get("roicTTM")
-        if roic is not None:
-            out["roic"] = sr(float(roic) * 100 if abs(float(roic)) <= 1 else float(roic), 2)
-
-    # Institutional + insider ownership
-    own = fmp_get(f"institutional-holder/{ticker}?limit=1")
-    # FMP doesn't return % directly here; use profile for insider/institution %
-    profile = fmp_get(f"profile/{ticker}?")
-    if profile and isinstance(profile, list) and profile:
-        p = profile[0]
-        insider = p.get("insidersOwnership")
-        inst    = p.get("institutionalOwnership")
-        if insider is not None:
-            out["insiderOwnership"] = sr(float(insider) * 100 if float(insider) <= 1 else float(insider), 2)
-        if inst is not None:
-            out["institutionalOwnership"] = sr(float(inst) * 100 if float(inst) <= 1 else float(inst), 2)
-
-    # Short interest
-    si = fmp_get(f"historical/shares_float?symbol={ticker}&")
-    if si and isinstance(si, list) and si:
-        short_pct = si[0].get("shortPercentOfFloat")
-        if short_pct is not None:
-            out["shortInterest"] = sr(float(short_pct) * 100 if float(short_pct) <= 1 else float(short_pct), 2)
-
-    # Analyst ratings summary
-    rtg = fmp_get(f"analyst-stock-recommendations/{ticker}?limit=1")
-    if rtg and isinstance(rtg, list) and rtg:
-        r = rtg[0]
-        buy  = (r.get("analystRatingsbuy")  or 0) + (r.get("analystRatingsStrongBuy") or 0)
-        hold = r.get("analystRatingsHold")  or 0
-        sell = (r.get("analystRatingsSell") or 0) + (r.get("analystRatingsStrongSell") or 0)
-        total = buy + hold + sell
-        if total > 0:
-            out["analystBuy"]  = int(buy)
-            out["analystHold"] = int(hold)
-            out["analystSell"] = int(sell)
-
-    return out
-
-
-def generate_summary(e):
-    """Build a rule-based fundamental summary + verdict from the entry dict."""
-    parts = []
-    sym = {"EUR": "€", "GBP": "£", "USD": "$"}.get(e.get("currency", "USD"), "$")
-
-    # --- Valuation sentence ---
-    val = []
-    pe = e.get("pe")
-    if pe is not None:
-        if pe < 0:   val.append("empresa ainda sem lucros (P/E negativo)")
-        elif pe < 15: val.append(f"P/E de {pe:.0f}x (atrativo)")
-        elif pe < 25: val.append(f"P/E de {pe:.0f}x (razoável)")
-        elif pe < 40: val.append(f"P/E de {pe:.0f}x (premium)")
-        else:         val.append(f"P/E de {pe:.0f}x (muito elevado)")
-    ps = e.get("priceToSales")
-    if ps is not None:
-        val.append(f"P/S {ps:.1f}x")
-    pb = e.get("priceToBook")
-    if pb is not None and pb > 0:
-        val.append(f"P/B {pb:.1f}x")
-    if val:
-        parts.append(f"Negoceia a {', '.join(val)}.")
-
-    # --- Growth & margins sentence ---
-    gm = []
-    rg = e.get("revenueGrowth")
-    if rg is not None:
-        if rg > 30:   gm.append(f"crescimento de receita forte (+{rg:.0f}%)")
-        elif rg > 10: gm.append(f"crescimento de receita de +{rg:.0f}%")
-        elif rg > 0:  gm.append(f"crescimento de receita moderado (+{rg:.0f}%)")
-        else:         gm.append(f"receita em queda ({rg:.0f}%)")
-    nm = e.get("netMargin")
-    if nm is not None:
-        if nm > 25:   gm.append(f"margens excelentes (net {nm:.0f}%)")
-        elif nm > 10: gm.append(f"margens sólidas (net {nm:.0f}%)")
-        elif nm > 0:  gm.append(f"margens reduzidas (net {nm:.0f}%)")
-        else:         gm.append(f"margem líquida negativa ({nm:.0f}%)")
-    roe = e.get("roe")
-    if roe is not None and roe > 20:
-        gm.append(f"ROE de {roe:.0f}%")
-    if gm:
-        parts.append(f"{', '.join(gm[:2]).capitalize()}.")
-
-    # --- Target price sentence ---
-    tp = e.get("targetPrice")
-    cp = e.get("curPrice")
-    upside = None
-    if tp and cp:
-        upside = (tp / cp - 1) * 100
-        direction = f"+{upside:.0f}% upside" if upside >= 0 else f"{upside:.0f}% downside"
-        parts.append(f"Analistas têm preço-alvo de {sym}{tp:.2f} ({direction}).")
-
-    # --- Score → verdict ---
-    score = 0
-    if pe is not None:
-        if pe < 0: score -= 1
-        elif pe < 20: score += 2
-        elif pe < 35: score += 1
-        else: score -= 1
-    if rg is not None:
-        if rg > 20: score += 2
-        elif rg > 5: score += 1
-        elif rg < 0: score -= 1
-    if nm is not None:
-        if nm > 20: score += 2
-        elif nm > 5: score += 1
-        elif nm < 0: score -= 2
-    de = e.get("debtToEquity")
-    if de is not None:
-        if de < 50: score += 1
-        elif de > 200: score -= 1
-    if upside is not None:
-        if upside > 20: score += 2
-        elif upside > 0: score += 1
-        elif upside < -10: score -= 1
-    fcfy = e.get("fcfYield")
-    if fcfy is not None:
-        if fcfy > 5: score += 1
-        elif fcfy < 0: score -= 1
-
-    if pe is not None and pe < 0 and (nm is None or nm < 0):
-        verdict, vcolor = "Especulativo", "#F0883E"
-    elif score >= 6:
-        verdict, vcolor = "Muito Favorável", "#089981"
-    elif score >= 3:
-        verdict, vcolor = "Favorável", "#089981"
-    elif score >= 0:
-        verdict, vcolor = "Neutro", "#c8ccd4"
-    elif score >= -2:
-        verdict, vcolor = "Cauteloso", "#F0883E"
-    else:
-        verdict, vcolor = "Desfavorável", "#ef5350"
-
-    return {"text": " ".join(parts), "verdict": verdict, "verdictColor": vcolor}
-
-
-def get_price_history(t):
-    """Fetch OHLC price history for 4 periods. Returns compact close-price arrays."""
-    out = {}
-    import math
-    periods = [
-        ("ph1D",  "1d",   "5m"),
-        ("ph6M",  "6mo",  "1d"),
-        ("ph5Y",  "5y",   "1wk"),
-        ("phAll", "max",  "1mo"),
-    ]
-    for key, period, interval in periods:
-        try:
-            hist = t.history(period=period, interval=interval)
-            if not hist.empty:
-                closes = [round(float(v), 4) for v in hist["Close"].tolist()
-                          if not math.isnan(float(v))]
-                if len(closes) >= 2:
-                    out[key] = closes
-        except Exception as e:
-            print(f"  Price history {key} error: {e}")
-    return out
-
-
-def get_history(t):
-    """Extract up to 5 years of annual history for key metrics. Returns oldest-first arrays."""
-    out = {}
-    try:
-        fin = t.financials   # columns = Timestamps, newest first
-        cf  = t.cashflow
-
-        if fin is not None and not fin.empty:
-            cols = list(fin.columns)[:5]
-
-            rev_row = find_row(fin, "total", "revenue") or find_row(fin, "revenue")
-            ni_row  = find_row(fin, "net income")
-            gp_row  = find_row(fin, "gross profit")
-
-            if rev_row:
-                vals = [safe_float(fin, rev_row, c) for c in cols]
-                vals = [round(v / 1e9, 2) for v in vals if v is not None]
-                if len(vals) >= 2:
-                    out["revenueHistory"] = vals[::-1]
-
-            if ni_row and rev_row:
-                margins = []
-                for c in cols:
-                    ni = safe_float(fin, ni_row, c)
-                    rv = safe_float(fin, rev_row, c)
-                    if ni is not None and rv and rv > 0:
-                        margins.append(round(ni / rv * 100, 1))
-                if len(margins) >= 2:
-                    out["netMarginHistory"] = margins[::-1]
-
-            if gp_row and rev_row:
-                margins = []
-                for c in cols:
-                    gp = safe_float(fin, gp_row, c)
-                    rv = safe_float(fin, rev_row, c)
-                    if gp is not None and rv and rv > 0:
-                        margins.append(round(gp / rv * 100, 1))
-                if len(margins) >= 2:
-                    out["grossMarginHistory"] = margins[::-1]
-
-        if cf is not None and not cf.empty:
-            cf_cols = list(cf.columns)[:5]
-            opcf_row  = find_row(cf, "operating", "cash") or find_row(cf, "operating activities")
-            capex_row = find_row(cf, "capital", "expenditure") or find_row(cf, "capital expenditures")
-
-            if opcf_row and capex_row:
-                fcfs = []
-                for c in cf_cols:
-                    opcf  = safe_float(cf, opcf_row, c)
-                    capex = safe_float(cf, capex_row, c)
-                    if opcf is not None and capex is not None:
-                        fcfs.append(round((opcf + capex) / 1e9, 2))
-                if len(fcfs) >= 2:
-                    out["fcfHistory"] = fcfs[::-1]
-
-    except Exception as e:
-        print(f"  History error: {e}")
-
-    return out
-
-
 tickers_env = os.environ.get("TICKERS", "").strip()
 mode = os.environ.get("MODE", "add").strip().lower()
 
@@ -485,21 +108,12 @@ if mode == "add" and os.path.exists("data/screener.json"):
 results = dict(existing)
 now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-fiscal_available = bool(FISCAL_API_KEY)
-print(f"fiscal.ai: {'enabled' if fiscal_available else 'disabled (no FISCAL_API_KEY)'}")
-
 for ticker in tickers:
     print(f"Fetching {ticker}...")
     try:
-        # ── 1. fiscal.ai (primary source) ─────────────────────────────────────
-        fiscal_data = fetch_fiscal(ticker) if fiscal_available else {}
-        if fiscal_data:
-            print(f"  fiscal.ai: OK ({len(fiscal_data)} fields)")
-
-        # ── 2. yfinance (fills in what fiscal.ai doesn't cover) ───────────────
         t = yf.Ticker(ticker)
         info = t.info
-        name = fiscal_data.get("name") or info.get("longName") or info.get("shortName")
+        name = info.get("longName") or info.get("shortName")
         if not name:
             print(f"  SKIP: no data found for {ticker}")
             continue
@@ -517,10 +131,10 @@ for ticker in tickers:
 
         fcf = info.get("freeCashflow")
         bb = buyback_yield(t, mkt_cap)
+        sh = sr((div_yield or 0) + (bb or 0)) if (div_yield or bb) else None
         price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
 
-        # yfinance base entry
-        yf_entry = {
+        results[ticker] = {
             "name":             name,
             "sector":           info.get("sector") or "—",
             "flag":             COUNTRY_FLAG.get(info.get("country", ""), "🌍"),
@@ -529,64 +143,23 @@ for ticker in tickers:
             "curPrice":         sr(price, 2),
             "marketCap":        fmt_large(mkt_cap),
             "totalDebt":        fmt_large(info.get("totalDebt")),
-            "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
-            "priceToBook":      sr(info.get("priceToBook"), 1),
-            "priceToSales":     sr(info.get("priceToSalesTrailing12Months"), 1),
-            "beta":             sr(info.get("beta"), 2),
-            "evEbitda":         sr(info.get("enterpriseToEbitda"), 1),  # yf fallback; overridden by FMP
-            "week52Low":        sr(info.get("fiftyTwoWeekLow"), 2),
-            "week52High":       sr(info.get("fiftyTwoWeekHigh"), 2),
-            "targetPrice":      sr(info.get("targetMeanPrice"), 2),
-            "operatingMargin":  pct_dec(info.get("operatingMargins")),
             "grossMargin":      pct_dec(info.get("grossMargins")),
             "netMargin":        pct_dec(info.get("profitMargins")),
+            "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
             "roe":              pct_dec(info.get("returnOnEquity")),
-            "roa":              pct_dec(info.get("returnOnAssets") or None),
-            "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
-            "revenueGrowth":    rev_growth(t),
-            "debtToEquity":     sr(info.get("debtToEquity"), 2),
-            "currentRatio":     sr(info.get("currentRatio"), 2),
-            # Shares
-            "sharesOutstanding": fmt_large(info.get("sharesOutstanding") or info.get("impliedSharesOutstanding") or None),
-            # Per share
-            "eps":              sr(info.get("trailingEps"), 2),
-            "epsGrowth":        pct_dec(info.get("earningsGrowth")),
             "divYield":         div_yield,
             "buybackYield":     bb,
+            "shareholderYield": sh,
             "payoutRatio":      pct_dec(info.get("payoutRatio")),
+            "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "divCagr5y":        div_cagr_5y(t),
+            "revenueGrowth":    rev_growth(t),
+            "fetchedAt":        now_str,
         }
-
-        # ── 3. Merge: yfinance (base) → FMP (override) → fiscal.ai (override) ──
-        entry = {k: v for k, v in yf_entry.items() if v is not None}
-
-        fmp_data = fetch_fmp(ticker)
-        if fmp_data:
-            entry.update(fmp_data)
-            print(f"  FMP: {list(fmp_data.keys())}")
-
-        for k, v in fiscal_data.items():
-            if v is not None:
-                entry[k] = v
-
-        # Derived fields that depend on the merged data
-        div_y = entry.get("divYield") or 0
-        buy_y = entry.get("buybackYield") or 0
-        entry["shareholderYield"] = sr(div_y + buy_y) if (div_y or buy_y) else None
-        entry["fetchedAt"] = now_str
-
-        # Historical arrays + price history
-        if "revenueHistory" not in entry:
-            entry.update(get_history(t))
-        entry.update(get_price_history(t))
-
-        entry["summary"] = generate_summary(entry)
-        results[ticker] = entry
-        sources = "+".join(s for s, d in [("FMP", fmp_data), ("fiscal.ai", fiscal_data)] if d) or "yfinance"
-        print(f"  OK [yf+{sources}]: {name} @ {entry.get('curPrice')} {entry.get('currency', '')}")
+        print(f"  OK: {name} @ {price} {info.get('currency', '')}")
     except Exception as e:
         print(f"  ERROR: {e}")
-    time.sleep(0.5)
+    time.sleep(0.3)
 
 with open("data/screener.json", "w", encoding="utf-8") as f:
     json.dump(results, f, ensure_ascii=False)
