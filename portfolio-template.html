@@ -71,9 +71,8 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Botão voltar mobile */
   .mob-back{display:flex!important;}
-
-  /* Gráfico embutido no painel de detalhe mobile */
-  .mob-chart-in-detail{display:block!important;height:220px;}
+  /* Botão "Ver Indicadores" — só visível no mobile */
+  .mob-indicators-btn{display:block!important;}
 
   /* Tabela: logo | empresa | valor+% | retorno */
   .pos-grid{grid-template-columns:20px 1fr 76px 90px!important;}
@@ -1987,6 +1986,7 @@ function App() {
   const [tab, setTab]           = useState("portfolio");
   const [sel, setSel]           = useState(null);
   const [mobPanel, setMobPanel] = useState(null); // null | "overview"
+  const [mobDetail, setMobDetail] = useState(false); // mobile: detail panel open
   const [filter, setFilter]     = useState("all");
   const [sector, setSector]     = useState("all");
   const [sort, setSort]         = useState("ppl");
@@ -2060,7 +2060,13 @@ function App() {
   }, [filter, sector, sort]);
 
   const selPos = sel ? positions.find(p => p.ticker === sel) : null;
-  const panelOpen = !!(selPos || mobPanel === "overview");
+  // Desktop: auto-open detail panel when a stock is selected.
+  // Mobile: only opens when user explicitly taps "Ver Indicadores" (mobDetail) or opens overview.
+  useEffect(() => {
+    if (window.innerWidth > 768) setMobDetail(!!sel);
+  }, [sel]);
+
+  const panelOpen = !!(mobDetail || mobPanel === "overview");
 
   const pillStyle = (active) => ({
     padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"500",
@@ -2137,6 +2143,22 @@ function App() {
             <ChartPanel sel={sel} positions={positions}/>
           </div>
 
+          {/* "Ver Indicadores" button — mobile only, shown when a stock is selected */}
+          {sel && selPos && (
+            <div className="mob-indicators-btn" style={{display:"none",
+              padding:"8px 12px", borderBottom:"1px solid #2a3042",
+              background:"#1a1f2e", flexShrink:0}}>
+              <button onClick={() => setMobDetail(true)} style={{
+                width:"100%", padding:"9px", borderRadius:"6px",
+                background:"#2a3042", border:"1px solid #3a4060",
+                color:"#c8ccd4", fontSize:"12px", fontWeight:"600",
+                cursor:"pointer", letterSpacing:"0.3px",
+              }}>
+                Ver Indicadores — {selPos.name} →
+              </button>
+            </div>
+          )}
+
           {/* Horizontal divider — resize chart height */}
           <div className="divider-h" onMouseDown={onDividerHMouseDown} title="Arrastar para redimensionar"/>
 
@@ -2191,7 +2213,7 @@ function App() {
             {filtered.map(p => (
               <PositionRow key={p.ticker} p={p}
                 selected={sel===p.ticker}
-                onClick={() => { setSel(sel===p.ticker ? null : p.ticker); setMobPanel(null); }}/>
+                onClick={() => { const next = sel===p.ticker ? null : p.ticker; setSel(next); setMobPanel(null); if (!next) setMobDetail(false); }}/>
             ))}
           </div>
         </div>
@@ -2210,7 +2232,7 @@ function App() {
             padding:"0 16px", height:"48px",
             alignItems:"center", gap:"10px", flexShrink:0,
           }}>
-            <button className="cb" onClick={() => { setSel(null); setMobPanel(null); }} style={{
+            <button className="cb" onClick={() => { setSel(null); setMobPanel(null); setMobDetail(false); }} style={{
               fontSize:"12px", color:"#c8ccd4", background:"transparent",
               border:"none", padding:"8px 0", display:"flex", alignItems:"center", gap:"6px",
             }}>
@@ -2222,12 +2244,6 @@ function App() {
             </span>
           </div>
 
-          {selPos && (
-            <div className="mob-chart-in-detail" style={{display:"none",
-              borderBottom:"1px solid #2a3042", flexShrink:0}}>
-              <ChartPanel sel={sel} positions={positions}/>
-            </div>
-          )}
           {selPos
             ? <Detail p={selPos}/>
             : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); }}/>
