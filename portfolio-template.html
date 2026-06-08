@@ -73,6 +73,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   /* Tabela: 4 colunas no mobile */
   .pos-grid{grid-template-columns:20px 1fr 64px 74px!important;}
   .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
+  .row-spark{display:none!important;}
 
   /* Barra de filtros: 2 linhas — filtros em cima, ordenação em baixo */
   .filter-bar{flex-wrap:wrap!important;gap:6px 4px!important;padding:8px 12px!important;}
@@ -150,6 +151,9 @@ function fmtEur(v) {
   if (Math.abs(v) >= 1e3) return "€" + (v/1e3).toFixed(1) + "k";
   return "€" + v.toFixed(0);
 }
+// Totais globais do portfolio (usados em múltiplos componentes)
+const TOTAL_VAL_EUR  = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur), 0);
+const TOTAL_COST_EUR = positions.reduce((s,p) => s + toEur(p.qty * p.avgPrice, p.cur), 0);
 
 // ─── LOGO IMAGE ───────────────────────────────────────────────────────────────
 // Logos que o Parqet não tem pelo ticker simples — usar símbolo com sufixo de bolsa
@@ -539,6 +543,7 @@ function ChartPanel({ sel, positions }) {
 // ─── SUMMARY BAR ─────────────────────────────────────────────────────────────
 function Summary({ positions }) {
   const totalPpl = positions.reduce((s,p) => s + toEur(p.ppl, p.cur), 0);
+  const totalRet = TOTAL_COST_EUR > 0 ? (TOTAL_VAL_EUR - TOTAL_COST_EUR) / TOTAL_COST_EUR * 100 : 0;
   const gainers  = positions.filter(p => p.ppl > 0).length;
   const losers   = positions.filter(p => p.ppl < 0).length;
   const best     = [...positions].sort((a,b) => pctReturn(b)-pctReturn(a))[0];
@@ -556,21 +561,41 @@ function Summary({ positions }) {
   return (
     <div className="summary-bar" style={{display:"flex",alignItems:"stretch",background:"#131722",
       borderBottom:"1px solid #2a3042",height:"58px",overflowX:"auto",flexShrink:0}}>
-      <Stat label="POSIÇÕES"  value={positions.length}    sub="em carteira"   color="#9CA3AF"/>
-      <Stat label="P&L TOTAL" value={(totalPpl>=0?"+":"")+totalPpl.toFixed(0)+"€"} sub="aprox. multicurrency" color={totalPpl>=0?"#089981":"#ef5350"}/>
-      <Stat label="EM GANHO"  value={gainers}             sub={`${((gainers/positions.length)*100).toFixed(0)}% das posições`} color="#089981"/>
-      <Stat label="EM PERDA"  value={losers}              sub={`${((losers/positions.length)*100).toFixed(0)}% das posições`}  color="#ef5350"/>
-      <Stat label="MELHOR"    value={best.ticker}         sub={`+${pctReturn(best).toFixed(1)}%`} color="#089981"/>
-      <Stat label="PIOR"      value={worst.ticker}        sub={`${pctReturn(worst).toFixed(1)}%`} color="#ef5350" border="transparent"/>
+      <Stat label="POSIÇÕES"   value={positions.length}    sub="em carteira"   color="#9CA3AF"/>
+      <Stat label="P&L TOTAL"  value={(totalPpl>=0?"+":"")+totalPpl.toFixed(0)+"€"} sub={`${totalRet>=0?"+":""}${totalRet.toFixed(2)}% do capital`} color={totalPpl>=0?"#089981":"#ef5350"}/>
+      <Stat label="EM GANHO"   value={gainers}             sub={`${((gainers/positions.length)*100).toFixed(0)}% das posições`} color="#089981"/>
+      <Stat label="EM PERDA"   value={losers}              sub={`${((losers/positions.length)*100).toFixed(0)}% das posições`}  color="#ef5350"/>
+      <Stat label="MELHOR"     value={best.ticker}         sub={`+${pctReturn(best).toFixed(1)}%`} color="#089981"/>
+      <Stat label="PIOR"       value={worst.ticker}        sub={`${pctReturn(worst).toFixed(1)}%`} color="#ef5350" border="transparent"/>
     </div>
   );
 }
 
 // ─── POSITION ROW ─────────────────────────────────────────────────────────────
+function Sparkline({ ticker, color }) {
+  const raw = CHART_DATA.stocks?.[ticker]?.["3mo"] || {};
+  const vals = Object.values(raw).filter(v => v != null);
+  if (vals.length < 2) return null;
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const W = 52, H = 22;
+  const pts = vals.map((v, i) =>
+    `${((i / (vals.length - 1)) * W).toFixed(1)},${(H - ((v - mn) / range) * H).toFixed(1)}`
+  ).join(" ");
+  const isPos = vals[vals.length - 1] >= vals[0];
+  const c = isPos ? "#089981" : "#ef5350";
+  return (
+    <svg width={W} height={H} style={{display:"block",flexShrink:0}}>
+      <polyline points={pts} fill="none" stroke={c} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" opacity="0.8"/>
+    </svg>
+  );
+}
+
 function PositionRow({ p, selected, onClick }) {
-  const ret     = pctReturn(p);
-  const costEur = toEur(p.qty * p.avgPrice, p.cur);
-  const valEur  = toEur(p.qty * p.curPrice, p.cur);
+  const ret       = pctReturn(p);
+  const costEur   = toEur(p.qty * p.avgPrice, p.cur);
+  const valEur    = toEur(p.qty * p.curPrice, p.cur);
+  const weightPct = TOTAL_VAL_EUR > 0 ? (valEur / TOTAL_VAL_EUR * 100) : 0;
   return (
     <div className="pos-grid pos-row row cb" onClick={onClick}
       style={{padding:"5px 12px",
@@ -605,15 +630,23 @@ function PositionRow({ p, selected, onClick }) {
         <div style={{fontSize:"10px",fontWeight:"600",color:"#c8ccd4",fontVariantNumeric:"tabular-nums"}}>
           {fmtEur(valEur)}
         </div>
+        <div style={{fontSize:"8px",color:"#4c525e",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
+          {weightPct.toFixed(1)}%
+        </div>
       </div>
       {/* Retorno */}
-      <div style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#089981":"#ef5350",
-          fontVariantNumeric:"tabular-nums"}}>
-          {ret>=0?"+":""}{ret.toFixed(1)}%
+      <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:"5px"}}>
+        <div className="row-spark" style={{opacity:selected?1:0.6}}>
+          <Sparkline ticker={p.ticker}/>
         </div>
-        <div style={{fontSize:"8px",color:ret>=0?"#05614f":"#be3a38",fontVariantNumeric:"tabular-nums"}}>
-          {fmtEur(toEur(p.ppl, p.cur))}
+        <div>
+          <div style={{fontSize:"10px",fontWeight:"600",color:ret>=0?"#089981":"#ef5350",
+            fontVariantNumeric:"tabular-nums"}}>
+            {ret>=0?"+":""}{ret.toFixed(1)}%
+          </div>
+          <div style={{fontSize:"8px",color:ret>=0?"#05614f":"#be3a38",fontVariantNumeric:"tabular-nums"}}>
+            {fmtEur(toEur(p.ppl, p.cur))}
+          </div>
         </div>
       </div>
     </div>
@@ -631,6 +664,9 @@ function Detail({ p }) {
   const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
   const fmtStr = (v) => v == null ? "—" : String(v);
+  const weightPct = TOTAL_VAL_EUR > 0 ? toEur(p.qty * p.curPrice, p.cur) / TOTAL_VAL_EUR * 100 : 0;
+  const firstBuy  = p.buyDates && p.buyDates[0];
+  const daysSince = firstBuy ? Math.floor((Date.now() - new Date(firstBuy)) / 86400000) : null;
 
   const yieldCol  = v => v==null?"#4c525e":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
   const peCol     = v => v==null?"#4c525e":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
@@ -680,6 +716,9 @@ function Detail({ p }) {
         <Card label="Custo Total"   value={`${p.cur}${costBasis.toFixed(2)}`}   color="#787b86"/>
         <Card label="Quantidade"    value={p.qty.toFixed(4)}                    color="#5a6478"/>
         <Card label="Setor"         value={p.sector}                            color={col}/>
+        <Card label="% Portfolio"   value={`${weightPct.toFixed(2)}%`}          color={weightPct>20?"#F0883E":"#c8ccd4"}/>
+        <Card label="Dias Carteira" value={daysSince != null ? `${daysSince}d` : "—"} color="#5a6478"/>
+        {firstBuy && <Card label="1ª Compra" value={firstBuy} color="#4c525e"/>}
       </div>
 
       {/* Fundamentals */}
@@ -760,6 +799,24 @@ function PortfolioOverview({ positions, onSelect }) {
     .map(([s, v]) => ({ s, v, pct: (v / totalVal) * 100 }))
     .sort((a, b) => b.v - a.v);
 
+  // Country/exchange allocation (in EUR)
+  const countryMap = {};
+  positions.forEach(p => {
+    const v = toEur(p.qty * p.curPrice, p.cur);
+    const key = (p.flag || "🌍") + " " + (p.exchange || "—");
+    countryMap[key] = (countryMap[key] || 0) + v;
+  });
+  const countryList = Object.entries(countryMap)
+    .map(([k, v]) => ({ k, v, pct: (v / totalVal) * 100 }))
+    .sort((a, b) => b.v - a.v);
+
+  // Alertas de concentração
+  const posAlerts = positions
+    .map(p => ({ ticker: p.ticker, name: p.name, pct: toEur(p.qty * p.curPrice, p.cur) / totalVal * 100 }))
+    .filter(x => x.pct > 20)
+    .sort((a, b) => b.pct - a.pct);
+  const secAlerts = sectorList.filter(x => x.pct > 30);
+
   const MiniRow = ({ p, rank }) => {
     const ret = pctReturn(p);
     const col = ret >= 0 ? "#089981" : "#ef5350";
@@ -818,6 +875,31 @@ function PortfolioOverview({ positions, onSelect }) {
       <SectionLabel title="▼  Maiores Perdas"/>
       {bot3.map((p,i) => <MiniRow key={p.ticker} p={p} rank={i+1}/>)}
 
+      {/* Alertas de concentração */}
+      {(posAlerts.length > 0 || secAlerts.length > 0) && (
+        <>
+          <SectionLabel title="⚠ Concentração"/>
+          <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"4px"}}>
+            {posAlerts.map(x => (
+              <div key={x.ticker} style={{display:"flex",alignItems:"center",gap:"6px",
+                background:"#2a1f0e",border:"1px solid #4a3010",borderRadius:"4px",padding:"5px 8px"}}>
+                <span style={{fontSize:"9px",color:"#F0883E"}}>⚠</span>
+                <span style={{fontSize:"9px",color:"#c8a96e",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.name}</span>
+                <span style={{fontSize:"9px",color:"#F0883E",fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>{x.pct.toFixed(1)}%</span>
+              </div>
+            ))}
+            {secAlerts.map(x => (
+              <div key={x.s} style={{display:"flex",alignItems:"center",gap:"6px",
+                background:"#1e1a2a",border:"1px solid #3a3050",borderRadius:"4px",padding:"5px 8px"}}>
+                <span style={{fontSize:"9px",color:"#a78bfa"}}>⚠</span>
+                <span style={{fontSize:"9px",color:"#a78bfa",flex:1}}>{x.s}</span>
+                <span style={{fontSize:"9px",color:"#a78bfa",fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>{x.pct.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Sector allocation */}
       <SectionLabel title="Alocação por Sector"/>
       <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"5px"}}>
@@ -829,6 +911,23 @@ function PortfolioOverview({ positions, onSelect }) {
             </div>
             <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
               <div style={{height:"100%",borderRadius:"2px",background:SECTOR_COLORS[s]||"#5a6478",
+                width:`${pct}%`,transition:"width 0.3s"}}/>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Country/Exchange allocation */}
+      <SectionLabel title="Alocação por País / Bolsa"/>
+      <div style={{padding:"4px 8px",display:"flex",flexDirection:"column",gap:"5px"}}>
+        {countryList.map(({k, pct}) => (
+          <div key={k}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
+              <div style={{fontSize:"9px",color:"#787b86",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"70%"}}>{k}</div>
+              <div style={{fontSize:"9px",color:"#4c525e",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
+            </div>
+            <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
+              <div style={{height:"100%",borderRadius:"2px",background:"#5b8af5",
                 width:`${pct}%`,transition:"width 0.3s"}}/>
             </div>
           </div>
