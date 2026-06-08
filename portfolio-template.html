@@ -1172,6 +1172,177 @@ function FreshnessIndicator() {
   );
 }
 
+// ─── PDF REPORT GENERATOR (light theme) ──────────────────────────────────────
+
+function generateReportHTML(cards) {
+  const today = new Date().toLocaleDateString('pt-PT');
+
+  const fmtPct    = (v, d=2) => v == null ? '—' : `${v.toFixed(d)}%`;
+  const fmtNum    = (v, d=1) => v == null ? '—' : v.toFixed(d);
+  const fmtStr    = (v)      => v == null ? '—' : String(v);
+  const fmtGrowth = (v, d=1) => v == null ? '—' : `${v>0?'+':''}${v.toFixed(d)}%`;
+
+  // Light-theme color functions
+  const peCol    = v => v==null?'#9ca3af':v<0?'#b91c1c':v<15?'#065f46':v<25?'#374151':v<40?'#92400e':'#b91c1c';
+  const pbCol    = v => v==null?'#9ca3af':v<1?'#065f46':v<3?'#374151':v<10?'#92400e':'#b91c1c';
+  const betaCol  = v => v==null?'#9ca3af':v<0.8?'#1e40af':v<1.2?'#374151':v<1.5?'#92400e':'#b91c1c';
+  const deCol    = v => v==null?'#9ca3af':v<50?'#065f46':v<100?'#374151':v<200?'#92400e':'#b91c1c';
+  const crCol    = v => v==null?'#9ca3af':v>=2?'#065f46':v>=1?'#374151':'#b91c1c';
+  const marginCol= v => v==null?'#9ca3af':v>50?'#065f46':v>25?'#374151':'#92400e';
+  const fcfCol   = v => v==null?'#9ca3af':v>15?'#065f46':v>0?'#374151':'#b91c1c';
+  const roeCol   = v => v==null?'#9ca3af':v>20?'#065f46':v>10?'#374151':v>0?'#92400e':'#b91c1c';
+  const growthCol= v => v==null?'#9ca3af':v>15?'#065f46':v>5?'#374151':v>0?'#92400e':'#b91c1c';
+  const yieldCol = v => v==null?'#9ca3af':v>=5?'#065f46':v>=2?'#374151':'#9ca3af';
+  const cagrCol  = v => v==null?'#9ca3af':v>10?'#065f46':v>0?'#374151':'#b91c1c';
+  const payoutCol= v => v==null?'#9ca3af':v<50?'#065f46':v<80?'#92400e':'#b91c1c';
+  const epsGrCol = v => v==null?'#9ca3af':v>20?'#065f46':v>5?'#374151':v>0?'#92400e':'#b91c1c';
+
+  const sparkSVG = (values, color, w=72, h=24) => {
+    if (!values || values.length < 2) return '';
+    const mn = Math.min(...values), mx = Math.max(...values);
+    const range = mx - mn || 1;
+    const pad = 2;
+    const pts = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+      const y = (h - pad) - ((v - mn) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const lx = (pad + (w - pad * 2)).toFixed(1);
+    const ly = ((h - pad) - ((values[values.length-1] - mn) / range) * (h - pad * 2)).toFixed(1);
+    return `<svg width="${w}" height="${h}" style="display:block;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/></svg>`;
+  };
+
+  const metric = (label, value, color, sparkValues) => `
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px">
+      <div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px">${label}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:6px">
+        <div style="font-size:12px;font-weight:700;color:${color};font-variant-numeric:tabular-nums;line-height:1">${value}</div>
+        ${sparkValues ? sparkSVG(sparkValues, color) : ''}
+      </div>
+    </div>`;
+
+  const sectionTitle = title => `
+    <div style="font-size:8px;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin:13px 0 6px 1px;font-weight:600">${title}</div>`;
+
+  const weekRangeHTML = (data, sym) => {
+    if (!data.week52Low || !data.week52High || !data.curPrice) return '';
+    const pct = Math.max(0, Math.min(100, (data.curPrice - data.week52Low) / (data.week52High - data.week52Low) * 100));
+    return `
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:9px;color:#9ca3af">${sym}${data.week52Low.toFixed(2)}</span>
+        <span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px">52 semanas</span>
+        <span style="font-size:9px;color:#9ca3af">${sym}${data.week52High.toFixed(2)}</span>
+      </div>
+      <div style="position:relative;height:5px;border-radius:3px;background:#e2e8f0">
+        <div style="position:absolute;height:100%;border-radius:3px;background:linear-gradient(90deg,#ef5350 0%,#f97316 45%,#059669 100%);width:${pct}%"></div>
+        <div style="position:absolute;top:-4px;width:3px;height:13px;background:#374151;border-radius:2px;left:calc(${pct}% - 1.5px)"></div>
+      </div>
+      <div style="text-align:center;margin-top:4px;font-size:8px;color:#9ca3af">${pct.toFixed(0)}% do intervalo anual</div>
+    </div>`;
+  };
+
+  const cardHTML = ({ticker, data}) => {
+    const sym = {EUR:'€', GBP:'£', USD:'$'}[data.currency] || data.currency || '$';
+    return `
+  <div class="page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #e2e8f0;margin-bottom:14px">
+      <div>
+        <div style="font-size:9px;color:#6b7280;margin-bottom:4px">${data.flag} ${data.exchange} · <span style="color:#2962ff;font-weight:700">${ticker}</span></div>
+        <div style="font-size:22px;font-weight:800;color:#111827;line-height:1.1;margin-bottom:6px">${data.name}</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          ${data.curPrice != null ? `<span style="font-size:20px;font-weight:700;color:#111827">${sym}${data.curPrice.toFixed(2)}</span>` : ''}
+          <span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;font-weight:600">${data.sector}</span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;font-weight:700;color:#374151">Análise Fundamental</div>
+        <div style="font-size:9px;color:#9ca3af;margin-top:3px">Portfolio Tracker · Cláudio Trovisco</div>
+        <div style="font-size:9px;color:#9ca3af;margin-top:1px">${today}</div>
+      </div>
+    </div>
+
+    ${weekRangeHTML(data, sym)}
+
+    ${sectionTitle('Avaliação')}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+      ${metric('Market Cap',   fmtStr(data.marketCap),  '#374151')}
+      ${metric('Total Debt',   fmtStr(data.totalDebt),  data.totalDebt ? '#92400e' : '#9ca3af')}
+      ${metric('P/E Ratio',    fmtNum(data.pe),          peCol(data.pe))}
+      ${metric('Price/Book',   fmtNum(data.priceToBook), pbCol(data.priceToBook))}
+      ${metric('Beta',         fmtNum(data.beta, 2),     betaCol(data.beta))}
+      ${metric('Debt/Equity',  data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : '—', deCol(data.debtToEquity))}
+    </div>
+
+    ${sectionTitle('Rentabilidade')}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+      ${metric('Gross Margin',   fmtPct(data.grossMargin), marginCol(data.grossMargin), data.grossMarginHistory)}
+      ${metric('Net Margin',     fmtPct(data.netMargin),   marginCol(data.netMargin),   data.netMarginHistory)}
+      ${metric('ROE',            fmtPct(data.roe),         roeCol(data.roe))}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
+      ${metric('FCF Yield',    fmtPct(data.fcfYield),      fcfCol(data.fcfYield),    data.fcfHistory)}
+      ${metric('Rev. Growth',  fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
+      ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2),  crCol(data.currentRatio))}
+    </div>
+
+    ${sectionTitle('Por Ação')}
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">
+      ${metric('EPS',        data.eps != null ? `${sym}${data.eps.toFixed(2)}` : '—', '#374151')}
+      ${metric('EPS Growth', fmtGrowth(data.epsGrowth), epsGrCol(data.epsGrowth))}
+    </div>
+
+    ${sectionTitle('Retorno ao Acionista')}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      ${metric('Dividend Yield',    fmtPct(data.divYield),         yieldCol(data.divYield))}
+      ${metric('Buyback Yield',     fmtPct(data.buybackYield),     yieldCol(data.buybackYield))}
+      ${metric('Shareholder Yield', fmtPct(data.shareholderYield), yieldCol(data.shareholderYield))}
+      ${metric('Payout Ratio',      data.payoutRatio != null ? `${data.payoutRatio.toFixed(1)}%` : '—', payoutCol(data.payoutRatio))}
+    </div>
+
+    ${sectionTitle('Crescimento do Dividendo')}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px">Div CAGR 5 anos</div>
+      <div style="font-size:20px;font-weight:800;color:${cagrCol(data.divCagr5y)}">${data.divCagr5y != null ? fmtGrowth(data.divCagr5y, 1) : '—'}</div>
+    </div>
+
+    <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between">
+      <span style="font-size:8px;color:#d1d5db">ctrovisco-blip.github.io/portfolio-tracker</span>
+      ${data.fetchedAt ? `<span style="font-size:8px;color:#d1d5db">Dados: ${data.fetchedAt}</span>` : ''}
+    </div>
+  </div>`;
+  };
+
+  return `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<title>Análise Fundamental — ${cards.map(c => c.ticker).join(', ')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',-apple-system,sans-serif;background:white;color:#111827;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @page{size:A4;margin:12mm;}
+  .page{min-height:calc(297mm - 24mm);padding:0;page-break-after:always;}
+  .page:last-child{page-break-after:avoid;}
+</style>
+</head>
+<body>
+${cards.map(c => cardHTML(c)).join('\n')}
+<script>window.onload=function(){window.print();}<\/script>
+</body>
+</html>`;
+}
+
+function openPDF(cards) {
+  const html = generateReportHTML(cards);
+  const win = window.open('', '_blank');
+  if (!win) { alert('Permite pop-ups para exportar PDF.'); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
 // ─── SCREENER ─────────────────────────────────────────────────────────────────
 
 const GH_SCREENER_WORKFLOW = "screener.yml";
@@ -1469,16 +1640,27 @@ function ScreenerCard({ ticker, data, onRemove }) {
             </span>
           </div>
         </div>
-        {onRemove && (
-          <button className="no-print" onClick={() => onRemove(ticker)}
+        <div className="no-print" style={{display:"flex",gap:"3px",flexShrink:0}}>
+          <button onClick={() => openPDF([{ticker, data}])}
+            title="Exportar PDF"
             style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
-              cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,flexShrink:0,
+              cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
               borderRadius:"4px",transition:"all 0.12s"}}
-            onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
+            onMouseEnter={e=>{e.currentTarget.style.color="#5b8af5";e.currentTarget.style.borderColor="#5b8af544";}}
             onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-            ×
+            ⎙
           </button>
-        )}
+          {onRemove && (
+            <button onClick={() => onRemove(ticker)}
+              style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
+                cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,
+                borderRadius:"4px",transition:"all 0.12s"}}
+              onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 52-week range */}
@@ -1574,14 +1756,16 @@ function ScreenerView() {
         <ScreenerFetchBar/>
         <div style={{flex:1}}/>
         {visible.length > 0 && (
-          <button onClick={() => window.print()}
+          <button
+            onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t]})))}
+            title={`Exportar ${visible.length} ${visible.length===1?'stock':'stocks'} em PDF`}
             style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
               background:"#1e2438",border:"1px solid #5a6478",color:"#787b86",
               fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"5px",
               transition:"all 0.12s",flexShrink:0}}
             onMouseEnter={e=>{e.currentTarget.style.borderColor="#c8ccd4";e.currentTarget.style.color="#c8ccd4";}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor="#5a6478";e.currentTarget.style.color="#787b86";}}>
-            ⎙ Exportar PDF
+            ⎙ Exportar PDF {visible.length > 1 ? `(${visible.length})` : ""}
           </button>
         )}
       </div>
