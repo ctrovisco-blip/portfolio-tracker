@@ -1196,6 +1196,9 @@ function generateReportHTML(cards) {
   const cagrCol  = v => v==null?'#9ca3af':v>10?'#065f46':v>0?'#374151':'#b91c1c';
   const payoutCol= v => v==null?'#9ca3af':v<50?'#065f46':v<80?'#92400e':'#b91c1c';
   const epsGrCol = v => v==null?'#9ca3af':v>20?'#065f46':v>5?'#374151':v>0?'#92400e':'#b91c1c';
+  const psCol    = v => v==null?'#9ca3af':v<2?'#065f46':v<5?'#374151':v<10?'#92400e':'#b91c1c';
+  const opMarCol = v => v==null?'#9ca3af':v>30?'#065f46':v>15?'#374151':v>0?'#92400e':'#b91c1c';
+  const upsideCol= v => v==null?'#9ca3af':v>20?'#065f46':v>0?'#374151':v>-10?'#92400e':'#b91c1c';
 
   const sparkSVG = (values, color, w=72, h=24) => {
     if (!values || values.length < 2) return '';
@@ -1210,6 +1213,39 @@ function generateReportHTML(cards) {
     const lx = (pad + (w - pad * 2)).toFixed(1);
     const ly = ((h - pad) - ((values[values.length-1] - mn) / range) * (h - pad * 2)).toFixed(1);
     return `<svg width="${w}" height="${h}" style="display:block;flex-shrink:0"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/></svg>`;
+  };
+
+  const priceSVG = (prices, w=540, h=90) => {
+    if (!prices || prices.length < 2) return '';
+    const mn = Math.min(...prices), mx = Math.max(...prices);
+    const range = mx - mn || 1;
+    const pad = 4;
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const cc = isUp ? '#059669' : '#dc2626';
+    const pts = prices.map((v, i) => {
+      const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+      const y = (h - pad) - ((v - mn) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const lastPt = pts[pts.length - 1].split(',');
+    const baseY = (h - pad).toFixed(1);
+    const areaD = `M${pad},${baseY} L${pts.join(' L')} L${(w-pad).toFixed(1)},${baseY} Z`;
+    const pct = ((prices[prices.length-1] - prices[0]) / prices[0] * 100).toFixed(2);
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Gráfico de Preço</span>
+        <span style="font-size:11px;font-weight:700;color:${cc}">${pct>=0?'+':''}${pct}%</span>
+      </div>
+      <svg width="${w}" height="${h}" style="display:block;width:100%;border-radius:4px;background:#f8fafc;border:1px solid #e2e8f0">
+        <defs><linearGradient id="pgpdf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${cc}" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="${cc}" stop-opacity="0"/>
+        </linearGradient></defs>
+        <path d="${areaD}" fill="url(#pgpdf)"/>
+        <polyline points="${pts.join(' ')}" fill="none" stroke="${cc}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${cc}"/>
+      </svg>
+    </div>`;
   };
 
   const metric = (label, value, color, sparkValues) => `
@@ -1242,8 +1278,13 @@ function generateReportHTML(cards) {
     </div>`;
   };
 
-  const cardHTML = ({ticker, data}) => {
+  const cardHTML = ({ticker, data, chartPeriod = '6M'}) => {
     const sym = {EUR:'€', GBP:'£', USD:'$'}[data.currency] || data.currency || '$';
+    const periodPrices = ({ph1D:data.ph1D, ph6M:data.ph6M, ph5Y:data.ph5Y, phAll:data.phAll})[
+      {['1D']:'ph1D',['6M']:'ph6M',['5Y']:'ph5Y',['All']:'phAll'}[chartPeriod] || 'ph6M'
+    ] || data.ph6M || data.ph5Y || data.ph1D || data.phAll;
+    const targetUpside = (data.targetPrice && data.curPrice)
+      ? ((data.targetPrice / data.curPrice - 1) * 100) : null;
     return `
   <div class="page">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #e2e8f0;margin-bottom:14px">
@@ -1262,28 +1303,32 @@ function generateReportHTML(cards) {
       </div>
     </div>
 
+    ${priceSVG(periodPrices)}
     ${weekRangeHTML(data, sym)}
 
     ${sectionTitle('Avaliação')}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
       ${metric('Market Cap',   fmtStr(data.marketCap),  '#374151')}
-      ${metric('Total Debt',   fmtStr(data.totalDebt),  data.totalDebt ? '#92400e' : '#9ca3af')}
       ${metric('P/E Ratio',    fmtNum(data.pe),          peCol(data.pe))}
       ${metric('Price/Book',   fmtNum(data.priceToBook), pbCol(data.priceToBook))}
+      ${metric('Price/Sales',  fmtNum(data.priceToSales), psCol(data.priceToSales))}
       ${metric('Beta',         fmtNum(data.beta, 2),     betaCol(data.beta))}
       ${metric('Debt/Equity',  data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : '—', deCol(data.debtToEquity))}
+      ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2), crCol(data.currentRatio))}
+      ${metric('Total Debt',   fmtStr(data.totalDebt),  data.totalDebt ? '#92400e' : '#9ca3af')}
+      ${metric('Preço Alvo', data.targetPrice != null ? `${sym}${data.targetPrice.toFixed(2)}${targetUpside!=null?` (${targetUpside>0?'+':''}${targetUpside.toFixed(0)}%)`:''}` : '—', upsideCol(targetUpside))}
     </div>
 
     ${sectionTitle('Rentabilidade')}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-      ${metric('Gross Margin',   fmtPct(data.grossMargin), marginCol(data.grossMargin), data.grossMarginHistory)}
-      ${metric('Net Margin',     fmtPct(data.netMargin),   marginCol(data.netMargin),   data.netMarginHistory)}
-      ${metric('ROE',            fmtPct(data.roe),         roeCol(data.roe))}
+      ${metric('Gross Margin',  fmtPct(data.grossMargin),  marginCol(data.grossMargin), data.grossMarginHistory)}
+      ${metric('Op. Margin',    fmtPct(data.operatingMargin), opMarCol(data.operatingMargin))}
+      ${metric('Net Margin',    fmtPct(data.netMargin),    marginCol(data.netMargin),   data.netMarginHistory)}
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
-      ${metric('FCF Yield',    fmtPct(data.fcfYield),      fcfCol(data.fcfYield),    data.fcfHistory)}
-      ${metric('Rev. Growth',  fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
-      ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2),  crCol(data.currentRatio))}
+      ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
+      ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
+      ${metric('Rev. Growth',   fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
     </div>
 
     ${sectionTitle('Por Ação')}
@@ -1535,6 +1580,72 @@ function ScreenerCard({ ticker, data, onRemove }) {
   const roeCol     = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
   const growthCol  = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
   const epsGrCol   = v => v==null?"#6b7280":v>20?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const psCol      = v => v==null?"#6b7280":v<2?"#089981":v<5?"#c8ccd4":v<10?"#F0883E":"#ef5350";
+  const opMarCol   = v => v==null?"#6b7280":v>30?"#089981":v>15?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const upsideCol  = v => v==null?"#6b7280":v>20?"#089981":v>0?"#c8ccd4":v>-10?"#F0883E":"#ef5350";
+
+  const [chartPeriod, setChartPeriod] = useState("6M");
+
+  // Price chart component
+  const PriceChart = () => {
+    const periodMap = {"1D": data.ph1D, "6M": data.ph6M, "5Y": data.ph5Y, "All": data.phAll};
+    const prices = periodMap[chartPeriod] || [];
+    const available = Object.keys(periodMap).filter(k => periodMap[k] && periodMap[k].length >= 2);
+    if (prices.length < 2 && available.length === 0) return null;
+    const activePrices = prices.length >= 2 ? prices : (periodMap[available[0]] || []);
+    if (activePrices.length < 2) return null;
+    const mn = Math.min(...activePrices), mx = Math.max(...activePrices);
+    const range = mx - mn || 1;
+    const W = 300, H = 80, pad = 3;
+    const isUp = activePrices[activePrices.length - 1] >= activePrices[0];
+    const cc = isUp ? "#089981" : "#ef5350";
+    const pts = activePrices.map((v, i) => {
+      const x = pad + (i / (activePrices.length - 1)) * (W - pad * 2);
+      const y = (H - pad) - ((v - mn) / range) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const lastPt = pts[pts.length - 1].split(",");
+    const baseY = (H - pad).toFixed(1);
+    const areaD = `M${pad},${baseY} L${pts.join(" L")} L${(W-pad).toFixed(1)},${baseY} Z`;
+    const pricePct = ((activePrices[activePrices.length-1] - activePrices[0]) / activePrices[0] * 100);
+    const gradId = `pg_${ticker}`;
+    return (
+      <div style={{marginBottom:"8px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
+          <span style={{fontSize:"10px",color:cc,fontWeight:"700",fontVariantNumeric:"tabular-nums"}}>
+            {pricePct >= 0 ? "+" : ""}{pricePct.toFixed(2)}%
+          </span>
+          <div style={{display:"flex",gap:"2px"}}>
+            {["1D","6M","5Y","All"].filter(p => periodMap[p] && periodMap[p].length >= 2).map(p => (
+              <button key={p} onClick={() => setChartPeriod(p)}
+                style={{
+                  background: chartPeriod===p ? cc+"33" : "transparent",
+                  border: `1px solid ${chartPeriod===p ? cc+"66" : "#2a3042"}`,
+                  color: chartPeriod===p ? cc : "#5a6478",
+                  fontSize:"9px",padding:"1px 6px",borderRadius:"3px",cursor:"pointer",
+                  fontWeight: chartPeriod===p ? "700" : "400",
+                  transition:"all 0.12s",
+                }}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+        <svg width={W} height={H} style={{width:"100%",display:"block",borderRadius:"4px"}}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={cc} stopOpacity="0.25"/>
+              <stop offset="100%" stopColor={cc} stopOpacity="0.02"/>
+            </linearGradient>
+          </defs>
+          <path d={areaD} fill={`url(#${gradId})`}/>
+          <polyline points={pts.join(" ")} fill="none" stroke={cc}
+            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx={lastPt[0]} cy={lastPt[1]} r="2.5" fill={cc}/>
+        </svg>
+      </div>
+    );
+  };
 
   // Mini sparkline SVG for historical trends
   const MiniSparkline = ({ values, color: sc = "#5a6478" }) => {
@@ -1641,7 +1752,7 @@ function ScreenerCard({ ticker, data, onRemove }) {
           </div>
         </div>
         <div className="no-print" style={{display:"flex",gap:"3px",flexShrink:0}}>
-          <button onClick={() => openPDF([{ticker, data}])}
+          <button onClick={() => openPDF([{ticker, data, chartPeriod}])}
             title="Exportar PDF"
             style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
               cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
@@ -1663,32 +1774,43 @@ function ScreenerCard({ ticker, data, onRemove }) {
         </div>
       </div>
 
+      {/* Price chart */}
+      <PriceChart/>
+
       {/* 52-week range */}
       <WeekRange/>
 
       <Section title="Avaliação"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Market Cap"   value={fmtStr(data.marketCap)}   color="#c8ccd4"/>
-        <CardItem label="Total Debt"   value={fmtStr(data.totalDebt)}   color={data.totalDebt?"#F0883E":"#6b7280"}/>
-        <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}          color={peCol(data.pe)}/>
-        <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)} color={pbCol(data.priceToBook)}/>
-        <CardItem label="Beta"         value={fmtNum(data.beta, 2)}     color={betaCol(data.beta)}/>
+        <CardItem label="Market Cap"   value={fmtStr(data.marketCap)}    color="#c8ccd4"/>
+        <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}           color={peCol(data.pe)}/>
+        <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)}  color={pbCol(data.priceToBook)}/>
+        <CardItem label="Price/Sales"  value={fmtNum(data.priceToSales)} color={psCol(data.priceToSales)}/>
+        <CardItem label="Beta"         value={fmtNum(data.beta, 2)}      color={betaCol(data.beta)}/>
         <CardItem label="Debt/Equity"  value={data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : "—"} color={deCol(data.debtToEquity)}/>
+        <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
+        <CardItem label="Total Debt"   value={fmtStr(data.totalDebt)}    color={data.totalDebt?"#F0883E":"#6b7280"}/>
+        {(() => {
+          const upside = (data.targetPrice && data.curPrice) ? ((data.targetPrice / data.curPrice - 1) * 100) : null;
+          const label = data.targetPrice != null
+            ? `${currencySymbol}${data.targetPrice.toFixed(2)}${upside!=null?` (${upside>0?"+":""}${upside.toFixed(0)}%)`:""}`
+            : "—";
+          return <CardItem label="Preço Alvo" value={label} color={upsideCol(upside)}/>;
+        })()}
       </div>
 
       <Section title="Rentabilidade"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Gross Margin"    value={fmtPct(data.grossMargin)}   color={marginCol(data.grossMargin)} history={data.grossMarginHistory}/>
-        <CardItem label="Net Margin"      value={fmtPct(data.netMargin)}     color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
-        <CardItem label="ROE"             value={fmtPct(data.roe)}           color={roeCol(data.roe)}/>
+        <CardItem label="Gross Margin"  value={fmtPct(data.grossMargin)}       color={marginCol(data.grossMargin)} history={data.grossMarginHistory}/>
+        <CardItem label="Op. Margin"    value={fmtPct(data.operatingMargin)}   color={opMarCol(data.operatingMargin)}/>
+        <CardItem label="Net Margin"    value={fmtPct(data.netMargin)}         color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
-        <CardItem label="FCF Yield"
-          value={fmtPct(data.fcfYield)} color={fcfCol(data.fcfYield)} history={data.fcfHistory?.map(v => v)}/>
+        <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
+        <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
         <CardItem label="Rev. Growth"
           value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
           color={growthCol(data.revenueGrowth)} history={data.revenueHistory}/>
-        <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
       </div>
 
       <Section title="Por Ação"/>
@@ -1757,7 +1879,7 @@ function ScreenerView() {
         <div style={{flex:1}}/>
         {visible.length > 0 && (
           <button
-            onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t]})))}
+            onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t], chartPeriod: "6M"})))}
             title={`Exportar ${visible.length} ${visible.length===1?'stock':'stocks'} em PDF`}
             style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
               background:"#1e2438",border:"1px solid #5a6478",color:"#787b86",
