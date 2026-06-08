@@ -72,6 +72,9 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   /* Botão voltar mobile */
   .mob-back{display:flex!important;}
 
+  /* Gráfico embutido no painel de detalhe mobile */
+  .mob-chart-in-detail{display:block!important;height:220px;}
+
   /* Tabela: logo | empresa | valor+% | retorno */
   .pos-grid{grid-template-columns:20px 1fr 76px 90px!important;}
   .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
@@ -2219,6 +2222,12 @@ function App() {
             </span>
           </div>
 
+          {selPos && (
+            <div className="mob-chart-in-detail" style={{display:"none",
+              borderBottom:"1px solid #2a3042", flexShrink:0}}>
+              <ChartPanel sel={sel} positions={positions}/>
+            </div>
+          )}
           {selPos
             ? <Detail p={selPos}/>
             : <PortfolioOverview positions={positions} onSelect={(t) => { setSel(t); setMobPanel(null); }}/>
