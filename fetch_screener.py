@@ -88,6 +88,83 @@ def rev_growth(t):
     except: return None
 
 
+def safe_float(df, row, col):
+    try:
+        v = float(df.loc[row, col])
+        return None if str(v) == "nan" else v
+    except: return None
+
+
+def find_row(df, *keywords):
+    """Find first row whose name contains ALL given keywords (case-insensitive)."""
+    for r in df.index:
+        rs = str(r).lower()
+        if all(kw.lower() in rs for kw in keywords):
+            return r
+    return None
+
+
+def get_history(t):
+    """Extract up to 5 years of annual history for key metrics. Returns oldest-first arrays."""
+    out = {}
+    try:
+        fin = t.financials   # columns = Timestamps, newest first
+        cf  = t.cashflow
+
+        if fin is not None and not fin.empty:
+            cols = list(fin.columns)[:5]
+
+            rev_row = find_row(fin, "total", "revenue") or find_row(fin, "revenue")
+            ni_row  = find_row(fin, "net income")
+            gp_row  = find_row(fin, "gross profit")
+
+            if rev_row:
+                vals = [safe_float(fin, rev_row, c) for c in cols]
+                vals = [round(v / 1e9, 2) for v in vals if v is not None]
+                if len(vals) >= 2:
+                    out["revenueHistory"] = vals[::-1]
+
+            if ni_row and rev_row:
+                margins = []
+                for c in cols:
+                    ni = safe_float(fin, ni_row, c)
+                    rv = safe_float(fin, rev_row, c)
+                    if ni is not None and rv and rv > 0:
+                        margins.append(round(ni / rv * 100, 1))
+                if len(margins) >= 2:
+                    out["netMarginHistory"] = margins[::-1]
+
+            if gp_row and rev_row:
+                margins = []
+                for c in cols:
+                    gp = safe_float(fin, gp_row, c)
+                    rv = safe_float(fin, rev_row, c)
+                    if gp is not None and rv and rv > 0:
+                        margins.append(round(gp / rv * 100, 1))
+                if len(margins) >= 2:
+                    out["grossMarginHistory"] = margins[::-1]
+
+        if cf is not None and not cf.empty:
+            cf_cols = list(cf.columns)[:5]
+            opcf_row  = find_row(cf, "operating", "cash") or find_row(cf, "operating activities")
+            capex_row = find_row(cf, "capital", "expenditure") or find_row(cf, "capital expenditures")
+
+            if opcf_row and capex_row:
+                fcfs = []
+                for c in cf_cols:
+                    opcf  = safe_float(cf, opcf_row, c)
+                    capex = safe_float(cf, capex_row, c)
+                    if opcf is not None and capex is not None:
+                        fcfs.append(round((opcf + capex) / 1e9, 2))
+                if len(fcfs) >= 2:
+                    out["fcfHistory"] = fcfs[::-1]
+
+    except Exception as e:
+        print(f"  History error: {e}")
+
+    return out
+
+
 tickers_env = os.environ.get("TICKERS", "").strip()
 mode = os.environ.get("MODE", "add").strip().lower()
 
@@ -134,28 +211,47 @@ for ticker in tickers:
         sh = sr((div_yield or 0) + (bb or 0)) if (div_yield or bb) else None
         price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
 
-        results[ticker] = {
+        entry = {
+            # Identity
             "name":             name,
             "sector":           info.get("sector") or "—",
             "flag":             COUNTRY_FLAG.get(info.get("country", ""), "🌍"),
             "exchange":         info.get("exchange") or "—",
             "currency":         info.get("currency") or "USD",
             "curPrice":         sr(price, 2),
+            # Valuation
             "marketCap":        fmt_large(mkt_cap),
             "totalDebt":        fmt_large(info.get("totalDebt")),
+            "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
+            "priceToBook":      sr(info.get("priceToBook"), 1),
+            "beta":             sr(info.get("beta"), 2),
+            "week52Low":        sr(info.get("fiftyTwoWeekLow"), 2),
+            "week52High":       sr(info.get("fiftyTwoWeekHigh"), 2),
+            # Profitability
             "grossMargin":      pct_dec(info.get("grossMargins")),
             "netMargin":        pct_dec(info.get("profitMargins")),
-            "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
             "roe":              pct_dec(info.get("returnOnEquity")),
+            "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
+            "revenueGrowth":    rev_growth(t),
+            # Financial structure
+            "debtToEquity":     sr(info.get("debtToEquity"), 2),
+            "currentRatio":     sr(info.get("currentRatio"), 2),
+            # Per share
+            "eps":              sr(info.get("trailingEps"), 2),
+            "epsGrowth":        pct_dec(info.get("earningsGrowth")),
+            # Shareholder returns
             "divYield":         div_yield,
             "buybackYield":     bb,
             "shareholderYield": sh,
             "payoutRatio":      pct_dec(info.get("payoutRatio")),
-            "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "divCagr5y":        div_cagr_5y(t),
-            "revenueGrowth":    rev_growth(t),
             "fetchedAt":        now_str,
         }
+
+        # Historical arrays (oldest first)
+        entry.update(get_history(t))
+
+        results[ticker] = entry
         print(f"  OK: {name} @ {price} {info.get('currency', '')}")
     except Exception as e:
         print(f"  ERROR: {e}")
