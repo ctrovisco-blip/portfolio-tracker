@@ -15,7 +15,7 @@ body{background:#131722;font-family:'Inter',sans-serif;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:#1a1f2e;}
 ::-webkit-scrollbar-thumb{background:#1F2937;border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:#4c525e;}
+::-webkit-scrollbar-thumb:hover{background:#6b7280;}
 .cb{cursor:pointer;transition:background 0.12s, color 0.12s, opacity 0.12s;}
 .row:hover{background:#1e2438!important;}
 .pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
@@ -196,7 +196,7 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
   const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
 
   if (!entries.length) return (
-    <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#4c525e",fontSize:"11px"}}>
+    <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#6b7280",fontSize:"11px"}}>
       Sem dados históricos disponíveis
     </div>
   );
@@ -349,13 +349,13 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
         {/* Y labels */}
         {yTicks.map((t,i) => (
           <text key={i} x={PAD.left-6} y={t.y+3} textAnchor="end"
-            fill="#4c525e" fontSize="7.5">{t.label}</text>
+            fill="#6b7280" fontSize="7.5">{t.label}</text>
         ))}
 
         {/* X labels */}
         {xLabels.map((l,i) => (
           <text key={i} x={l.x} y={H-5} textAnchor="middle"
-            fill="#4c525e" fontSize="7.5">{l.label}</text>
+            fill="#6b7280" fontSize="7.5">{l.label}</text>
         ))}
 
         {/* Last value dot + label (anchored to left of dot) */}
@@ -393,7 +393,7 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
         {/* Hover crosshair */}
         {hov !== null && (<>
           <line x1={xS(hov)} y1={PAD.top} x2={xS(hov)} y2={PAD.top+cH}
-            stroke="#4c525e" strokeWidth="1" strokeDasharray="3,3"/>
+            stroke="#6b7280" strokeWidth="1" strokeDasharray="3,3"/>
           <circle cx={xS(hov)} cy={yS(values[hov])} r="4"
             fill={lineCol} stroke="#131722" strokeWidth="1.5"/>
         </>)}
@@ -412,7 +412,7 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
             ...(toLeft ? {right: `${svgW - xPx + 12}px`} : {left:`${xPx + 12}px`}),
             background:"#1a1f2e",border:`1px solid ${lineCol}50`,borderRadius:"7px",
             padding:"6px 12px",pointerEvents:"none",zIndex:10,minWidth:"90px"}}>
-            <div style={{color:"#4c525e",fontSize:"8px",marginBottom:"3px",letterSpacing:"0.3px"}}>{dFmt}</div>
+            <div style={{color:"#6b7280",fontSize:"8px",marginBottom:"3px",letterSpacing:"0.3px"}}>{dFmt}</div>
             <div style={{color:lineCol,fontWeight:"700",fontSize:"13px"}}>
               {v>=0?"+":""}{v.toFixed(2)}%
             </div>
@@ -461,7 +461,7 @@ function ChartPanel({ sel, positions }) {
     padding:"2px 7px", borderRadius:"4px", fontSize:"9px", fontWeight:"600",
     border:`1px solid ${active ? (color||"#c8ccd4") : "#2a3042"}`,
     background: active ? (color ? color+"22" : "#1e2438") : "transparent",
-    color: active ? (color||"#c8ccd4") : "#4c525e",
+    color: active ? (color||"#c8ccd4") : "#6b7280",
     cursor:"pointer", transition:"all 0.12s", letterSpacing:"0.3px",
   });
 
@@ -488,7 +488,7 @@ function ChartPanel({ sel, positions }) {
               overflow:"hidden",textOverflow:"ellipsis"}}>
               {isTotal ? "Portfolio Total" : pos?.name}
             </div>
-            <div style={{fontSize:"8px",color:"#4c525e",marginTop:"1px"}}>
+            <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px"}}>
               {isTotal ? `Retorno ponderado · ${RANGE_SUBTITLES[range]}` : `${RANGE_SUBTITLES[range]} · ${pos?.exchange}`}
             </div>
           </div>
@@ -552,9 +552,9 @@ function Summary({ positions }) {
   const Stat = ({label, value, sub, color, border}) => (
     <div style={{display:"flex",flexDirection:"column",justifyContent:"center",
       padding:"0 18px",borderRight:`1px solid ${border||"#2a3042"}`,minWidth:0,flexShrink:0}}>
-      <div style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.8px",marginBottom:"2px",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.8px",marginBottom:"2px",whiteSpace:"nowrap"}}>{label}</div>
       <div style={{fontSize:"15px",fontWeight:"700",color:color||"#d1d4dc",whiteSpace:"nowrap",lineHeight:1.1}}>{value}</div>
-      {sub && <div style={{fontSize:"10px",color:"#4c525e",marginTop:"2px",whiteSpace:"nowrap"}}>{sub}</div>}
+      {sub && <div style={{fontSize:"10px",color:"#6b7280",marginTop:"2px",whiteSpace:"nowrap"}}>{sub}</div>}
     </div>
   );
 
@@ -608,14 +608,14 @@ function PositionRow({ p, selected, onClick }) {
       <div style={{minWidth:0}}>
         <div style={{fontSize:"10px",fontWeight:"600",color:selected?"#d1d4dc":"#c8ccd4",
           whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-        <div style={{fontSize:"8px",color:"#4c525e",marginTop:"1px"}}>{p.ticker}</div>
+        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px"}}>{p.ticker}</div>
       </div>
       {/* Preço actual */}
       <div className="col-price" style={{textAlign:"right"}}>
         <div style={{fontSize:"10px",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
           {p.cur}{p.curPrice >= 100 ? p.curPrice.toFixed(0) : p.curPrice.toFixed(2)}
         </div>
-        <div style={{fontSize:"8px",color:"#4c525e",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
+        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
           avg {p.cur}{p.avgPrice >= 100 ? p.avgPrice.toFixed(0) : p.avgPrice.toFixed(2)}
         </div>
       </div>
@@ -630,7 +630,7 @@ function PositionRow({ p, selected, onClick }) {
         <div style={{fontSize:"10px",fontWeight:"600",color:"#c8ccd4",fontVariantNumeric:"tabular-nums"}}>
           {fmtEur(valEur)}
         </div>
-        <div style={{fontSize:"8px",color:"#4c525e",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
+        <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
           {weightPct.toFixed(1)}%
         </div>
       </div>
@@ -668,31 +668,31 @@ function Detail({ p }) {
   const firstBuy  = p.buyDates && p.buyDates[0];
   const daysSince = firstBuy ? Math.floor((Date.now() - new Date(firstBuy)) / 86400000) : null;
 
-  const yieldCol  = v => v==null?"#4c525e":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
-  const peCol     = v => v==null?"#4c525e":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
-  const cagrCol   = v => v==null?"#4c525e":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const payoutCol = v => v==null?"#4c525e":v<50?"#089981":v<80?"#F0883E":"#ef5350";
-  const marginCol = v => v==null?"#4c525e":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
-  const fcfCol    = v => v==null?"#4c525e":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
-  const roeCol    = v => v==null?"#4c525e":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
-  const growthCol = v => v==null?"#4c525e":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const yieldCol  = v => v==null?"#6b7280":v>=5?"#089981":v>=2?"#c8ccd4":"#5a6478";
+  const peCol     = v => v==null?"#6b7280":v<0?"#ef5350":v<15?"#089981":v<25?"#c8ccd4":v<40?"#F0883E":"#ef5350";
+  const cagrCol   = v => v==null?"#6b7280":v>10?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const payoutCol = v => v==null?"#6b7280":v<50?"#089981":v<80?"#F0883E":"#ef5350";
+  const marginCol = v => v==null?"#6b7280":v>50?"#089981":v>25?"#c8ccd4":"#F0883E";
+  const fcfCol    = v => v==null?"#6b7280":v>15?"#089981":v>0?"#c8ccd4":"#ef5350";
+  const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
+  const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
 
   const Card = ({label, value, color}) => (
     <div style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
-      <div style={{fontSize:"7px",color:"#4c525e",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
       <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
     </div>
   );
 
   const Section = ({title}) => (
-    <div style={{fontSize:"7px",color:"#353d52",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
+    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
   );
 
   return (
     <div style={{padding:"12px"}}>
       {/* Header */}
       <div style={{borderLeft:"3px solid #2962ff",paddingLeft:"10px",marginBottom:"12px"}}>
-        <div style={{fontSize:"8px",color:"#787b86",marginBottom:"3px",letterSpacing:"0.3px"}}>
+        <div style={{fontSize:"9px",color:"#787b86",marginBottom:"3px",letterSpacing:"0.3px"}}>
           {p.exchange} · <span style={{color:"#2962ff"}}>{p.ticker}</span>
         </div>
         <div style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb"}}>{p.name}</div>
@@ -718,7 +718,7 @@ function Detail({ p }) {
         <Card label="Setor"         value={p.sector}                            color={col}/>
         <Card label="% Portfolio"   value={`${weightPct.toFixed(2)}%`}          color={weightPct>20?"#F0883E":"#c8ccd4"}/>
         <Card label="Dias Carteira" value={daysSince != null ? `${daysSince}d` : "—"} color="#5a6478"/>
-        {firstBuy && <Card label="1ª Compra" value={firstBuy} color="#4c525e"/>}
+        {firstBuy && <Card label="1ª Compra" value={firstBuy} color="#6b7280"/>}
       </div>
 
       {/* Fundamentals */}
@@ -726,7 +726,7 @@ function Detail({ p }) {
         <Section title="Avaliação"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
           <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"/>
-          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#4c525e"}/>
+          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"}/>
           <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
         </div>
 
@@ -752,14 +752,14 @@ function Detail({ p }) {
         <Section title="Crescimento do Dividendo"/>
         <div style={{background:"#1a1f2e",borderRadius:"5px",padding:"9px 11px",border:"1px solid #1e2438",
           display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:"7px",color:"#4c525e",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
+          <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase"}}>Div CAGR 5 anos</div>
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
             <div style={{fontSize:"15px",color:cagrCol(f.divCagr5y),fontWeight:"700",fontFamily:"'Inter',sans-serif",minWidth:"52px",textAlign:"right"}}>
               {f.divCagr5y != null ? `${f.divCagr5y>0?"+":""}${f.divCagr5y.toFixed(1)}%` : "—"}
             </div>
             {f.divCagr5y != null && (
               <div style={{position:"relative",width:"50px",height:"4px",borderRadius:"2px",background:"#1e2438",flexShrink:0}}>
-                <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#353d52"}}/>
+                <div style={{position:"absolute",left:"50%",top:"-2px",width:"1px",height:"8px",background:"#5a6478"}}/>
                 <div style={{
                   position:"absolute",height:"100%",borderRadius:"2px",
                   background:cagrCol(f.divCagr5y),
@@ -772,7 +772,7 @@ function Detail({ p }) {
         </div>
       </>) : (
         <div style={{marginTop:"16px",padding:"16px",background:"#1a1f2e",borderRadius:"5px",
-          border:"1px solid #1e2438",textAlign:"center",color:"#4c525e",fontSize:"9px"}}>
+          border:"1px solid #1e2438",textAlign:"center",color:"#6b7280",fontSize:"9px"}}>
           Dados fundamentais não disponíveis
         </div>
       )}
@@ -826,10 +826,10 @@ function PortfolioOverview({ positions, onSelect }) {
           borderRadius:"4px",cursor:"pointer",transition:"background 0.1s"}}
         onMouseEnter={e=>e.currentTarget.style.background="#1a1f2e"}
         onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-        <div style={{fontSize:"9px",color:"#353d52",width:"14px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{rank}</div>
+        <div style={{fontSize:"9px",color:"#5a6478",width:"14px",textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{rank}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:"10px",fontWeight:"600",color:"#c8ccd4",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-          <div style={{fontSize:"8px",color:"#4c525e"}}>{p.ticker}</div>
+          <div style={{fontSize:"9px",color:"#6b7280"}}>{p.ticker}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div style={{fontSize:"11px",fontWeight:"700",color:col,fontVariantNumeric:"tabular-nums"}}>
@@ -844,7 +844,7 @@ function PortfolioOverview({ positions, onSelect }) {
   };
 
   const SectionLabel = ({title}) => (
-    <div style={{fontSize:"7px",color:"#353d52",letterSpacing:"1.5px",textTransform:"uppercase",
+    <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",textTransform:"uppercase",
       padding:"8px 8px 4px",borderTop:"1px solid #1a1f2e",marginTop:"2px"}}>{title}</div>
   );
 
@@ -852,7 +852,7 @@ function PortfolioOverview({ positions, onSelect }) {
     <div style={{padding:"10px 4px 16px"}}>
       {/* Header */}
       <div style={{padding:"2px 8px 10px",borderBottom:"1px solid #1a1f2e"}}>
-        <div style={{fontSize:"7px",color:"#353d52",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Visão Geral</div>
+        <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"6px"}}>Visão Geral</div>
         <div style={{display:"flex",gap:"6px"}}>
           {[
             { l:"Total investido", v: fmtEur(totalCost),                                    c:"#c8ccd4" },
@@ -860,7 +860,7 @@ function PortfolioOverview({ positions, onSelect }) {
             { l:"P&L total",       v: (totalPnl>=0?"+":"")+fmtEur(totalPnl).replace("€","")+"€", c: totalPnl>=0?"#089981":"#ef5350" },
           ].map(({l,v,c}) => (
             <div key={l} style={{flex:1,background:"#1a1f2e",borderRadius:"5px",padding:"6px 8px",border:"1px solid #1e2438"}}>
-              <div style={{fontSize:"7px",color:"#4c525e",marginBottom:"3px",letterSpacing:"0.3px"}}>{l}</div>
+              <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"3px",letterSpacing:"0.3px"}}>{l}</div>
               <div style={{fontSize:"11px",fontWeight:"700",color:c,fontFamily:"'Inter',sans-serif"}}>{v}</div>
             </div>
           ))}
@@ -907,7 +907,7 @@ function PortfolioOverview({ positions, onSelect }) {
           <div key={s}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
               <div style={{fontSize:"9px",color:"#787b86",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"65%"}}>{s}</div>
-              <div style={{fontSize:"9px",color:"#4c525e",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
+              <div style={{fontSize:"9px",color:"#6b7280",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
             </div>
             <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
               <div style={{height:"100%",borderRadius:"2px",background:SECTOR_COLORS[s]||"#5a6478",
@@ -924,7 +924,7 @@ function PortfolioOverview({ positions, onSelect }) {
           <div key={k}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"2px"}}>
               <div style={{fontSize:"9px",color:"#787b86",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"70%"}}>{k}</div>
-              <div style={{fontSize:"9px",color:"#4c525e",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
+              <div style={{fontSize:"9px",color:"#6b7280",fontVariantNumeric:"tabular-nums"}}>{pct.toFixed(1)}%</div>
             </div>
             <div style={{height:"3px",borderRadius:"2px",background:"#1e2438"}}>
               <div style={{height:"100%",borderRadius:"2px",background:"#5b8af5",
@@ -1008,7 +1008,7 @@ function DeployButton() {
 
   const btnColor = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#787b86";
   const btnBg    = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : "#1e2438";
-  const btnBorder= status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#353d52";
+  const btnBorder= status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#5a6478";
   const btnLabel = status==="running" ? "⏳" : status==="ok" ? "✓ A correr" : status==="err" ? "✗ Erro" : "↻ Deploy";
 
   return (
@@ -1023,7 +1023,7 @@ function DeployButton() {
         </button>
         {token && status==="idle" && (
           <button className="cb" onClick={handleClear} title="Remover token"
-            style={{fontSize:"9px",color:"#4c525e",background:"#1a1f2e",
+            style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
               border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
               padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
             ×
@@ -1039,7 +1039,7 @@ function DeployButton() {
           <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
             GitHub Personal Access Token
           </div>
-          <div style={{fontSize:"8px",color:"#4c525e",marginBottom:"10px",lineHeight:1.6}}>
+          <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"10px",lineHeight:1.6}}>
             Precisa do scope <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.{" "}
             <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Deploy"
               target="_blank" rel="noopener"
@@ -1053,13 +1053,13 @@ function DeployButton() {
               outline:"none",marginBottom:"8px"}}/>
           <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
             <button className="cb" onClick={()=>setStatus("idle")}
-              style={{fontSize:"9px",color:"#4c525e",background:"transparent",border:"1px solid #2a3042",
+              style={{fontSize:"9px",color:"#6b7280",background:"transparent",border:"1px solid #2a3042",
                 borderRadius:"5px",padding:"4px 10px"}}>Cancelar</button>
             <button className="cb" onClick={handleSave}
               style={{fontSize:"9px",color:"#e0e3eb",background:"#2962ff",border:"1px solid #2962ff",
                 borderRadius:"5px",padding:"4px 12px",fontWeight:"600"}}>Guardar & Correr</button>
           </div>
-          <div style={{fontSize:"7px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
+          <div style={{fontSize:"9px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
             O token fica guardado apenas neste browser (localStorage). Nunca é enviado para servidores externos.
           </div>
         </div>
@@ -1124,7 +1124,7 @@ function FreshnessIndicator() {
           animation: dot==="#22C55E" ? "ping 2s cubic-bezier(0,0,0.2,1) infinite" : "none"}}/>
         <div style={{position:"absolute",inset:"1px",borderRadius:"50%",background:dot}}/>
       </div>
-      <span style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
+      <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
         Dados: {label} atrás
       </span>
       {/* Tooltip */}
@@ -1144,8 +1144,8 @@ function FreshnessIndicator() {
             </div>
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
-            fontSize:"8px",color:"#4c525e",letterSpacing:"0.3px"}}>
-            Build: 2026-06-08 13:38 UTC
+            fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
+            Build: 2026-06-08 13:44 UTC
           </div>
         </div>
       )}
@@ -1235,9 +1235,9 @@ function App() {
 
   const pillStyle = (active) => ({
     padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"500",
-    border: active ? "1px solid #353d52" : "1px solid transparent",
+    border: active ? "1px solid #5a6478" : "1px solid transparent",
     background: active ? "#1e2438" : "transparent",
-    color: active ? "#c8ccd4" : "#4c525e",
+    color: active ? "#c8ccd4" : "#6b7280",
     cursor:"pointer",transition:"all 0.12s",whiteSpace:"nowrap",
   });
 
@@ -1251,9 +1251,9 @@ function App() {
         <span style={{fontSize:"14px",fontWeight:"700",color:"#e0e3eb"}}>Portfolio Tracker</span>
         <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#2a3042"}}/>
         <span className="hdr-name" style={{fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:"700",
-          color:"#4c525e",letterSpacing:"-0.2px"}}>Cláudio Trovisco</span>
+          color:"#6b7280",letterSpacing:"-0.2px"}}>Cláudio Trovisco</span>
         <div className="hdr-sep" style={{width:"1px",height:"16px",background:"#2a3042"}}/>
-        <span className="hdr-live" style={{fontSize:"8px",color:"#4c525e",letterSpacing:"1.5px"}}>
+        <span className="hdr-live" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"1.5px"}}>
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
@@ -1262,14 +1262,14 @@ function App() {
         {/* Botão "Visão Geral" — só visível no mobile via CSS */}
         <button className="mob-overview-btn cb" style={{display:"none",
           fontSize:"9px",color:"#787b86",background:"#1e2438",
-          border:"1px solid #353d52",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}
+          border:"1px solid #5a6478",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}
           onClick={() => { setSel(null); setMobPanel("overview"); }}>
           ≡ Overview
         </button>
         {sel && (
           <button className="hdr-back cb" onClick={()=>setSel(null)}
             style={{fontSize:"9px",color:"#787b86",background:"#1e2438",
-              border:"1px solid #353d52",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
+              border:"1px solid #5a6478",borderRadius:"5px",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>
             ← Portfolio
           </button>
         )}
@@ -1308,18 +1308,18 @@ function App() {
             <div style={{position:"relative",display:"flex",alignItems:"center"}}>
               <select value={sector} onChange={e=>setSector(e.target.value)}
                 style={{background:"#1a1f2e",border:"1px solid #2a3042",borderRadius:"20px",
-                  color:sector!=="all"?"#c8ccd4":"#4c525e",fontSize:"10px",fontWeight:"500",
+                  color:sector!=="all"?"#c8ccd4":"#6b7280",fontSize:"10px",fontWeight:"500",
                   padding:"3px 22px 3px 10px",fontFamily:"'Inter',sans-serif",outline:"none"}}>
                 <option value="all">Sector</option>
                 {sectors.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <span style={{position:"absolute",right:"8px",color:"#4c525e",fontSize:"8px",pointerEvents:"none"}}>▾</span>
+              <span style={{position:"absolute",right:"8px",color:"#6b7280",fontSize:"8px",pointerEvents:"none"}}>▾</span>
             </div>
 
             <div style={{flex:1}}/>
 
             <div className="filter-row-sort" style={{display:"flex",gap:"2px",alignItems:"center"}}>
-              <span className="sort-label" style={{fontSize:"8px",color:"#353d52",marginRight:"2px"}}>ordenar</span>
+              <span className="sort-label" style={{fontSize:"8px",color:"#5a6478",marginRight:"2px"}}>ordenar</span>
               {[["ppl","P&L€"],["pct","P&L%"],["value","Valor"],["name","A-Z"]].map(([k,l]) => (
                 <button key={k} className="cb" style={pillStyle(sort===k)}
                   onClick={() => setSort(k)}>{l}</button>
@@ -1330,12 +1330,12 @@ function App() {
           {/* Table header */}
           <div className="pos-grid" style={{padding:"5px 12px",background:"#1a1f2e",
             borderBottom:"1px solid #1a1f2e",flexShrink:0}}>
-            <div style={{fontSize:"8px",color:"#4c525e"}}></div>
-            <div style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.5px"}}>EMPRESA</div>
-            <div className="col-price-hdr" style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
-            <div className="col-invested-hdr" style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
-            <div style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
-            <div style={{fontSize:"8px",color:"#4c525e",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
+            <div style={{fontSize:"9px",color:"#6b7280"}}></div>
+            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px"}}>EMPRESA</div>
+            <div className="col-price-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
+            <div className="col-invested-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
+            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
+            <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
           </div>
 
           {/* Rows */}
