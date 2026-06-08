@@ -560,7 +560,7 @@ function ChartPanel({ sel, positions }) {
 
 // ─── SUMMARY BAR ─────────────────────────────────────────────────────────────
 function Summary({ positions }) {
-  const totalPpl = positions.reduce((s,p) => s + toEur(p.ppl, p.cur), 0);
+  const totalPpl = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur) - toEur(p.qty * p.avgPrice, p.cur), 0);
   const totalRet = TOTAL_COST_EUR > 0 ? (TOTAL_VAL_EUR - TOTAL_COST_EUR) / TOTAL_COST_EUR * 100 : 0;
   const gainers  = positions.filter(p => p.ppl > 0).length;
   const losers   = positions.filter(p => p.ppl < 0).length;
@@ -805,7 +805,7 @@ function PortfolioOverview({ positions, onSelect }) {
   const bot3     = sorted.slice(-3).reverse();
   const totalVal  = positions.reduce((s,p) => s + toEur(p.qty * p.curPrice, p.cur), 0);
   const totalCost = positions.reduce((s,p) => s + toEur(p.qty * p.avgPrice, p.cur), 0);
-  const totalPnl  = positions.reduce((s,p) => s + toEur(p.ppl, p.cur), 0);
+  const totalPnl  = totalVal - totalCost;
 
   // Sector allocation (in EUR)
   const sectorMap = {};
