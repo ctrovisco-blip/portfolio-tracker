@@ -42,20 +42,22 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 .divider-h:hover,.divider-h.dragging{background:#3d4760;}
 @media(max-width:768px){
   .divider-v,.divider-h{display:none!important;}
-}
 
-@media(max-width:768px){
-  /* Layout geral */
-  .main-grid{grid-template-columns:1fr!important;}
+  /* Layout geral — main-grid é flex, anular override de grid */
+  .main-grid{overflow:hidden;}
   .chart-wrap{height:200px!important;}
 
-  /* Header: esconder texto secundário */
+  /* Header: esconder texto secundário e compactar */
   .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
+  .hdr-deploy{display:none!important;}
+  .hdr-freshness-text{display:none!important;}
 
-  /* Painel direito: slide-in da direita (fica sempre no DOM) */
+  /* Painel direito: slide-in full-screen */
   .right-col{
-    position:fixed;
-    top:0;left:0;right:0;bottom:0;
+    position:fixed!important;
+    top:0!important;left:0!important;right:0!important;bottom:0!important;
+    width:auto!important;
+    flex-shrink:0;
     z-index:50;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
@@ -67,15 +69,15 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   }
   .right-col.open{transform:translateX(0);}
 
-  /* Botão voltar mobile (sticky no topo do painel) */
+  /* Botão voltar mobile */
   .mob-back{display:flex!important;}
 
-  /* Tabela: 4 colunas no mobile */
-  .pos-grid{grid-template-columns:20px 1fr 64px 74px!important;}
+  /* Tabela: logo | empresa | valor+% | retorno */
+  .pos-grid{grid-template-columns:20px 1fr 76px 90px!important;}
   .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
   .row-spark{display:none!important;}
 
-  /* Barra de filtros: 2 linhas — filtros em cima, ordenação em baixo */
+  /* Barra de filtros: 2 linhas */
   .filter-bar{flex-wrap:wrap!important;gap:6px 4px!important;padding:8px 12px!important;}
   .filter-row-sort{width:100%;border-top:1px solid #1e2438;padding-top:6px;margin-top:0;}
   .filter-sep-v{display:none!important;}
@@ -88,7 +90,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   .pos-row{min-height:50px;}
   .pill{padding:5px 12px!important;font-size:11px!important;}
 
-  /* Summary bar: grid 3×2 no mobile (todas as stats visíveis) */
+  /* Summary bar: grid 3x2 */
   .summary-bar{
     display:grid!important;
     grid-template-columns:repeat(3,1fr)!important;
@@ -108,10 +110,10 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   .summary-bar > div > div:nth-child(2){font-size:13px!important;}
   .summary-bar > div > div:nth-child(3){font-size:9px!important;}
 
-  /* Botão "Visão Geral" — só mobile */
+  /* Botão Visão Geral — só mobile */
   .mob-overview-btn{display:flex!important;}
 
-  /* Esconder botão "← Portfolio" do header no mobile (o mob-back trata disso) */
+  /* Esconder botão Portfolio do header no mobile */
   .hdr-back{display:none!important;}
 }
 </style>
@@ -1124,7 +1126,7 @@ function FreshnessIndicator() {
           animation: dot==="#22C55E" ? "ping 2s cubic-bezier(0,0,0.2,1) infinite" : "none"}}/>
         <div style={{position:"absolute",inset:"1px",borderRadius:"50%",background:dot}}/>
       </div>
-      <span style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
+      <span className="hdr-freshness-text" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.4px",fontVariantNumeric:"tabular-nums"}}>
         Dados: {label} atrás
       </span>
       {/* Tooltip */}
@@ -1258,7 +1260,7 @@ function App() {
         </span>
         <div style={{flex:1}}/>
         <FreshnessIndicator/>
-        <DeployButton/>
+        <div className="hdr-deploy"><DeployButton/></div>
         {/* Botão "Visão Geral" — só visível no mobile via CSS */}
         <button className="mob-overview-btn cb" style={{display:"none",
           fontSize:"9px",color:"#787b86",background:"#1e2438",
