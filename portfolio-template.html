@@ -1351,7 +1351,18 @@ function generateReportHTML(cards) {
       <div style="font-size:20px;font-weight:800;color:${cagrCol(data.divCagr5y)}">${data.divCagr5y != null ? fmtGrowth(data.divCagr5y, 1) : '—'}</div>
     </div>
 
-    <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between">
+    ${data.summary ? `
+    <div style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:8px;color:#9ca3af;letter-spacing:1px;text-transform:uppercase">Análise</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 10px;border-radius:20px;
+          background:${data.summary.verdictColor}22;color:${data.summary.verdictColor};
+          border:1px solid ${data.summary.verdictColor}55">${data.summary.verdict}</span>
+      </div>
+      <p style="font-size:10px;color:#6b7280;line-height:1.55;margin:0">${data.summary.text}</p>
+    </div>` : ''}
+
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between">
       <span style="font-size:8px;color:#d1d5db">ctrovisco-blip.github.io/portfolio-tracker</span>
       ${data.fetchedAt ? `<span style="font-size:8px;color:#d1d5db">Dados: ${data.fetchedAt}</span>` : ''}
     </div>
@@ -1853,8 +1864,27 @@ function ScreenerCard({ ticker, data, onRemove }) {
         </div>
       </div>
 
+      {/* AI Summary */}
+      {data.summary && (
+        <div style={{marginTop:"10px",background:"#131722",borderRadius:"6px",
+          padding:"10px 12px",border:"1px solid #1e2438"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
+            <span style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1px",textTransform:"uppercase"}}>Análise</span>
+            <span style={{
+              fontSize:"9px",fontWeight:"700",padding:"2px 8px",borderRadius:"20px",
+              background:data.summary.verdictColor+"22",
+              color:data.summary.verdictColor,
+              border:`1px solid ${data.summary.verdictColor}44`,
+            }}>{data.summary.verdict}</span>
+          </div>
+          <p style={{fontSize:"10px",color:"#9ca3af",lineHeight:"1.55",margin:0}}>
+            {data.summary.text}
+          </p>
+        </div>
+      )}
+
       {data.fetchedAt && (
-        <div style={{marginTop:"10px",fontSize:"8px",color:"#5a6478",textAlign:"right",letterSpacing:"0.3px"}}>
+        <div style={{marginTop:"8px",fontSize:"8px",color:"#5a6478",textAlign:"right",letterSpacing:"0.3px"}}>
           Actualizado: {data.fetchedAt}
         </div>
       )}
