@@ -1335,12 +1335,16 @@ function generateReportHTML(cards) {
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
       ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
+      ${metric('ROA',           fmtPct(data.roa),         roeCol(data.roa))}
       ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
       ${metric('Rev. Growth',   fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
     </div>
 
     ${sectionTitle('Por Ação')}
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+      ${metric('Nº Acções',  fmtStr(data.sharesOutstanding), '#374151')}
       ${metric('EPS',        data.eps != null ? `${sym}${data.eps.toFixed(2)}` : '—', '#374151')}
       ${metric('EPS Growth', fmtGrowth(data.epsGrowth), epsGrCol(data.epsGrowth))}
     </div>
@@ -1836,18 +1840,20 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
         <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
+        <CardItem label="ROA"         value={fmtPct(data.roa)}             color={roeCol(data.roa)}/>
         <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
         <CardItem label="Rev. Growth"
           value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
           color={growthCol(data.revenueGrowth)} history={data.revenueHistory}/>
       </div>
 
       <Section title="Por Ação"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
+        <CardItem label="Nº Acções"   value={fmtStr(data.sharesOutstanding)}  color="#c8ccd4"/>
         <CardItem label="EPS"         value={data.eps != null ? `${currencySymbol}${data.eps.toFixed(2)}` : "—"} color="#c8ccd4"/>
-        <CardItem label="EPS Growth"
-          value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"}
-          color={epsGrCol(data.epsGrowth)}/>
+        <CardItem label="EPS Growth"  value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"} color={epsGrCol(data.epsGrowth)}/>
       </div>
 
       <Section title="Retorno ao Acionista"/>
