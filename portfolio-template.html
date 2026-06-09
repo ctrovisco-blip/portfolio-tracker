@@ -1910,13 +1910,10 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
   );
 }
 
-function ScreenerView() {
+function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted }) {
   const allTickers = Object.keys(SCREENER_DATA);
-  const [hidden,  setHidden]  = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_hidden")  || "[]"); } catch { return []; }
-  });
-  const [deleted, setDeleted] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_deleted") || "[]"); } catch { return []; }
+  const [hidden, setHidden] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("screener_hidden") || "[]"); } catch { return []; }
   });
 
   const hide = t => setHidden(h => {
@@ -2038,6 +2035,9 @@ function ScreenerView() {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab]           = useState("portfolio");
+  const [screenerDeleted, setScreenerDeleted] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("screener_deleted") || "[]"); } catch { return []; }
+  });
   const [sel, setSel]           = useState(null);
   const [mobPanel, setMobPanel] = useState(null); // null | "overview"
   const [mobDetail, setMobDetail] = useState(false); // mobile: detail panel open
@@ -2147,7 +2147,7 @@ function App() {
         <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
           {[
             ["portfolio", "Portfolio"],
-            ["screener",  "Screener" + (Object.keys(SCREENER_DATA).length > 0 ? ` (${Object.keys(SCREENER_DATA).length})` : "")],
+            ["screener",  (() => { const total = Object.keys(SCREENER_DATA).length; if (!total) return "Screener"; const n = total - screenerDeleted.length; return `Screener${n > 0 ? ` (${n})` : ""}`; })()],
           ].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
               fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
@@ -2181,7 +2181,7 @@ function App() {
       {tab === "portfolio" && <Summary positions={positions} className="summary-bar"/>}
 
       {/* ── Screener view ── */}
-      {tab === "screener" && <ScreenerView/>}
+      {tab === "screener" && <ScreenerView screenerDeleted={screenerDeleted} setScreenerDeleted={setScreenerDeleted}/>}
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
       {tab === "portfolio" && <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
