@@ -353,11 +353,14 @@ for ticker in tickers:
             "grossMargin":      pct_dec(info.get("grossMargins")),
             "netMargin":        pct_dec(info.get("profitMargins")),
             "roe":              pct_dec(info.get("returnOnEquity")),
+            "roa":              pct_dec(info.get("returnOnAssets")),
             "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "revenueGrowth":    rev_growth(t),
             # Financial structure
             "debtToEquity":     sr(info.get("debtToEquity"), 2),
             "currentRatio":     sr(info.get("currentRatio"), 2),
+            # Shares
+            "sharesOutstanding": fmt_large(info.get("sharesOutstanding")),
             # Per share
             "eps":              sr(info.get("trailingEps"), 2),
             "epsGrowth":        pct_dec(info.get("earningsGrowth")),
