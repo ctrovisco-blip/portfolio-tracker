@@ -24,7 +24,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 /* ── Grelha da tabela de posições (desktop) ───────────────────────── */
 .pos-grid{
   display:grid;
-  grid-template-columns:20px 1fr 68px 76px 76px 130px;
+  grid-template-columns:20px 1fr 68px 76px 76px 58px 130px;
   gap:4px;
   align-items:center;
 }
@@ -76,7 +76,8 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Tabela: logo | empresa | valor+% | retorno */
   .pos-grid{grid-template-columns:20px 1fr 76px 90px!important;}
-  .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
+  .col-price,.col-invested,.col-price-hdr,.col-invested-hdr,
+  .col-weight,.col-weight-hdr{display:none!important;}
   .row-spark{display:none!important;}
 
   /* Barra de filtros: 2 linhas */
@@ -652,6 +653,12 @@ function PositionRow({ p, selected, onClick }) {
         </div>
         <div style={{fontSize:"9px",color:"#6b7280",marginTop:"1px",fontVariantNumeric:"tabular-nums"}}>
           {weightPct.toFixed(1)}%
+        </div>
+      </div>
+      {/* Peso % (por custo investido) */}
+      <div className="col-weight" style={{textAlign:"right"}}>
+        <div style={{fontSize:"10px",fontWeight:"500",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
+          {TOTAL_COST_EUR > 0 ? (costEur / TOTAL_COST_EUR * 100).toFixed(1) : "—"}%
         </div>
       </div>
       {/* Retorno */}
@@ -2202,6 +2209,7 @@ function App() {
             <div className="col-price-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
             <div className="col-invested-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
             <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
+            <div className="col-weight-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PESO</div>
             <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
           </div>
 
