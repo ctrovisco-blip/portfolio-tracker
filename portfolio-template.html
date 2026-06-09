@@ -1902,7 +1902,14 @@ function ScreenerCard({ ticker, data, onRemove }) {
 
 function ScreenerView() {
   const allTickers = Object.keys(SCREENER_DATA);
-  const [hidden, setHidden] = useState([]);
+  const [hidden, setHidden] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("screener_hidden") || "[]"); } catch { return []; }
+  });
+  const hide = t => setHidden(h => {
+    const next = [...h, t];
+    localStorage.setItem("screener_hidden", JSON.stringify(next));
+    return next;
+  });
   const visible = allTickers.filter(t => !hidden.includes(t));
 
   return (
@@ -1915,6 +1922,15 @@ function ScreenerView() {
       }}>
         <ScreenerFetchBar/>
         <div style={{flex:1}}/>
+        {hidden.length > 0 && visible.length > 0 && (
+          <button onClick={() => { setHidden([]); localStorage.removeItem("screener_hidden"); }}
+            title={`Mostrar ${hidden.length} stock(s) oculta(s)`}
+            style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
+              background:"#1e2438",border:"1px solid #2a3042",color:"#6b7280",
+              fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+            Mostrar ocultas ({hidden.length})
+          </button>
+        )}
         {visible.length > 0 && (
           <button
             onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t], chartPeriod: "6M"})))}
@@ -1952,7 +1968,7 @@ function ScreenerView() {
                 key={ticker}
                 ticker={ticker}
                 data={SCREENER_DATA[ticker]}
-                onRemove={t => setHidden(h => [...h, t])}
+                onRemove={hide}
               />
             ))}
           </div>
@@ -1974,7 +1990,7 @@ function ScreenerView() {
             </div>
           )}
           {hidden.length > 0 && (
-            <button onClick={() => setHidden([])}
+            <button onClick={() => { setHidden([]); localStorage.removeItem("screener_hidden"); }}
               style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
                 background:"#1e2438",border:"1px solid #2a3042",color:"#787b86",
                 fontFamily:"'Inter',sans-serif"}}>
