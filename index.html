@@ -1171,7 +1171,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
             fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-            Build: 2026-06-09 16:47 UTC
+            Build: 2026-06-09 16:52 UTC
           </div>
         </div>
       )}
@@ -1578,7 +1578,7 @@ function ScreenerFetchBar() {
   );
 }
 
-function ScreenerCard({ ticker, data, onRemove }) {
+function ScreenerCard({ ticker, data, onRemove, onDelete }) {
   const inPortfolio = positions.some(p => p.ticker === ticker);
   const col = SECTOR_COLORS[data.sector] || "#5a6478";
 
@@ -1781,13 +1781,23 @@ function ScreenerCard({ ticker, data, onRemove }) {
             ⎙
           </button>
           {onRemove && (
-            <button onClick={() => onRemove(ticker)}
+            <button onClick={() => onRemove(ticker)} title="Ocultar (restaurável)"
               style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
                 cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,
                 borderRadius:"4px",transition:"all 0.12s"}}
-              onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
+              onMouseEnter={e=>{e.currentTarget.style.color="#c8ccd4";e.currentTarget.style.borderColor="#5a6478";}}
               onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
               ×
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={() => onDelete(ticker)} title="Apagar definitivamente"
+              style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
+                cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
+                borderRadius:"4px",transition:"all 0.12s"}}
+              onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
+              🗑
             </button>
           )}
         </div>
@@ -1902,15 +1912,36 @@ function ScreenerCard({ ticker, data, onRemove }) {
 
 function ScreenerView() {
   const allTickers = Object.keys(SCREENER_DATA);
-  const [hidden, setHidden] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_hidden") || "[]"); } catch { return []; }
+  const [hidden,  setHidden]  = useState(() => {
+    try { return JSON.parse(localStorage.getItem("screener_hidden")  || "[]"); } catch { return []; }
   });
+  const [deleted, setDeleted] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("screener_deleted") || "[]"); } catch { return []; }
+  });
+
   const hide = t => setHidden(h => {
     const next = [...h, t];
     localStorage.setItem("screener_hidden", JSON.stringify(next));
     return next;
   });
-  const visible = allTickers.filter(t => !hidden.includes(t));
+  const del = t => {
+    setDeleted(d => {
+      const next = [...d, t];
+      localStorage.setItem("screener_deleted", JSON.stringify(next));
+      return next;
+    });
+    setHidden(h => {
+      const next = h.filter(x => x !== t);
+      localStorage.setItem("screener_hidden", JSON.stringify(next));
+      return next;
+    });
+  };
+  const restoreHidden = () => {
+    setHidden([]);
+    localStorage.removeItem("screener_hidden");
+  };
+
+  const visible = allTickers.filter(t => !hidden.includes(t) && !deleted.includes(t));
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#131722"}}>
@@ -1923,7 +1954,7 @@ function ScreenerView() {
         <ScreenerFetchBar/>
         <div style={{flex:1}}/>
         {hidden.length > 0 && visible.length > 0 && (
-          <button onClick={() => { setHidden([]); localStorage.removeItem("screener_hidden"); }}
+          <button onClick={restoreHidden}
             title={`Mostrar ${hidden.length} stock(s) oculta(s)`}
             style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
               background:"#1e2438",border:"1px solid #2a3042",color:"#6b7280",
@@ -1969,6 +2000,7 @@ function ScreenerView() {
                 ticker={ticker}
                 data={SCREENER_DATA[ticker]}
                 onRemove={hide}
+                onDelete={del}
               />
             ))}
           </div>
@@ -1990,11 +2022,11 @@ function ScreenerView() {
             </div>
           )}
           {hidden.length > 0 && (
-            <button onClick={() => { setHidden([]); localStorage.removeItem("screener_hidden"); }}
+            <button onClick={restoreHidden}
               style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
                 background:"#1e2438",border:"1px solid #2a3042",color:"#787b86",
                 fontFamily:"'Inter',sans-serif"}}>
-              Mostrar todos ({allTickers.length})
+              Mostrar ocultas ({hidden.length})
             </button>
           )}
         </div>
