@@ -5,7 +5,7 @@ Env vars:
   MODE     — "add" (default) or "replace"
 Writes: data/screener.json
 """
-import json, time, os, sys
+import json, time, os, sys, urllib.request
 import yfinance as yf
 from datetime import datetime, timezone
 
@@ -102,6 +102,70 @@ def find_row(df, *keywords):
         if all(kw.lower() in rs for kw in keywords):
             return r
     return None
+
+
+FMP_API_KEY = os.environ.get("FMP_API_KEY", "")
+
+def fmp_get(path):
+    """Fetch a single FMP endpoint; returns parsed JSON or None on error."""
+    if not FMP_API_KEY:
+        return None
+    url = f"https://financialmodelingprep.com/api/v3/{path}&apikey={FMP_API_KEY}"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            data = json.loads(r.read().decode())
+            return data if data else None
+    except Exception as e:
+        print(f"  FMP error ({path[:40]}): {e}")
+        return None
+
+
+def fetch_fmp(ticker):
+    """Fetch EV/EBITDA, insider/institutional ownership, short interest, analyst ratings from FMP."""
+    out = {}
+
+    # Key metrics (EV/EBITDA, EV/Revenue, etc.)
+    km = fmp_get(f"key-metrics-ttm/{ticker}?limit=1")
+    if km and isinstance(km, list) and km:
+        m = km[0]
+        ev_ebitda = m.get("enterpriseValueOverEBITDATTM")
+        if ev_ebitda and float(ev_ebitda) > 0:
+            out["evEbitda"] = sr(ev_ebitda, 1)
+
+    # Institutional + insider ownership
+    own = fmp_get(f"institutional-holder/{ticker}?limit=1")
+    # FMP doesn't return % directly here; use profile for insider/institution %
+    profile = fmp_get(f"profile/{ticker}?")
+    if profile and isinstance(profile, list) and profile:
+        p = profile[0]
+        insider = p.get("insidersOwnership")
+        inst    = p.get("institutionalOwnership")
+        if insider is not None:
+            out["insiderOwnership"] = sr(float(insider) * 100 if float(insider) <= 1 else float(insider), 2)
+        if inst is not None:
+            out["institutionalOwnership"] = sr(float(inst) * 100 if float(inst) <= 1 else float(inst), 2)
+
+    # Short interest
+    si = fmp_get(f"historical/shares_float?symbol={ticker}&")
+    if si and isinstance(si, list) and si:
+        short_pct = si[0].get("shortPercentOfFloat")
+        if short_pct is not None:
+            out["shortInterest"] = sr(float(short_pct) * 100 if float(short_pct) <= 1 else float(short_pct), 2)
+
+    # Analyst ratings summary
+    rtg = fmp_get(f"analyst-stock-recommendations/{ticker}?limit=1")
+    if rtg and isinstance(rtg, list) and rtg:
+        r = rtg[0]
+        buy  = (r.get("analystRatingsbuy")  or 0) + (r.get("analystRatingsStrongBuy") or 0)
+        hold = r.get("analystRatingsHold")  or 0
+        sell = (r.get("analystRatingsSell") or 0) + (r.get("analystRatingsStrongSell") or 0)
+        total = buy + hold + sell
+        if total > 0:
+            out["analystBuy"]  = int(buy)
+            out["analystHold"] = int(hold)
+            out["analystSell"] = int(sell)
+
+    return out
 
 
 def generate_summary(e):
@@ -345,6 +409,7 @@ for ticker in tickers:
             "priceToBook":      sr(info.get("priceToBook"), 1),
             "priceToSales":     sr(info.get("priceToSalesTrailing12Months"), 1),
             "beta":             sr(info.get("beta"), 2),
+            "evEbitda":         sr(info.get("enterpriseToEbitda"), 1),  # yf fallback; overridden by FMP
             "week52Low":        sr(info.get("fiftyTwoWeekLow"), 2),
             "week52High":       sr(info.get("fiftyTwoWeekHigh"), 2),
             "targetPrice":      sr(info.get("targetMeanPrice"), 2),
@@ -377,6 +442,11 @@ for ticker in tickers:
         entry.update(get_history(t))
         # Price history for chart (4 periods)
         entry.update(get_price_history(t))
+        # FMP enrichment (EV/EBITDA, ownership, short interest, analyst ratings)
+        fmp_data = fetch_fmp(ticker)
+        if fmp_data:
+            entry.update(fmp_data)
+            print(f"  FMP: {list(fmp_data.keys())}")
         # Rule-based fundamental summary
         entry["summary"] = generate_summary(entry)
 

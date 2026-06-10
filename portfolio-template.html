@@ -1320,6 +1320,7 @@ function generateReportHTML(cards) {
       ${metric('P/E Ratio',    fmtNum(data.pe),          peCol(data.pe))}
       ${metric('Price/Book',   fmtNum(data.priceToBook), pbCol(data.priceToBook))}
       ${metric('Price/Sales',  fmtNum(data.priceToSales), psCol(data.priceToSales))}
+      ${metric('EV/EBITDA',   fmtNum(data.evEbitda),    psCol(data.evEbitda))}
       ${metric('Beta',         fmtNum(data.beta, 2),     betaCol(data.beta))}
       ${metric('Debt/Equity',  data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : '—', deCol(data.debtToEquity))}
       ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2), crCol(data.currentRatio))}
@@ -1362,6 +1363,15 @@ function generateReportHTML(cards) {
       <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px">Div CAGR 5 anos</div>
       <div style="font-size:20px;font-weight:800;color:${cagrCol(data.divCagr5y)}">${data.divCagr5y != null ? fmtGrowth(data.divCagr5y, 1) : '—'}</div>
     </div>
+
+    ${(data.insiderOwnership != null || data.institutionalOwnership != null || data.shortInterest != null || data.analystBuy != null) ? `
+    ${sectionTitle('Acionariado')}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      ${data.insiderOwnership != null ? metric('Insiders', `${data.insiderOwnership.toFixed(1)}%`, data.insiderOwnership>5?'#065f46':'#374151') : ''}
+      ${data.institutionalOwnership != null ? metric('Institucional', `${data.institutionalOwnership.toFixed(1)}%`, '#374151') : ''}
+      ${data.shortInterest != null ? metric('Short Interest', `${data.shortInterest.toFixed(1)}%`, data.shortInterest>10?'#b91c1c':data.shortInterest>5?'#92400e':'#374151') : ''}
+      ${data.analystBuy != null ? (() => { const total=data.analystBuy+data.analystHold+data.analystSell; return metric(`Analistas (${total})`, `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`, data.analystBuy/total>0.6?'#065f46':data.analystBuy/total>0.4?'#374151':'#92400e'); })() : ''}
+    </div>` : ''}
 
     ${data.summary ? `
     <div style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px">
@@ -1819,6 +1829,7 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}           color={peCol(data.pe)}/>
         <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)}  color={pbCol(data.priceToBook)}/>
         <CardItem label="Price/Sales"  value={fmtNum(data.priceToSales)} color={psCol(data.priceToSales)}/>
+        <CardItem label="EV/EBITDA"    value={fmtNum(data.evEbitda)}     color={psCol(data.evEbitda)}/>
         <CardItem label="Beta"         value={fmtNum(data.beta, 2)}      color={betaCol(data.beta)}/>
         <CardItem label="Debt/Equity"  value={data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : "—"} color={deCol(data.debtToEquity)}/>
         <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
@@ -1887,6 +1898,35 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
           )}
         </div>
       </div>
+
+      {/* Acionariado (FMP) */}
+      {(data.insiderOwnership != null || data.institutionalOwnership != null ||
+        data.shortInterest != null || data.analystBuy != null) && (
+        <>
+          <Section title="Acionariado"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+            {data.insiderOwnership != null && (
+              <CardItem label="Insiders" value={`${data.insiderOwnership.toFixed(1)}%`}
+                color={data.insiderOwnership>5?"#089981":"#c8ccd4"}/>
+            )}
+            {data.institutionalOwnership != null && (
+              <CardItem label="Institucional" value={`${data.institutionalOwnership.toFixed(1)}%`}
+                color="#c8ccd4"/>
+            )}
+            {data.shortInterest != null && (
+              <CardItem label="Short Interest" value={`${data.shortInterest.toFixed(1)}%`}
+                color={data.shortInterest>10?"#ef5350":data.shortInterest>5?"#F0883E":"#c8ccd4"}/>
+            )}
+            {data.analystBuy != null && (() => {
+              const total = data.analystBuy + data.analystHold + data.analystSell;
+              const label = `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`;
+              const buyPct = data.analystBuy / total;
+              return <CardItem label={`Analistas (${total})`} value={label}
+                color={buyPct>0.6?"#089981":buyPct>0.4?"#c8ccd4":"#F0883E"}/>;
+            })()}
+          </div>
+        </>
+      )}
 
       {/* AI Summary */}
       {data.summary && (
