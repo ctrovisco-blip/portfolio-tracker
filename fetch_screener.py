@@ -1,22 +1,127 @@
 """
 Fetch fundamental data for arbitrary tickers (screener).
 Env vars:
-  TICKERS  — comma-separated ticker symbols, e.g. "AAPL,MSFT,NVDA"
-  MODE     — "add" (default) or "replace"
+  TICKERS        — comma-separated ticker symbols, e.g. "AAPL,MSFT,NVDA"
+  MODE           — "add" (default) or "replace"
+  FISCAL_API_KEY — API key for fiscal.ai (primary source); falls back to yfinance
 Writes: data/screener.json
 """
-import json, time, os, sys, urllib.request
+import json, time, os, sys, urllib.request, urllib.parse, urllib.error
 import yfinance as yf
 from datetime import datetime, timezone
 
-COUNTRY_FLAG = {
-    "United States": "🇺🇸", "United Kingdom": "🇬🇧", "Germany": "🇩🇪",
-    "France": "🇫🇷", "Portugal": "🇵🇹", "Netherlands": "🇳🇱", "Canada": "🇨🇦",
-    "Japan": "🇯🇵", "China": "🇨🇳", "Australia": "🇦🇺", "Switzerland": "🇨🇭",
-    "Sweden": "🇸🇪", "Denmark": "🇩🇰", "Norway": "🇳🇴", "Spain": "🇪🇸",
-    "Italy": "🇮🇹", "Belgium": "🇧🇪", "Ireland": "🇮🇪", "Taiwan": "🇹🇼",
-    "South Korea": "🇰🇷", "India": "🇮🇳", "Brazil": "🇧🇷",
-}
+FISCAL_API_KEY = os.environ.get("FISCAL_API_KEY", "")
+FISCAL_BASE    = "https://api.fiscal.ai/v1"
+
+def fiscal_get(endpoint, params=None):
+    """Call fiscal.ai REST API. Returns parsed JSON or None on any error."""
+    if not FISCAL_API_KEY:
+        return None
+    url = f"{FISCAL_BASE}/{endpoint}"
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {FISCAL_API_KEY}",
+        "Accept":        "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        print(f"  fiscal.ai {endpoint} error: {e}")
+        return None
+
+
+def fetch_fiscal(ticker):
+    """
+    Fetch from fiscal.ai and return a normalized dict with the same keys
+    used by the yfinance path. Returns {} if not available.
+    """
+    out = {}
+
+    profile = fiscal_get("company/profile", {"ticker": ticker})
+    ratios  = fiscal_get("ratios",           {"ticker": ticker, "limit": 1})
+    fins    = fiscal_get("financials",        {"ticker": ticker, "period": "annual", "limit": 5})
+
+    if not profile and not ratios:
+        return {}
+
+    # ── Profile ───────────────────────────────────────────────────────────────
+    p = profile[0] if isinstance(profile, list) and profile else (profile or {})
+    out["name"]     = p.get("companyName") or p.get("name")
+    out["sector"]   = p.get("sector")
+    out["exchange"] = p.get("exchange") or p.get("exchangeShortName")
+    out["currency"] = p.get("currency")
+    out["curPrice"] = _sr(p.get("price"), 2)
+    out["marketCap"]= _fmt_large(p.get("mktCap") or p.get("marketCap"))
+    out["beta"]     = _sr(p.get("beta"), 2)
+    country         = p.get("country", "")
+    out["flag"]     = COUNTRY_FLAG.get(country, "🌍")
+    out["week52Low"]  = _sr(p.get("range", "").split("-")[0] if isinstance(p.get("range"), str) and "-" in str(p.get("range","")) else None, 2)
+    out["week52High"] = _sr(p.get("range", "").split("-")[1] if isinstance(p.get("range"), str) and "-" in str(p.get("range","")) else None, 2)
+
+    # ── Ratios ────────────────────────────────────────────────────────────────
+    r = ratios[0] if isinstance(ratios, list) and ratios else (ratios or {})
+    out["pe"]               = _sr(r.get("peRatio") or r.get("priceEarningsRatio"), 1)
+    out["priceToBook"]      = _sr(r.get("priceToBookRatio"), 1)
+    out["priceToSales"]     = _sr(r.get("priceToSalesRatio"), 1)
+    out["roe"]              = _pct(r.get("returnOnEquity"))
+    out["grossMargin"]      = _pct(r.get("grossProfitMargin"))
+    out["netMargin"]        = _pct(r.get("netProfitMargin"))
+    out["operatingMargin"]  = _pct(r.get("operatingProfitMargin"))
+    out["debtToEquity"]     = _sr(r.get("debtEquityRatio"), 2)
+    out["currentRatio"]     = _sr(r.get("currentRatio"), 2)
+    out["divYield"]         = _pct(r.get("dividendYield"))
+    out["payoutRatio"]      = _pct(r.get("payoutRatio"))
+    out["eps"]              = _sr(r.get("earningsPerShare") or r.get("eps"), 2)
+    fcfy = r.get("freeCashFlowYield") or r.get("fcfYield")
+    out["fcfYield"]         = _sr(fcfy if fcfy and abs(float(fcfy if fcfy else 0)) < 2 else (_pct(fcfy) if fcfy else None), 2)
+
+    # ── Financials history ────────────────────────────────────────────────────
+    if isinstance(fins, list) and len(fins) >= 2:
+        fins_sorted = sorted(fins, key=lambda x: x.get("date", ""))  # oldest first
+        rev_h, nm_h, gm_h = [], [], []
+        for f in fins_sorted:
+            rev = f.get("revenue") or f.get("totalRevenue")
+            ni  = f.get("netIncome")
+            gp  = f.get("grossProfit")
+            if rev and rev > 0:
+                rev_h.append(round(float(rev) / 1e9, 2))
+                if ni  is not None: nm_h.append(round(float(ni) / float(rev) * 100, 1))
+                if gp  is not None: gm_h.append(round(float(gp) / float(rev) * 100, 1))
+        if len(rev_h) >= 2: out["revenueHistory"]   = rev_h
+        if len(nm_h)  >= 2: out["netMarginHistory"]  = nm_h
+        if len(gm_h)  >= 2: out["grossMarginHistory"]= gm_h
+
+        # Revenue growth (last 2 years)
+        if len(rev_h) >= 2 and rev_h[-2] > 0:
+            out["revenueGrowth"] = round((rev_h[-1] / rev_h[-2] - 1) * 100, 2)
+
+    return {k: v for k, v in out.items() if v is not None}
+
+
+def _sr(v, n=2):
+    if v is None: return None
+    try: return round(float(v), n)
+    except: return None
+
+def _pct(v, n=2):
+    if v is None: return None
+    try:
+        fv = float(v)
+        # fiscal.ai may return ratios as 0.25 or as 25.0 — normalise to percentage
+        return round(fv * 100 if abs(fv) < 2 else fv, n)
+    except: return None
+
+def _fmt_large(v):
+    if v is None: return None
+    v = float(v)
+    if abs(v) >= 1e12: return f"{v/1e12:.2f}T"
+    if abs(v) >= 1e9:  return f"{v/1e9:.2f}B"
+    if abs(v) >= 1e6:  return f"{v/1e6:.1f}M"
+    return str(round(v, 2))
+
+
 
 
 def fmt_large(v):
@@ -371,12 +476,21 @@ if mode == "add" and os.path.exists("data/screener.json"):
 results = dict(existing)
 now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+fiscal_available = bool(FISCAL_API_KEY)
+print(f"fiscal.ai: {'enabled' if fiscal_available else 'disabled (no FISCAL_API_KEY)'}")
+
 for ticker in tickers:
     print(f"Fetching {ticker}...")
     try:
+        # ── 1. fiscal.ai (primary source) ─────────────────────────────────────
+        fiscal_data = fetch_fiscal(ticker) if fiscal_available else {}
+        if fiscal_data:
+            print(f"  fiscal.ai: OK ({len(fiscal_data)} fields)")
+
+        # ── 2. yfinance (fills in what fiscal.ai doesn't cover) ───────────────
         t = yf.Ticker(ticker)
         info = t.info
-        name = info.get("longName") or info.get("shortName")
+        name = fiscal_data.get("name") or info.get("longName") or info.get("shortName")
         if not name:
             print(f"  SKIP: no data found for {ticker}")
             continue
@@ -394,18 +508,16 @@ for ticker in tickers:
 
         fcf = info.get("freeCashflow")
         bb = buyback_yield(t, mkt_cap)
-        sh = sr((div_yield or 0) + (bb or 0)) if (div_yield or bb) else None
         price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
 
-        entry = {
-            # Identity
+        # yfinance base entry
+        yf_entry = {
             "name":             name,
             "sector":           info.get("sector") or "—",
             "flag":             COUNTRY_FLAG.get(info.get("country", ""), "🌍"),
             "exchange":         info.get("exchange") or "—",
             "currency":         info.get("currency") or "USD",
             "curPrice":         sr(price, 2),
-            # Valuation
             "marketCap":        fmt_large(mkt_cap),
             "totalDebt":        fmt_large(info.get("totalDebt")),
             "pe":               sr(info.get("trailingPE") or info.get("forwardPE"), 1),
@@ -416,7 +528,6 @@ for ticker in tickers:
             "week52Low":        sr(info.get("fiftyTwoWeekLow"), 2),
             "week52High":       sr(info.get("fiftyTwoWeekHigh"), 2),
             "targetPrice":      sr(info.get("targetMeanPrice"), 2),
-            # Profitability
             "operatingMargin":  pct_dec(info.get("operatingMargins")),
             "grossMargin":      pct_dec(info.get("grossMargins")),
             "netMargin":        pct_dec(info.get("profitMargins")),
@@ -424,7 +535,6 @@ for ticker in tickers:
             "roa":              pct_dec(info.get("returnOnAssets") or None),
             "fcfYield":         sr(fcf / mkt_cap * 100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "revenueGrowth":    rev_growth(t),
-            # Financial structure
             "debtToEquity":     sr(info.get("debtToEquity"), 2),
             "currentRatio":     sr(info.get("currentRatio"), 2),
             # Shares
@@ -432,32 +542,42 @@ for ticker in tickers:
             # Per share
             "eps":              sr(info.get("trailingEps"), 2),
             "epsGrowth":        pct_dec(info.get("earningsGrowth")),
-            # Shareholder returns
             "divYield":         div_yield,
             "buybackYield":     bb,
-            "shareholderYield": sh,
             "payoutRatio":      pct_dec(info.get("payoutRatio")),
             "divCagr5y":        div_cagr_5y(t),
-            "fetchedAt":        now_str,
         }
 
-        # Historical arrays (oldest first)
-        entry.update(get_history(t))
-        # Price history for chart (4 periods)
+        # ── 3. Merge: yfinance base → fiscal.ai overrides → FMP enrichment ────
+        entry = {k: v for k, v in yf_entry.items() if v is not None}
+        for k, v in fiscal_data.items():
+            if v is not None:
+                entry[k] = v
+
+        # Derived fields that depend on the merged data
+        div_y = entry.get("divYield") or 0
+        buy_y = entry.get("buybackYield") or 0
+        entry["shareholderYield"] = sr(div_y + buy_y) if (div_y or buy_y) else None
+        entry["fetchedAt"] = now_str
+
+        # Historical arrays + price history
+        if "revenueHistory" not in entry:
+            entry.update(get_history(t))
         entry.update(get_price_history(t))
+
         # FMP enrichment (EV/EBITDA, ownership, short interest, analyst ratings)
         fmp_data = fetch_fmp(ticker)
         if fmp_data:
             entry.update(fmp_data)
             print(f"  FMP: {list(fmp_data.keys())}")
-        # Rule-based fundamental summary
-        entry["summary"] = generate_summary(entry)
 
+        entry["summary"] = generate_summary(entry)
         results[ticker] = entry
-        print(f"  OK: {name} @ {price} {info.get('currency', '')}")
+        sources = "+".join(s for s, d in [("fiscal.ai", fiscal_data), ("FMP", fmp_data)] if d) or "yfinance"
+        print(f"  OK [{sources}]: {name} @ {entry.get('curPrice')} {entry.get('currency', '')}")
     except Exception as e:
         print(f"  ERROR: {e}")
-    time.sleep(0.3)
+    time.sleep(0.5)
 
 with open("data/screener.json", "w", encoding="utf-8") as f:
     json.dump(results, f, ensure_ascii=False)
