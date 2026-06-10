@@ -131,6 +131,9 @@ def fetch_fmp(ticker):
         ev_ebitda = m.get("enterpriseValueOverEBITDATTM")
         if ev_ebitda and float(ev_ebitda) > 0:
             out["evEbitda"] = sr(ev_ebitda, 1)
+        roic = m.get("roicTTM")
+        if roic is not None:
+            out["roic"] = sr(float(roic) * 100 if abs(float(roic)) <= 1 else float(roic), 2)
 
     # Institutional + insider ownership
     own = fmp_get(f"institutional-holder/{ticker}?limit=1")

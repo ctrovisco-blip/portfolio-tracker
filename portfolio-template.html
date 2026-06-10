@@ -1334,9 +1334,10 @@ function generateReportHTML(cards) {
       ${metric('Op. Margin',    fmtPct(data.operatingMargin), opMarCol(data.operatingMargin))}
       ${metric('Net Margin',    fmtPct(data.netMargin),    marginCol(data.netMargin),   data.netMarginHistory)}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:5px">
       ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
       ${metric('ROA',           fmtPct(data.roa),         roeCol(data.roa))}
+      ${metric('ROIC',          fmtPct(data.roic),        roeCol(data.roic))}
       ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
@@ -1849,9 +1850,10 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         <CardItem label="Op. Margin"    value={fmtPct(data.operatingMargin)}   color={opMarCol(data.operatingMargin)}/>
         <CardItem label="Net Margin"    value={fmtPct(data.netMargin)}         color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
         <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
         <CardItem label="ROA"         value={fmtPct(data.roa)}             color={roeCol(data.roa)}/>
+        <CardItem label="ROIC"        value={fmtPct(data.roic)}            color={roeCol(data.roic)}/>
         <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
