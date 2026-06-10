@@ -2195,7 +2195,7 @@ function App() {
         <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
           {[
             ["portfolio", "Portfolio"],
-            ["screener",  (() => { const total = Object.keys(SCREENER_DATA).length; if (!total) return "Screener"; const n = total - screenerDeleted.length; return `Screener${n > 0 ? ` (${n})` : ""}`; })()],
+            ["screener",  (() => { const all = Object.keys(SCREENER_DATA); if (!all.length) return "Screener"; const n = all.filter(t => !screenerDeleted.includes(t)).length; return `Screener${n > 0 ? ` (${n})` : ""}`; })()],
           ].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
               fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
