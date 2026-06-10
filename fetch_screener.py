@@ -548,8 +548,14 @@ for ticker in tickers:
             "divCagr5y":        div_cagr_5y(t),
         }
 
-        # ── 3. Merge: yfinance base → fiscal.ai overrides → FMP enrichment ────
+        # ── 3. Merge: yfinance (base) → FMP (override) → fiscal.ai (override) ──
         entry = {k: v for k, v in yf_entry.items() if v is not None}
+
+        fmp_data = fetch_fmp(ticker)
+        if fmp_data:
+            entry.update(fmp_data)
+            print(f"  FMP: {list(fmp_data.keys())}")
+
         for k, v in fiscal_data.items():
             if v is not None:
                 entry[k] = v
@@ -565,16 +571,10 @@ for ticker in tickers:
             entry.update(get_history(t))
         entry.update(get_price_history(t))
 
-        # FMP enrichment (EV/EBITDA, ownership, short interest, analyst ratings)
-        fmp_data = fetch_fmp(ticker)
-        if fmp_data:
-            entry.update(fmp_data)
-            print(f"  FMP: {list(fmp_data.keys())}")
-
         entry["summary"] = generate_summary(entry)
         results[ticker] = entry
-        sources = "+".join(s for s, d in [("fiscal.ai", fiscal_data), ("FMP", fmp_data)] if d) or "yfinance"
-        print(f"  OK [{sources}]: {name} @ {entry.get('curPrice')} {entry.get('currency', '')}")
+        sources = "+".join(s for s, d in [("FMP", fmp_data), ("fiscal.ai", fiscal_data)] if d) or "yfinance"
+        print(f"  OK [yf+{sources}]: {name} @ {entry.get('curPrice')} {entry.get('currency', '')}")
     except Exception as e:
         print(f"  ERROR: {e}")
     time.sleep(0.5)
