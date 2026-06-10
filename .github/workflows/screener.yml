@@ -43,8 +43,9 @@ jobs:
 
       - name: Fetch screener fundamentals
         env:
-          TICKERS: ${{ github.event.inputs.tickers }}
-          MODE:    ${{ github.event.inputs.mode }}
+          TICKERS:     ${{ github.event.inputs.tickers }}
+          MODE:        ${{ github.event.inputs.mode }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: python fetch_screener.py
 
       - name: Build HTML
