@@ -10,6 +10,15 @@ import json, time, os, sys, urllib.request, urllib.parse, urllib.error
 import yfinance as yf
 from datetime import datetime, timezone
 
+COUNTRY_FLAG = {
+    "United States": "🇺🇸", "United Kingdom": "🇬🇧", "Germany": "🇩🇪",
+    "France": "🇫🇷", "Portugal": "🇵🇹", "Netherlands": "🇳🇱", "Canada": "🇨🇦",
+    "Japan": "🇯🇵", "China": "🇨🇳", "Australia": "🇦🇺", "Switzerland": "🇨🇭",
+    "Sweden": "🇸🇪", "Denmark": "🇩🇰", "Norway": "🇳🇴", "Spain": "🇪🇸",
+    "Italy": "🇮🇹", "Belgium": "🇧🇪", "Ireland": "🇮🇪", "Taiwan": "🇹🇼",
+    "South Korea": "🇰🇷", "India": "🇮🇳", "Brazil": "🇧🇷",
+}
+
 FISCAL_API_KEY = os.environ.get("FISCAL_API_KEY", "")
 FISCAL_BASE    = "https://api.fiscal.ai/v1"
 
