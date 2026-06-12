@@ -184,6 +184,118 @@ def fetch_history(t, mkt_cap):
             if pr:
                 result["payoutRatio"] = pr
 
+        # Year-end prices (needed for P/E, div yield, buyback yield, market cap)
+        price_by_year = {}
+        try:
+            ph = t.history(period="6y", interval="1mo")
+            if ph is not None and not ph.empty:
+                for yr in ph.index.year.unique():
+                    yr_data = ph[ph.index.year == yr]
+                    if not yr_data.empty:
+                        price_by_year[yr] = float(yr_data["Close"].iloc[-1])
+        except:
+            pass
+
+        # Historical shares outstanding
+        shares_by_year = {}
+        try:
+            sf = t.get_shares_full(start="2018-01-01")
+            if sf is not None and not sf.empty:
+                for yr in sf.index.year.unique():
+                    yr_data = sf[sf.index.year == yr]
+                    if not yr_data.empty:
+                        shares_by_year[yr] = float(yr_data.iloc[-1])
+        except:
+            pass
+        # Fallback to current shares for all years if no history
+        if not shares_by_year:
+            try:
+                cur_shares = t.info.get("sharesOutstanding")
+                if cur_shares:
+                    for yr in price_by_year:
+                        shares_by_year[yr] = float(cur_shares)
+            except:
+                pass
+
+        # Annual dividends per share
+        annual_divs = {}
+        try:
+            divs = t.dividends
+            if divs is not None and not divs.empty:
+                for dt, amt in divs.items():
+                    yr = dt.year
+                    annual_divs[yr] = annual_divs.get(yr, 0) + float(amt)
+        except:
+            pass
+
+        # Dividend Yield = annual DPS / year-end price
+        if price_by_year and annual_divs:
+            dy = {}
+            for yr, div in annual_divs.items():
+                if yr in price_by_year and price_by_year[yr] > 0:
+                    dy[yr] = round(div / price_by_year[yr] * 100, 2)
+            if dy:
+                result["divYield"] = dy
+
+        # P/E = year-end price / EPS (EPS = net income / shares)
+        if price_by_year and ni_row is not None and shares_by_year:
+            pe_h = {}
+            for col in ni_row.index:
+                yr = col.year
+                try:
+                    ni = float(ni_row[col])
+                    price = price_by_year.get(yr)
+                    shares = shares_by_year.get(yr) or (list(shares_by_year.values())[-1] if shares_by_year else None)
+                    if ni == ni and ni > 0 and price and shares and shares > 0:
+                        eps = ni / shares
+                        pe_h[yr] = round(price / eps, 1)
+                except:
+                    pass
+            if pe_h:
+                result["pe"] = pe_h
+
+        # Market Cap = shares * year-end price
+        if price_by_year and shares_by_year:
+            mc_h = {}
+            for yr, price in price_by_year.items():
+                shares = shares_by_year.get(yr)
+                if shares:
+                    mc_h[yr] = price * shares
+            if mc_h:
+                result["marketCap"] = mc_h
+
+        # Buyback Yield = repurchase / market cap per year
+        repurchase_row = get_row(cf, ["Repurchase Of Capital Stock", "Common Stock Payments"])
+        if repurchase_row is not None and price_by_year and shares_by_year:
+            bby = {}
+            for col in repurchase_row.index:
+                yr = col.year
+                try:
+                    buyback = abs(float(repurchase_row[col]))
+                    price = price_by_year.get(yr)
+                    shares = shares_by_year.get(yr) or (list(shares_by_year.values())[-1] if shares_by_year else None)
+                    if buyback == buyback and price and shares:
+                        mkt = price * shares
+                        if mkt > 0:
+                            bby[yr] = round(buyback / mkt * 100, 2)
+                except:
+                    pass
+            if bby:
+                result["buybackYield"] = bby
+
+        # Shareholder Yield = Dividend Yield + Buyback Yield per year
+        if "divYield" in result or "buybackYield" in result:
+            dy_h = result.get("divYield", {})
+            bb_h = result.get("buybackYield", {})
+            all_years = set(dy_h) | set(bb_h)
+            sh_h = {}
+            for yr in all_years:
+                total = (dy_h.get(yr) or 0) + (bb_h.get(yr) or 0)
+                if total > 0:
+                    sh_h[yr] = round(total, 2)
+            if sh_h:
+                result["shareholderYield"] = sh_h
+
         return result
     except:
         return {}

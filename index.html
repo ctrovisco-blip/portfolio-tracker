@@ -690,10 +690,16 @@ const METRIC_META = {
   fcf:               {title:"Free Cash Flow",      unit:"B"},
   fcfYield:          {title:"FCF Yield",           unit:"%"},
   totalDebt:         {title:"Dívida Total",        unit:"B"},
+  marketCap:         {title:"Market Cap",          unit:"B"},
+  pe:                {title:"P/E Ratio",           unit:"x"},
   debtToEquity:      {title:"Debt/Equity",         unit:"%"},
   currentRatio:      {title:"Current Ratio",       unit:"x"},
   roe:               {title:"ROE",                 unit:"%"},
   roa:               {title:"ROA",                 unit:"%"},
+  payoutRatio:       {title:"Payout Ratio",        unit:"%"},
+  divYield:          {title:"Dividend Yield",      unit:"%"},
+  buybackYield:      {title:"Buyback Yield",       unit:"%"},
+  shareholderYield:  {title:"Shareholder Yield",   unit:"%"},
   sharesOutstanding: {title:"Nº de Ações",         unit:"B"},
   dps:               {title:"Dividendo por Ação",  unit:"cur"},
 };
@@ -809,9 +815,9 @@ function Detail({ p }) {
       {f ? (<>
         <Section title="Avaliação"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"/>
+          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"                          histKey="marketCap"/>
           <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"} histKey="totalDebt"/>
-          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
+          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}                     histKey="pe"/>
         </div>
 
         <Section title="Rentabilidade"/>
@@ -827,10 +833,10 @@ function Detail({ p }) {
 
         <Section title="Retorno ao Acionista"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
-          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
-          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
-          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}      histKey="payoutRatio"/>
+          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}         histKey="divYield"/>
+          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}     histKey="buybackYield"/>
+          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)} histKey="shareholderYield"/>
+          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}     histKey="payoutRatio"/>
         </div>
 
         <Section title="Crescimento do Dividendo"/>
@@ -1290,7 +1296,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
             fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-            Build: 2026-06-12 20:36 UTC
+            Build: 2026-06-12 20:41 UTC
           </div>
         </div>
       )}
