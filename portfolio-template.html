@@ -680,6 +680,24 @@ function PositionRow({ p, selected, onClick }) {
 }
 
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
+const METRIC_META = {
+  revenue:           {title:"Receita",             unit:"B"},
+  grossMargin:       {title:"Margem Bruta",        unit:"%"},
+  operatingMargin:   {title:"Margem Operacional",  unit:"%"},
+  netMargin:         {title:"Margem Líquida",      unit:"%"},
+  netIncome:         {title:"Resultado Líquido",   unit:"B"},
+  eps:               {title:"EPS (diluído)",       unit:"cur"},
+  fcf:               {title:"Free Cash Flow",      unit:"B"},
+  fcfYield:          {title:"FCF Yield",           unit:"%"},
+  totalDebt:         {title:"Dívida Total",        unit:"B"},
+  debtToEquity:      {title:"Debt/Equity",         unit:"%"},
+  currentRatio:      {title:"Current Ratio",       unit:"x"},
+  roe:               {title:"ROE",                 unit:"%"},
+  roa:               {title:"ROA",                 unit:"%"},
+  sharesOutstanding: {title:"Nº de Ações",         unit:"B"},
+  dps:               {title:"Dividendo por Ação",  unit:"cur"},
+};
+
 function Detail({ p }) {
   const ret = pctReturn(p);
   const col = SECTOR_COLORS[p.sector] || "#5a6478";
@@ -705,18 +723,18 @@ function Detail({ p }) {
   const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
 
   const INDICATOR_DESC = {
-    "Market Cap":        "Valor total de mercado da empresa (preço × nº de ações).",
-    "Total Debt":        "Dívida total da empresa (curto e longo prazo).",
-    "P/E Ratio":         "Price-to-Earnings: quanto o mercado paga por cada unidade de lucro. Abaixo de 15 é barato; acima de 40 é caro.",
-    "Gross Margin":      "Margem bruta: lucro bruto como % da receita. Mede a eficiência na produção e pricing power.",
-    "Net Margin":        "Margem líquida: lucro após todos os custos como % da receita.",
-    "ROE":               "Return on Equity: retorno gerado sobre o capital dos acionistas. Acima de 20% é muito bom.",
-    "FCF Yield":         "Free Cash Flow Yield: caixa livre gerado pela empresa relativo ao seu valor de mercado.",
-    "Revenue Growth":    "Crescimento da receita face ao ano anterior.",
-    "Dividend Yield":    "Dividendo anual por ação como % do preço atual.",
-    "Buyback Yield":     "Valor de recompras de ações como % do market cap — retorno indireto ao acionista.",
-    "Shareholder Yield": "Dividend Yield + Buyback Yield. Total devolvido ao acionista.",
-    "Payout Ratio":      "% do lucro líquido distribuído como dividendo. Acima de 80% pode ser insustentável.",
+    "Market Cap":        "Valor total de mercado da empresa: preço da ação × número de ações em circulação.",
+    "Total Debt":        "Dívida total da empresa (curto + longo prazo).",
+    "P/E Ratio":         "Preço / Lucro por ação. Quantos anos de lucros atuais pagas pelo preço de hoje — quanto mais baixo, mais barata a ação.",
+    "Gross Margin":      "(Receita − custo dos produtos vendidos) / Receita. Mede o poder de preço do negócio.",
+    "Net Margin":        "Lucro líquido / Receita. Quanto de cada dólar/euro de vendas se converte em lucro final.",
+    "ROE":               "Retorno sobre capitais próprios: lucro líquido / capital dos acionistas. Acima de 15–20% é excelente.",
+    "FCF Yield":         "Free cash flow / Market cap. Cash livre gerado por ano face ao preço pago pela empresa.",
+    "Revenue Growth":    "Crescimento da receita face ao ano fiscal anterior.",
+    "Dividend Yield":    "Dividendo anual / Preço da ação.",
+    "Buyback Yield":     "Valor gasto em recompras de ações / Market cap.",
+    "Shareholder Yield": "Dividend yield + buyback yield: retorno total devolvido ao acionista.",
+    "Payout Ratio":      "Percentagem dos lucros paga em dividendos. Abaixo de ~60–80% é geralmente sustentável.",
     "Div CAGR 5 anos":   "Taxa de crescimento anual composto do dividendo nos últimos 5 anos.",
   };
 
@@ -844,18 +862,24 @@ function Detail({ p }) {
       )}
 
       {histModal && f && f.history && f.history[histModal.key] && (() => {
-        const raw = f.history[histModal.key];
-        const years = Object.keys(raw).map(Number).sort();
-        const vals  = years.map(y => raw[y]);
-        const max   = Math.max(...vals.map(Math.abs));
+        const meta   = METRIC_META[histModal.key] || {};
+        const unit   = meta.unit || "%";
+        const title  = meta.title || histModal.label;
+        const raw    = f.history[histModal.key];
+        const years  = Object.keys(raw).map(Number).sort();
+        const vals   = years.map(y => raw[y]);
+        const max    = Math.max(...vals.map(Math.abs));
+        const fmtBig = v => {
+          if (Math.abs(v) >= 1e12) return `${(v/1e12).toFixed(2)}T`;
+          if (Math.abs(v) >= 1e9)  return `${(v/1e9).toFixed(1)}B`;
+          if (Math.abs(v) >= 1e6)  return `${(v/1e6).toFixed(0)}M`;
+          return String(Math.round(v));
+        };
         const fmtVal = v => {
-          if (histModal.fmt === "pct") return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
-          if (histModal.fmt === "rev") {
-            if (Math.abs(v) >= 1e12) return `${(v/1e12).toFixed(2)}T`;
-            if (Math.abs(v) >= 1e9)  return `${(v/1e9).toFixed(1)}B`;
-            if (Math.abs(v) >= 1e6)  return `${(v/1e6).toFixed(0)}M`;
-            return String(Math.round(v));
-          }
+          if (unit === "%")   return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
+          if (unit === "B")   return fmtBig(v);
+          if (unit === "cur") return fmtBig(v);
+          if (unit === "x")   return `${v.toFixed(2)}x`;
           return v.toFixed(1);
         };
         const barCol = v => v >= 0 ? "#089981" : "#ef5350";
@@ -869,7 +893,7 @@ function Detail({ p }) {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
                 <div>
                   <div style={{fontSize:"11px",color:"#787b86",marginBottom:"2px"}}>{p.ticker} · {p.name}</div>
-                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>{histModal.label}</div>
+                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>{title}</div>
                 </div>
                 <button onClick={() => setHistModal(null)}
                   style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"4px"}}>✕</button>
