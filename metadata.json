@@ -225,9 +225,9 @@
   },
   "NKE": {
     "name": "NIKE, Inc.",
-    "sector": "Outro",
+    "sector": "Consumer Staples",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "cur": "€",
     "yf": "NKE"
   },
@@ -235,17 +235,17 @@
     "name": "Meta Platforms, Inc.",
     "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "NASDAQ",
     "cur": "$",
     "yf": "META"
   },
   "MSF": {
     "name": "Microsoft",
-    "sector": "Outro",
+    "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "cur": "€",
-    "yf": "MSF"
+    "yf": "MSFT"
   },
   "SPCX": {
     "name": "Space Exploration Technologies Corp. Class A Common Stock",
