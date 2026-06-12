@@ -21,9 +21,6 @@ body{background:#131722;font-family:'Inter',sans-serif;}
 .pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:500;border:none;cursor:pointer;transition:all 0.12s;}
 select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
-/* Botão deploy — visível no desktop, escondido no mobile (ver media query abaixo) */
-.hdr-deploy{display:block;}
-
 /* ── Grelha da tabela de posições (desktop) ───────────────────────── */
 .pos-grid{
   display:grid;
@@ -52,8 +49,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Header: esconder texto secundário e compactar */
   .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
-  .hdr-deploy{display:none!important;}
-  .hdr-freshness-text{display:none!important;}
+.hdr-freshness-text{display:none!important;}
 
   /* Painel direito: slide-in full-screen */
   .right-col{
@@ -1097,143 +1093,8 @@ function DeployCountdown() {
   );
 }
 
-// ─── DEPLOY BUTTON (legacy — mantido para compatibilidade) ────────────────────
 const GH_REPO     = "ctrovisco-blip/portfolio-tracker";
 const GH_WORKFLOW = "update.yml";
-
-function DeployButton() {
-  const [status, setStatus]   = useState("idle"); // idle | asking | running | ok | err
-  const [token, setToken]     = useState(() => localStorage.getItem("gh_pat") || "");
-  const [inputVal, setInput]  = useState("");
-  const [errMsg, setErrMsg]   = useState("");
-  const ref = useRef(null);
-
-  // Fechar modal ao clicar fora
-  useEffect(() => {
-    if (status !== "asking") return;
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setStatus("idle"); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [status]);
-
-  const trigger = async (pat) => {
-    setStatus("running");
-    try {
-      const res = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${pat}`,
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ref: "main" }),
-        }
-      );
-      if (res.status === 204) {
-        setStatus("ok");
-        setTimeout(() => setStatus("idle"), 4000);
-      } else {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || `HTTP ${res.status}`);
-      }
-    } catch(e) {
-      setErrMsg(e.message);
-      setStatus("err");
-      setTimeout(() => setStatus("idle"), 5000);
-    }
-  };
-
-  const handleClick = () => {
-    if (status === "running") return;
-    if (token) { trigger(token); return; }
-    setInput(""); setStatus("asking");
-  };
-
-  const handleSave = () => {
-    const pat = inputVal.trim();
-    if (!pat) return;
-    localStorage.setItem("gh_pat", pat);
-    setToken(pat);
-    trigger(pat);
-  };
-
-  const handleClear = (e) => {
-    e.stopPropagation();
-    localStorage.removeItem("gh_pat");
-    setToken(""); setStatus("idle");
-  };
-
-  const btnColor = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#787b86";
-  const btnBg    = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : "#1e2438";
-  const btnBorder= status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#5a6478";
-  const btnLabel = status==="running" ? "⏳" : status==="ok" ? "✓ A correr" : status==="err" ? "✗ Erro" : "↻ Deploy";
-
-  return (
-    <div ref={ref} style={{position:"relative"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"2px"}}>
-        <button className="cb" onClick={handleClick}
-          style={{fontSize:"9px",color:btnColor,background:btnBg,
-            border:`1px solid ${btnBorder}`,borderRadius:token?"5px 0 0 5px":"5px",
-            padding:"4px 10px",fontFamily:"'Inter',sans-serif",
-            animation: status==="running" ? "spin 1s linear infinite" : "none"}}>
-          {btnLabel}
-        </button>
-        {token && status==="idle" && (
-          <button className="cb" onClick={handleClear} title="Remover token"
-            style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
-              border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
-              padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* Modal para introduzir PAT */}
-      {status === "asking" && (
-        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,
-          background:"#1e2438",border:"1px solid #2a3042",borderRadius:"10px",
-          padding:"14px",width:"260px",boxShadow:"0 8px 32px #00000099"}}>
-          <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
-            GitHub Personal Access Token
-          </div>
-          <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"10px",lineHeight:1.6}}>
-            Precisa do scope <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.{" "}
-            <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Deploy"
-              target="_blank" rel="noopener"
-              style={{color:"#2962ff",textDecoration:"none"}}>Criar token Classic ↗</a>
-          </div>
-          <input autoFocus value={inputVal} onChange={e=>setInput(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&handleSave()}
-            type="password" placeholder="ghp_xxxxxxxxxxxx"
-            style={{width:"100%",background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
-              padding:"6px 8px",color:"#c8ccd4",fontSize:"10px",fontFamily:"monospace",
-              outline:"none",marginBottom:"8px"}}/>
-          <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
-            <button className="cb" onClick={()=>setStatus("idle")}
-              style={{fontSize:"9px",color:"#6b7280",background:"transparent",border:"1px solid #2a3042",
-                borderRadius:"5px",padding:"4px 10px"}}>Cancelar</button>
-            <button className="cb" onClick={handleSave}
-              style={{fontSize:"9px",color:"#e0e3eb",background:"#2962ff",border:"1px solid #2962ff",
-                borderRadius:"5px",padding:"4px 12px",fontWeight:"600"}}>Guardar & Correr</button>
-          </div>
-          <div style={{fontSize:"9px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
-            O token fica guardado apenas neste browser (localStorage). Nunca é enviado para servidores externos.
-          </div>
-        </div>
-      )}
-      {status === "err" && (
-        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,
-          background:"#1A0000",border:"1px solid #7F1D1D",borderRadius:"6px",
-          padding:"8px 10px",width:"200px",fontSize:"9px",color:"#F87171"}}>
-          {errMsg}
-        </div>
-      )}
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
 
 // ─── FRESHNESS INDICATOR ──────────────────────────────────────────────────────
 function FreshnessIndicator() {
@@ -1304,7 +1165,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
             fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-            Build: 2026-06-12 20:08 UTC
+            Build: 2026-06-12 20:13 UTC
           </div>
         </div>
       )}
