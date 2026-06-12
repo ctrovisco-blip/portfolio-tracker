@@ -140,6 +140,50 @@ def fetch_history(t, mkt_cap):
                 if fcfy:
                     result["fcfYield"] = fcfy
 
+        # Net Income (absolute)
+        if ni_row is not None:
+            ni_abs = {}
+            for col in ni_row.index:
+                try:
+                    v = float(ni_row[col])
+                    if v == v:
+                        ni_abs[col.year] = v
+                except:
+                    pass
+            if ni_abs:
+                result["netIncome"] = ni_abs
+
+        # Total Debt (from balance sheet)
+        debt_row = get_row(bs, ["Total Debt"])
+        if debt_row is None:
+            debt_row = get_row(bs, ["Long Term Debt"])
+        if debt_row is not None:
+            debt = {}
+            for col in debt_row.index:
+                try:
+                    v = float(debt_row[col])
+                    if v == v:
+                        debt[col.year] = v
+                except:
+                    pass
+            if debt:
+                result["totalDebt"] = debt
+
+        # Payout Ratio = Dividends Paid / Net Income
+        div_paid_row = get_row(cf, ["Cash Dividends Paid", "Dividends Paid", "Common Stock Dividend Paid"])
+        if div_paid_row is not None and ni_row is not None:
+            pr = {}
+            for col in div_paid_row.index:
+                try:
+                    d = abs(float(div_paid_row[col]))
+                    n = float(ni_row[col]) if col in ni_row.index else float("nan")
+                    if d == d and n == n and n > 0:
+                        pr[col.year] = round(d / n * 100, 2)
+                except:
+                    pass
+            if pr:
+                result["payoutRatio"] = pr
+
         return result
     except:
         return {}

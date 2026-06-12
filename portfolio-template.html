@@ -738,7 +738,7 @@ function Detail({ p }) {
     "Div CAGR 5 anos":   "Taxa de crescimento anual composto do dividendo nos últimos 5 anos.",
   };
 
-  const Card = ({label, value, color, histKey, fmtHint="pct"}) => {
+  const Card = ({label, value, color, histKey}) => {
     const desc = INDICATOR_DESC[label];
     const hist = histKey && f && f.history && f.history[histKey];
     const [tip, setTip] = React.useState(false);
@@ -748,7 +748,7 @@ function Detail({ p }) {
                 cursor:"pointer",position:"relative",transition:"border-color 0.15s"}}
         onMouseEnter={() => setTip(true)}
         onMouseLeave={() => setTip(false)}
-        onClick={() => hist && setHistModal({label, key: histKey, fmt: fmtHint})}
+        onClick={() => hist && setHistModal({label, key: histKey})}
       >
         {tip && desc && (
           <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",
@@ -810,19 +810,19 @@ function Detail({ p }) {
         <Section title="Avaliação"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
           <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"/>
-          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"}/>
+          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"} histKey="totalDebt"/>
           <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
         </div>
 
         <Section title="Rentabilidade"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)} histKey="grossMargin" fmtHint="pct"/>
-          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}   histKey="netMargin"   fmtHint="pct"/>
-          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}            histKey="roe"         fmtHint="pct"/>
+          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)} histKey="grossMargin"/>
+          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}   histKey="netMargin"/>
+          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}            histKey="roe"/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
-          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}      histKey="fcfYield"    fmtHint="pct"/>
-          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)} histKey="revenue" fmtHint="rev"/>
+          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}       histKey="fcfYield"/>
+          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)} histKey="revenue"/>
         </div>
 
         <Section title="Retorno ao Acionista"/>
@@ -830,7 +830,7 @@ function Detail({ p }) {
           <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
           <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
           <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
-          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
+          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}      histKey="payoutRatio"/>
         </div>
 
         <Section title="Crescimento do Dividendo"/>
