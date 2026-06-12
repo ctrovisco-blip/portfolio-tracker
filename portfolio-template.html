@@ -686,6 +686,7 @@ function Detail({ p }) {
   const posValue  = p.qty * p.curPrice;
   const costBasis = p.qty * p.avgPrice;
   const f = FUNDAMENTALS[p.ticker];
+  const [histModal, setHistModal] = React.useState(null);
 
   const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
@@ -703,12 +704,51 @@ function Detail({ p }) {
   const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
   const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
 
-  const Card = ({label, value, color}) => (
-    <div style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
-      <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
-      <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
-    </div>
-  );
+  const INDICATOR_DESC = {
+    "Market Cap":        "Valor total de mercado da empresa (preço × nº de ações).",
+    "Total Debt":        "Dívida total da empresa (curto e longo prazo).",
+    "P/E Ratio":         "Price-to-Earnings: quanto o mercado paga por cada unidade de lucro. Abaixo de 15 é barato; acima de 40 é caro.",
+    "Gross Margin":      "Margem bruta: lucro bruto como % da receita. Mede a eficiência na produção e pricing power.",
+    "Net Margin":        "Margem líquida: lucro após todos os custos como % da receita.",
+    "ROE":               "Return on Equity: retorno gerado sobre o capital dos acionistas. Acima de 20% é muito bom.",
+    "FCF Yield":         "Free Cash Flow Yield: caixa livre gerado pela empresa relativo ao seu valor de mercado.",
+    "Revenue Growth":    "Crescimento da receita face ao ano anterior.",
+    "Dividend Yield":    "Dividendo anual por ação como % do preço atual.",
+    "Buyback Yield":     "Valor de recompras de ações como % do market cap — retorno indireto ao acionista.",
+    "Shareholder Yield": "Dividend Yield + Buyback Yield. Total devolvido ao acionista.",
+    "Payout Ratio":      "% do lucro líquido distribuído como dividendo. Acima de 80% pode ser insustentável.",
+    "Div CAGR 5 anos":   "Taxa de crescimento anual composto do dividendo nos últimos 5 anos.",
+  };
+
+  const Card = ({label, value, color, histKey, fmtHint="pct"}) => {
+    const desc = INDICATOR_DESC[label];
+    const hist = histKey && f && f.history && f.history[histKey];
+    const [tip, setTip] = React.useState(false);
+    return (
+      <div
+        style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:`1px solid ${tip?"#2962ff":"#1e2438"}`,
+                cursor:"pointer",position:"relative",transition:"border-color 0.15s"}}
+        onMouseEnter={() => setTip(true)}
+        onMouseLeave={() => setTip(false)}
+        onClick={() => hist && setHistModal({label, key: histKey, fmt: fmtHint})}
+      >
+        {tip && desc && (
+          <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",
+            background:"#1e2438",border:"1px solid #2a2e39",borderRadius:"6px",padding:"7px 10px",
+            fontSize:"10px",color:"#c8ccd4",lineHeight:"1.4",width:"180px",zIndex:200,
+            boxShadow:"0 4px 16px #00000088",pointerEvents:"none",textAlign:"left"}}>
+            {desc}
+            {hist && <div style={{marginTop:"4px",color:"#2962ff",fontSize:"9px"}}>Clica para ver histórico →</div>}
+          </div>
+        )}
+        <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase",display:"flex",alignItems:"center",gap:"4px"}}>
+          {label}
+          {hist && <span style={{color:"#2962ff",fontSize:"8px",lineHeight:1}}>↗</span>}
+        </div>
+        <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+      </div>
+    );
+  };
 
   const Section = ({title}) => (
     <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
@@ -758,13 +798,13 @@ function Detail({ p }) {
 
         <Section title="Rentabilidade"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)}/>
-          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}/>
-          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}/>
+          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)} histKey="grossMargin" fmtHint="pct"/>
+          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}   histKey="netMargin"   fmtHint="pct"/>
+          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}            histKey="roe"         fmtHint="pct"/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
-          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}/>
-          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)}/>
+          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}      histKey="fcfYield"    fmtHint="pct"/>
+          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)} histKey="revenue" fmtHint="rev"/>
         </div>
 
         <Section title="Retorno ao Acionista"/>
@@ -802,6 +842,67 @@ function Detail({ p }) {
           Dados fundamentais não disponíveis
         </div>
       )}
+
+      {histModal && f && f.history && f.history[histModal.key] && (() => {
+        const raw = f.history[histModal.key];
+        const years = Object.keys(raw).map(Number).sort();
+        const vals  = years.map(y => raw[y]);
+        const max   = Math.max(...vals.map(Math.abs));
+        const fmtVal = v => {
+          if (histModal.fmt === "pct") return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
+          if (histModal.fmt === "rev") {
+            if (Math.abs(v) >= 1e12) return `${(v/1e12).toFixed(2)}T`;
+            if (Math.abs(v) >= 1e9)  return `${(v/1e9).toFixed(1)}B`;
+            if (Math.abs(v) >= 1e6)  return `${(v/1e6).toFixed(0)}M`;
+            return String(Math.round(v));
+          }
+          return v.toFixed(1);
+        };
+        const barCol = v => v >= 0 ? "#089981" : "#ef5350";
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
+            display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}
+            onClick={() => setHistModal(null)}>
+            <div style={{background:"#131722",border:"1px solid #2a2e39",borderRadius:"10px",
+              padding:"20px",width:"100%",maxWidth:"380px"}}
+              onClick={e => e.stopPropagation()}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
+                <div>
+                  <div style={{fontSize:"11px",color:"#787b86",marginBottom:"2px"}}>{p.ticker} · {p.name}</div>
+                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>{histModal.label}</div>
+                </div>
+                <button onClick={() => setHistModal(null)}
+                  style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"4px"}}>✕</button>
+              </div>
+              <svg width="100%" viewBox={`0 0 ${years.length * 60} 100`} style={{display:"block",marginBottom:"12px"}}>
+                {vals.map((v, i) => {
+                  const barH = max > 0 ? Math.abs(v) / max * 70 : 0;
+                  const x = i * 60 + 5;
+                  const baseline = 80;
+                  const y = v >= 0 ? baseline - barH : baseline;
+                  return (
+                    <g key={years[i]}>
+                      <rect x={x} y={y} width={50} height={Math.max(barH, 1)} fill={barCol(v)} rx="3" opacity="0.85"/>
+                      <text x={x + 25} y={baseline + 12} textAnchor="middle" fill="#6b7280" fontSize="9">{years[i]}</text>
+                      <text x={x + 25} y={v >= 0 ? y - 3 : y + barH + 11} textAnchor="middle"
+                        fill={barCol(v)} fontSize="9" fontWeight="600">{fmtVal(v)}</text>
+                    </g>
+                  );
+                })}
+                <line x1="0" y1="80" x2={years.length * 60} y2="80" stroke="#2a2e39" strokeWidth="1"/>
+              </svg>
+              <div style={{display:"grid",gridTemplateColumns:`repeat(${years.length},1fr)`,gap:"4px",textAlign:"center"}}>
+                {years.map((y,i) => (
+                  <div key={y} style={{background:"#1a1f2e",borderRadius:"4px",padding:"5px 3px"}}>
+                    <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px"}}>{y}</div>
+                    <div style={{fontSize:"11px",fontWeight:"600",color:barCol(vals[i])}}>{fmtVal(vals[i])}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

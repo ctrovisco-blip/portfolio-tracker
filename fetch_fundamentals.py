@@ -47,6 +47,104 @@ def div_cagr_5y(t):
         return round(((recent[yrs[-1]]/recent[yrs[0]])**(1/n)-1)*100, 2)
     except: return None
 
+def fetch_history(t, mkt_cap):
+    try:
+        result = {}
+        fin = t.financials
+        bs  = t.balance_sheet
+        cf  = t.cashflow
+
+        # Helper: get a row from a DataFrame by substring match
+        def get_row(df, includes, excludes=()):
+            if df is None or df.empty:
+                return None
+            for idx in df.index:
+                s = str(idx)
+                if any(inc in s for inc in includes) and not any(exc in s for exc in excludes):
+                    return df.loc[idx]
+            return None
+
+        # Revenue
+        rev_row = get_row(fin, ["Total Revenue", "Revenue"], ["Cost"])
+        if rev_row is not None:
+            revenue = {}
+            for col in rev_row.index:
+                try:
+                    v = float(rev_row[col])
+                    if v == v:  # not NaN
+                        revenue[col.year] = v
+                except:
+                    pass
+            if revenue:
+                result["revenue"] = revenue
+
+        # Gross Profit
+        gp_row = get_row(fin, ["Gross Profit"])
+        if gp_row is not None and rev_row is not None:
+            gm = {}
+            for col in gp_row.index:
+                try:
+                    gp = float(gp_row[col])
+                    rv = float(rev_row[col]) if col in rev_row.index else float("nan")
+                    if gp == gp and rv == rv and rv != 0:
+                        gm[col.year] = round(gp / rv * 100, 2)
+                except:
+                    pass
+            if gm:
+                result["grossMargin"] = gm
+
+        # Net Income
+        ni_row = get_row(fin, ["Net Income"], ["Common"])
+        if ni_row is None:
+            ni_row = get_row(fin, ["Net Income"])
+        if ni_row is not None and rev_row is not None:
+            nm = {}
+            for col in ni_row.index:
+                try:
+                    ni = float(ni_row[col])
+                    rv = float(rev_row[col]) if col in rev_row.index else float("nan")
+                    if ni == ni and rv == rv and rv != 0:
+                        nm[col.year] = round(ni / rv * 100, 2)
+                except:
+                    pass
+            if nm:
+                result["netMargin"] = nm
+
+        # ROE = Net Income / Stockholder Equity
+        eq_row = get_row(bs, ["Stockholder", "Common Stock Equity", "Total Equity"])
+        if ni_row is not None and eq_row is not None:
+            roe = {}
+            for col in ni_row.index:
+                try:
+                    ni = float(ni_row[col])
+                    eq = float(eq_row[col]) if col in eq_row.index else float("nan")
+                    if ni == ni and eq == eq and eq != 0:
+                        roe[col.year] = round(ni / eq * 100, 2)
+                except:
+                    pass
+            if roe:
+                result["roe"] = roe
+
+        # FCF Yield = Free Cash Flow / Market Cap
+        if mkt_cap and mkt_cap > 0:
+            fcf_row = get_row(cf, ["Free Cash Flow"])
+            if fcf_row is not None:
+                fcfy = {}
+                for col in fcf_row.index:
+                    try:
+                        v = float(fcf_row[col])
+                        if v == v:
+                            fcfy[col.year] = round(v / mkt_cap * 100, 2)
+                    except:
+                        pass
+                if fcfy:
+                    result["fcfYield"] = fcfy
+
+        return result
+    except:
+        return {}
+
+
 def buyback_yield(t, mkt_cap):
     try:
         if not mkt_cap or mkt_cap <= 0: return None
@@ -102,6 +200,7 @@ for p in positions:
         except Exception:
             pass
 
+        hist = fetch_history(t, mkt_cap)
         results[ticker] = {
             "marketCap":        fmt_large(mkt_cap),
             "totalDebt":        fmt_large(info.get("totalDebt")),
@@ -116,6 +215,7 @@ for p in positions:
             "fcfYield":         sr(fcf/mkt_cap*100) if fcf and mkt_cap and mkt_cap > 0 else None,
             "divCagr5y":        div_cagr_5y(t),
             "revenueGrowth":    rev_growth,
+            "history":          hist,
         }
         print(f"  PE={results[ticker][chr(112)+chr(101)]} div={results[ticker][chr(100)+chr(105)+chr(118)+chr(89)+chr(105)+chr(101)+chr(108)+chr(100)]}%")
     except Exception as e:
