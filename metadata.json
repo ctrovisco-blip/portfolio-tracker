@@ -246,5 +246,13 @@
     "exchange": "",
     "cur": "€",
     "yf": "MSF"
+  },
+  "SPCX": {
+    "name": "Space Exploration Technologies Corp. Class A Common Stock",
+    "sector": "Defesa & Aeroespacial",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "SPCX"
   }
 }
