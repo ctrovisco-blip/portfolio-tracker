@@ -25,8 +25,8 @@
     "exchange": "Xetra",
     "qty": 4.387522,
     "avgPrice": 48.1912,
-    "curPrice": 48.947,
-    "ppl": 3.32,
+    "curPrice": 48.705,
+    "ppl": 2.25,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -74,8 +74,8 @@
     "exchange": "NYSE",
     "qty": 3.841807,
     "avgPrice": 60.4898,
-    "curPrice": 62.69,
-    "ppl": 8.48,
+    "curPrice": 62.52,
+    "ppl": 7.88,
     "cur": "$",
     "buyDates": [
       "2026-06-04"
@@ -89,8 +89,8 @@
     "exchange": "NYSE",
     "qty": 4.095877,
     "avgPrice": 141.3812,
-    "curPrice": 149.76,
-    "ppl": 30.97,
+    "curPrice": 149.63,
+    "ppl": 30.42,
     "cur": "$",
     "buyDates": [
       "2026-06-03"
@@ -138,7 +138,7 @@
     "qty": 70.056922,
     "avgPrice": 918.7609,
     "curPrice": 1308.0,
-    "ppl": 310.82,
+    "ppl": 310.27,
     "cur": "p",
     "buyDates": [
       "2024-10-14",
@@ -164,9 +164,9 @@
   {
     "ticker": "NKE",
     "name": "NIKE, Inc.",
-    "sector": "Outro",
+    "sector": "Consumer Staples",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "qty": 13.397286,
     "avgPrice": 37.321,
     "curPrice": 39.29,
@@ -181,11 +181,11 @@
     "name": "Meta Platforms, Inc.",
     "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "NASDAQ",
     "qty": 2.334656,
     "avgPrice": 570.2255,
-    "curPrice": 567.35,
-    "ppl": -6.83,
+    "curPrice": 567.03,
+    "ppl": -7.68,
     "cur": "$",
     "buyDates": [
       "2026-06-10",
@@ -195,9 +195,9 @@
   {
     "ticker": "MSF",
     "name": "Microsoft",
-    "sector": "Outro",
+    "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "qty": 1.846108,
     "avgPrice": 338.55,
     "curPrice": 335.15,
@@ -215,8 +215,8 @@
     "exchange": "",
     "qty": 1.0,
     "avgPrice": 159.95,
-    "curPrice": 163.81,
-    "ppl": 3.42,
+    "curPrice": 162.89,
+    "ppl": 2.6,
     "cur": "$",
     "buyDates": [
       "2026-06-12"
