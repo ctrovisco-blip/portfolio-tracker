@@ -117,6 +117,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Botão Visão Geral — só mobile */
   .mob-overview-btn{display:none!important;}
+  .mob-overview-sort{display:flex!important;}
 
   /* Esconder botão Portfolio do header no mobile */
   .hdr-back{display:none!important;}
@@ -2425,7 +2426,7 @@ function App() {
                 <button key={k} className="cb" style={pillStyle(sort===k)}
                   onClick={() => setSort(k)}>{l}</button>
               ))}
-              <button className="mob-overview-btn cb" style={{display:"none",marginLeft:"4px"}}
+              <button className="mob-overview-sort cb" style={{display:"none",marginLeft:"4px"}}
                 onClick={() => { setSel(null); setMobPanel("overview"); }}>
                 ≡ Overview
               </button>
