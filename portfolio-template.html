@@ -967,7 +967,136 @@ function PortfolioOverview({ positions, onSelect }) {
 }
 
 
-// ─── DEPLOY BUTTON ────────────────────────────────────────────────────────────
+// ─── DEPLOY + COUNTDOWN (combined widget) ────────────────────────────────────
+function DeployCountdown() {
+  const REFRESH_MS = 15 * 60 * 1000;
+  const [status,    setStatus]   = useState("idle"); // idle | asking | running | ok | err
+  const [token,     setToken]    = useState(() => localStorage.getItem("gh_pat") || "");
+  const [inputVal,  setInput]    = useState("");
+  const [errMsg,    setErrMsg]   = useState("");
+  const [minsLeft,  setMinsLeft] = useState(15);
+  const ref = useRef(null);
+
+  // Auto-refresh timer + countdown
+  useEffect(() => {
+    const deadline = Date.now() + REFRESH_MS;
+    const tick = setInterval(() => {
+      setMinsLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 60000)));
+    }, 10000);
+    const reload = setTimeout(() => location.reload(), REFRESH_MS);
+    return () => { clearInterval(tick); clearTimeout(reload); };
+  }, []);
+
+  // Fechar modal ao clicar fora
+  useEffect(() => {
+    if (status !== "asking") return;
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setStatus("idle"); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [status]);
+
+  const trigger = async (pat) => {
+    setStatus("running");
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`,
+        { method:"POST", headers:{ "Authorization":`Bearer ${pat}`, "Accept":"application/vnd.github+json", "Content-Type":"application/json" },
+          body: JSON.stringify({ ref:"main" }) }
+      );
+      if (res.status === 204) {
+        setStatus("ok");
+        setTimeout(() => setStatus("idle"), 4000);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.message || `HTTP ${res.status}`);
+      }
+    } catch(e) {
+      setErrMsg(e.message);
+      setStatus("err");
+      setTimeout(() => setStatus("idle"), 5000);
+    }
+  };
+
+  const handleClick = () => {
+    if (status === "running") return;
+    if (token) { trigger(token); return; }
+    setInput(""); setStatus("asking");
+  };
+
+  const handleSave = () => {
+    const pat = inputVal.trim();
+    if (!pat) return;
+    localStorage.setItem("gh_pat", pat);
+    setToken(pat);
+    trigger(pat);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    localStorage.removeItem("gh_pat");
+    setToken(""); setStatus("idle");
+  };
+
+  const col    = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : status==="running" ? "#5b8af5" : "#6b7280";
+  const bg     = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : status==="running" ? "#2962ff11" : "#1e2438";
+  const border = status==="ok" ? "#22C55E44" : status==="err" ? "#ef535044" : status==="running" ? "#2962ff44" : "#2a3042";
+
+  const label = status==="running" ? "⏳ a correr…"
+              : status==="ok"      ? "✓ em curso"
+              : status==="err"     ? "✗ erro"
+              : `↻ ${minsLeft}m`;
+
+  return (
+    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",gap:"2px"}}>
+      <button className="cb" onClick={handleClick}
+        style={{fontSize:"9px",color:col,background:bg,
+          border:`1px solid ${border}`,borderRadius: token&&status==="idle" ? "5px 0 0 5px" : "5px",
+          padding:"4px 10px",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",
+          transition:"all 0.2s"}}>
+        {label}
+      </button>
+      {token && status==="idle" && (
+        <button className="cb" onClick={handleClear} title="Remover token"
+          style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
+            border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
+            padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
+          ×
+        </button>
+      )}
+      {status==="asking" && (
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:100,
+          background:"#1a1f2e",border:"1px solid #3a4060",borderRadius:"8px",
+          padding:"12px",width:"260px",boxShadow:"0 8px 24px #00000066"}}>
+          <div style={{fontSize:"10px",color:"#c8ccd4",marginBottom:"8px",fontWeight:"600"}}>
+            GitHub Personal Access Token
+          </div>
+          <input autoFocus value={inputVal} onChange={e=>setInput(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&handleSave()}
+            placeholder="ghp_…"
+            style={{width:"100%",boxSizing:"border-box",background:"#131722",
+              border:"1px solid #3a4060",borderRadius:"5px",padding:"6px 8px",
+              color:"#c8ccd4",fontSize:"10px",fontFamily:"'Inter',sans-serif",outline:"none"}}/>
+          <div style={{display:"flex",gap:"6px",marginTop:"8px"}}>
+            <button className="cb" onClick={handleSave}
+              style={{flex:1,fontSize:"9px",padding:"5px",borderRadius:"5px",
+                background:"#2962ff",border:"none",color:"#fff",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+              Guardar e Deploy
+            </button>
+            <button className="cb" onClick={()=>setStatus("idle")}
+              style={{fontSize:"9px",padding:"5px 8px",borderRadius:"5px",cursor:"pointer",
+                background:"transparent",border:"1px solid #2a3042",color:"#6b7280",fontFamily:"'Inter',sans-serif"}}>
+              Cancelar
+            </button>
+          </div>
+          {status==="err" && <div style={{fontSize:"9px",color:"#ef5350",marginTop:"6px"}}>{errMsg}</div>}
+        </div>
+      )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
+// ─── DEPLOY BUTTON (legacy — mantido para compatibilidade) ────────────────────
 const GH_REPO     = "ctrovisco-blip/portfolio-tracker";
 const GH_WORKFLOW = "update.yml";
 
@@ -2096,16 +2225,6 @@ function App() {
   const [sector, setSector]     = useState("all");
   const [sort, setSort]         = useState("ppl");
 
-  // ── Auto-refresh a cada 15 minutos ────────────────────────────────
-  const REFRESH_MS = 15 * 60 * 1000;
-  const [nextRefresh, setNextRefresh] = useState(Date.now() + REFRESH_MS);
-  useEffect(() => {
-    const tick = setInterval(() => setNextRefresh(Date.now() + REFRESH_MS), 60000);
-    const reload = setTimeout(() => location.reload(), REFRESH_MS);
-    return () => { clearInterval(tick); clearTimeout(reload); };
-  }, []);
-  const minsLeft = Math.max(0, Math.ceil((nextRefresh - Date.now()) / 60000));
-
   // ── Resizable panes ────────────────────────────────────────────────
   const [rightW, setRightW]   = useState(() => {
     const v = parseInt(localStorage.getItem("pane_rightW"));
@@ -2204,10 +2323,6 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
-        <span className="hdr-freshness-text" style={{fontSize:"9px",color:"#3d4760",letterSpacing:"0.3px"}}
-          title="Página recarrega automaticamente">
-          ↻ {minsLeft}m
-        </span>
         {/* Tab navigation */}
         <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
           {[
@@ -2225,7 +2340,7 @@ function App() {
           ))}
         </div>
         <FreshnessIndicator/>
-        <div className="hdr-deploy"><DeployButton/></div>
+        <DeployCountdown/>
         {/* Botão "Visão Geral" — só visível no mobile via CSS */}
         <button className="mob-overview-btn cb" style={{display:"none",
           fontSize:"9px",color:"#787b86",background:"#1e2438",
