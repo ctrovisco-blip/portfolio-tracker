@@ -2412,7 +2412,7 @@ function App() {
                 <button key={k} className="cb" style={pillStyle(sort===k)}
                   onClick={() => setSort(k)}>{l}</button>
               ))}
-              <button className="mob-overview-sort cb" style={{display:"none",marginLeft:"4px"}}
+              <button className="mob-overview-sort cb" style={{...pillStyle(false),display:"none",marginLeft:"4px"}}
                 onClick={() => { setSel(null); setMobPanel("overview"); }}>
                 ≡ Overview
               </button>
