@@ -2096,6 +2096,16 @@ function App() {
   const [sector, setSector]     = useState("all");
   const [sort, setSort]         = useState("ppl");
 
+  // ── Auto-refresh a cada 15 minutos ────────────────────────────────
+  const REFRESH_MS = 15 * 60 * 1000;
+  const [nextRefresh, setNextRefresh] = useState(Date.now() + REFRESH_MS);
+  useEffect(() => {
+    const tick = setInterval(() => setNextRefresh(Date.now() + REFRESH_MS), 60000);
+    const reload = setTimeout(() => location.reload(), REFRESH_MS);
+    return () => { clearInterval(tick); clearTimeout(reload); };
+  }, []);
+  const minsLeft = Math.max(0, Math.ceil((nextRefresh - Date.now()) / 60000));
+
   // ── Resizable panes ────────────────────────────────────────────────
   const [rightW, setRightW]   = useState(() => {
     const v = parseInt(localStorage.getItem("pane_rightW"));
@@ -2194,6 +2204,10 @@ function App() {
           TRADING212 · LIVE · {positions.length} POSIÇÕES
         </span>
         <div style={{flex:1}}/>
+        <span className="hdr-freshness-text" style={{fontSize:"9px",color:"#3d4760",letterSpacing:"0.3px"}}
+          title="Página recarrega automaticamente">
+          ↻ {minsLeft}m
+        </span>
         {/* Tab navigation */}
         <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
           {[
