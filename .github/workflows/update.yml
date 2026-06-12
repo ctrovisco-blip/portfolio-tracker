@@ -149,6 +149,8 @@ jobs:
             exit 0
           fi
           git commit -m "chore: update portfolio data $(date -u +'%Y-%m-%d %H:%M UTC') [skip ci]"
-          # Pull rebase para incorporar eventuais commits remotos antes de push
-          git pull --rebase origin main
+          # Rebase sobre origin/main; em conflito no index.html (sempre gerado),
+          # usa a versão deste commit (-X theirs)
+          git fetch origin main
+          git rebase -X theirs origin/main
           git push origin main

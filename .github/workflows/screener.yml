@@ -62,5 +62,6 @@ jobs:
             exit 0
           fi
           git commit -m "feat: screener — ${{ github.event.inputs.tickers }} [skip ci]"
-          git pull --rebase origin main
+          git fetch origin main
+          git rebase -X theirs origin/main
           git push origin main
