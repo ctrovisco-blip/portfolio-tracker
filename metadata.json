@@ -238,5 +238,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "META"
+  },
+  "MSF": {
+    "name": "Microsoft",
+    "sector": "Outro",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "€",
+    "yf": "MSF"
   }
 }
