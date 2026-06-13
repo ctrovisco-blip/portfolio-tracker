@@ -212,7 +212,8 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
 function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y" }) {
   const [hoverIdx, setHoverIdx] = useState(null);
   const [viewWindow, setViewWindow] = useState(null); // {start,end} | null = all
-  const [pinch, setPinch] = useState(null);           // {dist,start,end}
+  const [pinch, setPinch] = useState(null);           // {dist,start,end,anchorFrac}
+  const [panStart, setPanStart] = useState(null);     // {x,winStart,winEnd}
   const lastTap = useRef(0);
   const svgRef = useRef(null);
 
@@ -300,25 +301,43 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
       e.preventDefault();
-      setPinch({ dist: pinchDist(e.touches), start: visStart, end: visEnd });
+      const rect = svgRef.current?.getBoundingClientRect();
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const frac = rect ? Math.max(0, Math.min(1, (midX - rect.left) / rect.width)) : 0.5;
+      setPinch({ dist: pinchDist(e.touches), start: visStart, end: visEnd, anchorFrac: frac });
+      setPanStart(null);
+    } else if (e.touches.length === 1) {
+      setPanStart({ x: e.touches[0].clientX, winStart: visStart, winEnd: visEnd });
     }
   };
 
   const handleTouchMove = (e) => {
+    e.preventDefault();
     if (e.touches.length === 2) {
-      e.preventDefault();
       if (!pinch) return;
-      const scale = pinch.dist / Math.max(1, pinchDist(e.touches));
-      const center = (pinch.start + pinch.end) / 2;
-      const half   = Math.max(4, ((pinch.end - pinch.start) / 2) * scale);
-      const newStart = Math.max(0, Math.round(center - half));
-      const newEnd   = Math.min(allEntries.length - 1, Math.round(center + half));
+      const newDist = Math.max(1, pinchDist(e.touches));
+      const scale   = pinch.dist / newDist;
+      const span    = pinch.end - pinch.start;
+      const newSpan = Math.max(5, Math.round(span * scale));
+      // Anchor zoom to the original pinch midpoint fraction
+      const anchor  = pinch.start + pinch.anchorFrac * span;
+      const newStart = Math.max(0, Math.round(anchor - pinch.anchorFrac * newSpan));
+      const newEnd   = Math.min(allEntries.length - 1, newStart + newSpan);
       if (newEnd - newStart >= 5) setViewWindow({ start: newStart, end: newEnd });
       return;
     }
-    e.preventDefault();
+    // Single finger
     const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = svgRef.current?.getBoundingClientRect() || e.currentTarget.getBoundingClientRect();
+    // Pan when zoomed
+    if (isZoomed && panStart) {
+      const dxPx  = touch.clientX - panStart.x;
+      const span  = panStart.winEnd - panStart.winStart;
+      const shift = Math.round(-dxPx / rect.width * span);
+      const s = Math.max(0, Math.min(allEntries.length - 1 - span, panStart.winStart + shift));
+      setViewWindow({ start: s, end: Math.min(allEntries.length - 1, s + span) });
+    }
+    // Hover crosshair
     const mouseX = (touch.clientX - rect.left) * (W / rect.width) - PAD.left;
     const idx = Math.round((mouseX / cW) * (entries.length - 1));
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
@@ -327,10 +346,10 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
   const handleTouchEnd = (e) => {
     if (e.touches.length < 2) setPinch(null);
     if (e.touches.length === 0) {
+      setPanStart(null);
       setHoverIdx(null);
-      // double-tap resets zoom
       const now = Date.now();
-      if (now - lastTap.current < 300) { setViewWindow(null); }
+      if (now - lastTap.current < 300) setViewWindow(null);
       lastTap.current = now;
     }
   };
@@ -1352,7 +1371,7 @@ function FreshnessIndicator() {
           ))}
           <div style={{marginTop:"8px",paddingTop:"7px",borderTop:"1px solid #2a3042",
             fontSize:"9px",color:"#6b7280",letterSpacing:"0.3px"}}>
-            Build: 2026-06-13 00:40 UTC
+            Build: 2026-06-13 00:45 UTC
           </div>
         </div>
       )}
