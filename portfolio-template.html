@@ -211,15 +211,26 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
 // ─── LINE CHART ───────────────────────────────────────────────────────────────
 function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y" }) {
   const [hoverIdx, setHoverIdx] = useState(null);
+  const [viewWindow, setViewWindow] = useState(null); // {start,end} | null = all
+  const [pinch, setPinch] = useState(null);           // {dist,start,end}
+  const lastTap = useRef(0);
   const svgRef = useRef(null);
 
-  const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
+  const allEntries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
 
-  if (!entries.length) return (
+  // Reset zoom when data/range changes
+  useEffect(() => { setViewWindow(null); setHoverIdx(null); setPinch(null); }, [seriesData]);
+
+  if (!allEntries.length) return (
     <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#6b7280",fontSize:"11px"}}>
       Sem dados históricos disponíveis
     </div>
   );
+
+  const visStart = viewWindow?.start ?? 0;
+  const visEnd   = viewWindow?.end   ?? (allEntries.length - 1);
+  const entries  = allEntries.slice(visStart, visEnd + 1);
+  const isZoomed = visStart > 0 || visEnd < allEntries.length - 1;
 
   const W = 700, H = 140;
   const PAD = { top:16, right:58, bottom:26, left:48 };
@@ -280,13 +291,48 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
   };
 
+  const pinchDist = (t) => {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      setPinch({ dist: pinchDist(e.touches), start: visStart, end: visEnd });
+    }
+  };
+
   const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      if (!pinch) return;
+      const scale = pinch.dist / Math.max(1, pinchDist(e.touches));
+      const center = (pinch.start + pinch.end) / 2;
+      const half   = Math.max(4, ((pinch.end - pinch.start) / 2) * scale);
+      const newStart = Math.max(0, Math.round(center - half));
+      const newEnd   = Math.min(allEntries.length - 1, Math.round(center + half));
+      if (newEnd - newStart >= 5) setViewWindow({ start: newStart, end: newEnd });
+      return;
+    }
     e.preventDefault();
     const touch = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = (touch.clientX - rect.left) * (W / rect.width) - PAD.left;
     const idx = Math.round((mouseX / cW) * (entries.length - 1));
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.touches.length < 2) setPinch(null);
+    if (e.touches.length === 0) {
+      setHoverIdx(null);
+      // double-tap resets zoom
+      const now = Date.now();
+      if (now - lastTap.current < 300) { setViewWindow(null); }
+      lastTap.current = now;
+    }
   };
 
   const hov = hoverIdx;
@@ -300,12 +346,22 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
 
   return (
     <div style={{position:"relative",userSelect:"none",height:"100%"}}>
+      {isZoomed && (
+        <div onClick={() => setViewWindow(null)}
+          style={{position:"absolute",top:"4px",right:"4px",zIndex:20,
+            background:"#2962ff22",border:"1px solid #2962ff66",borderRadius:"4px",
+            padding:"2px 7px",fontSize:"9px",color:"#2962ff",cursor:"pointer",
+            lineHeight:"16px",letterSpacing:"0.3px"}}>
+          ⟳ repor zoom
+        </div>
+      )}
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        style={{display:"block"}}
+        style={{display:"block",touchAction:"none"}}
         onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}
-        onTouchMove={handleTouchMove} onTouchEnd={() => setHoverIdx(null)}
-        style={{display:"block",touchAction:"pan-y"}}>
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.22":"0.18"}/>
