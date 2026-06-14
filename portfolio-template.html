@@ -147,6 +147,19 @@ const TIMESTAMPS    = /*__TIMESTAMPS__*/;
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
 
+// ── News read-state helpers ───────────────────────────────────────────────────
+const NEWS_READ_KEY = "news_read";
+const getReadUrls = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(NEWS_READ_KEY) || "[]")); }
+  catch { return new Set(); }
+};
+const markUrlRead = url => {
+  try {
+    const s = getReadUrls(); s.add(url);
+    localStorage.setItem(NEWS_READ_KEY, JSON.stringify([...s]));
+  } catch {}
+};
+
 const positions = /*__POSITIONS__*/;
 const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
 
@@ -1017,11 +1030,14 @@ function Detail({ p }) {
           return (Date.now() / 1000 - a.ts) < 48 * 3600;
         });
         const [open, setOpen] = useState(false);
+        const [readUrls, setReadUrls] = useState(getReadUrls);
+        const unread = articles.filter(a => !readUrls.has(a.url)).length;
         const fmtAge = ts => {
           if (!ts) return "";
           const h = Math.floor((Date.now()/1000 - ts) / 3600);
           return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h/24)}d`;
         };
+        const handleClick = url => { markUrlRead(url); setReadUrls(getReadUrls()); };
         return (<>
           <button onClick={() => setOpen(true)} style={{
             width:"100%",marginTop:"12px",padding:"10px",
@@ -1031,10 +1047,10 @@ function Detail({ p }) {
             letterSpacing:"0.3px",
           }}>
             📰 Notícias recentes
-            {articles.length > 0 && (
+            {unread > 0 && (
               <span style={{background:"#2962ff",color:"#fff",borderRadius:"10px",
                 padding:"1px 7px",fontSize:"9px",fontWeight:"700"}}>
-                {articles.length}
+                {unread}
               </span>
             )}
           </button>
@@ -1059,11 +1075,16 @@ function Detail({ p }) {
                     <div style={{textAlign:"center",color:"#6b7280",fontSize:"11px",padding:"24px 0"}}>
                       Sem notícias nas últimas 48h
                     </div>
-                  ) : articles.map((a, i) => (
+                  ) : articles.map((a, i) => {
+                    const isRead = readUrls.has(a.url);
+                    return (
                     <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      onClick={() => handleClick(a.url)}
                       style={{display:"block",textDecoration:"none",
-                        padding:"10px 0",borderBottom:"1px solid #1e2438"}}>
-                      <div style={{fontSize:"11px",color:"#d1d4dc",fontWeight:"500",
+                        padding:"10px 0",borderBottom:"1px solid #1e2438",
+                        opacity: isRead ? 0.45 : 1, transition:"opacity 0.2s"}}>
+                      <div style={{fontSize:"11px",color: isRead ? "#6b7280" : "#d1d4dc",
+                        fontWeight: isRead ? "400" : "500",
                         lineHeight:"1.4",marginBottom:"5px"}}>{a.title}</div>
                       <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
                         <span style={{fontSize:"9px",color:"#5a6478",fontWeight:"600",
@@ -1072,7 +1093,8 @@ function Detail({ p }) {
                         {a.ts && <span style={{fontSize:"9px",color:"#5a6478"}}>{fmtAge(a.ts)}</span>}
                       </div>
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -2227,11 +2249,14 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
           return (Date.now() / 1000 - a.ts) < 48 * 3600;
         });
         const [open, setOpen] = useState(false);
+        const [readUrls, setReadUrls] = useState(getReadUrls);
+        const unread = articles.filter(a => !readUrls.has(a.url)).length;
         const fmtAge = ts => {
           if (!ts) return "";
           const h = Math.floor((Date.now()/1000 - ts) / 3600);
           return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h/24)}d`;
         };
+        const handleClick = url => { markUrlRead(url); setReadUrls(getReadUrls()); };
         return (<>
           <button onClick={() => setOpen(true)} style={{
             width:"100%",marginTop:"10px",padding:"9px",
@@ -2241,10 +2266,10 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
             letterSpacing:"0.3px",
           }}>
             📰 Notícias recentes
-            {articles.length > 0 && (
+            {unread > 0 && (
               <span style={{background:"#2962ff",color:"#fff",borderRadius:"10px",
                 padding:"1px 7px",fontSize:"9px",fontWeight:"700"}}>
-                {articles.length}
+                {unread}
               </span>
             )}
           </button>
@@ -2269,11 +2294,16 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
                     <div style={{textAlign:"center",color:"#6b7280",fontSize:"11px",padding:"24px 0"}}>
                       Sem notícias nas últimas 48h
                     </div>
-                  ) : articles.map((a, i) => (
+                  ) : articles.map((a, i) => {
+                    const isRead = readUrls.has(a.url);
+                    return (
                     <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      onClick={() => handleClick(a.url)}
                       style={{display:"block",textDecoration:"none",
-                        padding:"10px 0",borderBottom:"1px solid #1e2438"}}>
-                      <div style={{fontSize:"11px",color:"#d1d4dc",fontWeight:"500",
+                        padding:"10px 0",borderBottom:"1px solid #1e2438",
+                        opacity: isRead ? 0.45 : 1, transition:"opacity 0.2s"}}>
+                      <div style={{fontSize:"11px",color: isRead ? "#6b7280" : "#d1d4dc",
+                        fontWeight: isRead ? "400" : "500",
                         lineHeight:"1.4",marginBottom:"5px"}}>{a.title}</div>
                       <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
                         <span style={{fontSize:"9px",color:"#5a6478",fontWeight:"600",
@@ -2282,7 +2312,8 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
                         {a.ts && <span style={{fontSize:"9px",color:"#5a6478"}}>{fmtAge(a.ts)}</span>}
                       </div>
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
