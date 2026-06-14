@@ -141,6 +141,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 const CHART_DATA    = /*__CHART_DATA__*/;
 const FX_RATES      = /*__FX_RATES__*/;
 const SCREENER_DATA = /*__SCREENER_DATA__*/;
+const NEWS_DATA     = /*__NEWS_DATA__*/;
 const TIMESTAMPS    = /*__TIMESTAMPS__*/;
 </script>
 <script type="text/babel">
@@ -1007,6 +1008,76 @@ function Detail({ p }) {
             </div>
           </div>
         );
+      })()}
+
+      {/* ── News button ── */}
+      {(() => {
+        const articles = (NEWS_DATA[p.ticker] || []).filter(a => {
+          if (!a.ts) return true;
+          return (Date.now() / 1000 - a.ts) < 48 * 3600;
+        });
+        const [open, setOpen] = useState(false);
+        const fmtAge = ts => {
+          if (!ts) return "";
+          const h = Math.floor((Date.now()/1000 - ts) / 3600);
+          return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h/24)}d`;
+        };
+        return (<>
+          <button onClick={() => setOpen(true)} style={{
+            width:"100%",marginTop:"12px",padding:"10px",
+            background:"#1a1f2e",border:"1px solid #2a2e39",borderRadius:"6px",
+            color:"#c8ccd4",fontSize:"11px",fontWeight:"600",cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
+            letterSpacing:"0.3px",
+          }}>
+            📰 Notícias recentes
+            {articles.length > 0 && (
+              <span style={{background:"#2962ff",color:"#fff",borderRadius:"10px",
+                padding:"1px 7px",fontSize:"9px",fontWeight:"700"}}>
+                {articles.length}
+              </span>
+            )}
+          </button>
+          {open && (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
+              display:"flex",alignItems:"flex-end",justifyContent:"center"}}
+              onClick={() => setOpen(false)}>
+              <div style={{background:"#131722",borderRadius:"12px 12px 0 0",
+                width:"100%",maxWidth:"500px",maxHeight:"80vh",display:"flex",flexDirection:"column"}}
+                onClick={e => e.stopPropagation()}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  padding:"14px 16px 10px",borderBottom:"1px solid #1e2438",flexShrink:0}}>
+                  <div>
+                    <div style={{fontSize:"10px",color:"#787b86"}}>{p.ticker} · {p.name}</div>
+                    <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>Notícias recentes</div>
+                  </div>
+                  <button onClick={() => setOpen(false)}
+                    style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"20px",padding:"4px"}}>✕</button>
+                </div>
+                <div style={{overflowY:"auto",padding:"8px 12px 16px"}}>
+                  {articles.length === 0 ? (
+                    <div style={{textAlign:"center",color:"#6b7280",fontSize:"11px",padding:"24px 0"}}>
+                      Sem notícias nas últimas 48h
+                    </div>
+                  ) : articles.map((a, i) => (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      style={{display:"block",textDecoration:"none",
+                        padding:"10px 0",borderBottom:"1px solid #1e2438"}}>
+                      <div style={{fontSize:"11px",color:"#d1d4dc",fontWeight:"500",
+                        lineHeight:"1.4",marginBottom:"5px"}}>{a.title}</div>
+                      <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                        <span style={{fontSize:"9px",color:"#5a6478",fontWeight:"600",
+                          textTransform:"uppercase",letterSpacing:"0.4px"}}>{a.source}</span>
+                        {a.ts && <span style={{fontSize:"9px",color:"#3d4663"}}>·</span>}
+                        {a.ts && <span style={{fontSize:"9px",color:"#5a6478"}}>{fmtAge(a.ts)}</span>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>);
       })()}
     </div>
   );

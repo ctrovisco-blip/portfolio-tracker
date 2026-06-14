@@ -83,6 +83,11 @@ jobs:
           github.event.schedule == '0 10 * * 6'
         run: python fetch_fundamentals.py
 
+      - name: Fetch news (yfinance)
+        id: news
+        continue-on-error: true
+        run: python fetch_news.py
+
       - name: Refresh screener watchlist
         id: screener
         continue-on-error: true
