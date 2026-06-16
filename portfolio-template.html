@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><polyline points='8,72 28,42 48,57 68,24 92,34' fill='none' stroke='%233FB950' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -144,7 +144,7 @@ const SCREENER_DATA = /*__SCREENER_DATA__*/;
 const NEWS_DATA     = /*__NEWS_DATA__*/;
 const TIMESTAMPS    = /*__TIMESTAMPS__*/;
 </script>
-<script type="text/babel">
+<script type="text/babel" data-presets="react">
 const { useState, useMemo, useRef, useEffect } = React;
 
 // ── News read-state helpers ───────────────────────────────────────────────────
