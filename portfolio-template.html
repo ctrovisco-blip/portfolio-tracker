@@ -915,16 +915,27 @@ function Detail({ p }) {
     const desc = INDICATOR_DESC[label];
     const hist = histKey && f && f.history && f.history[histKey];
     const [tip, setTip] = React.useState(false);
+    const [tipPos, setTipPos] = React.useState({left:"50%",transform:"translateX(-50%)"});
+    const handleEnter = e => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const vw = window.innerWidth;
+      if (rect.left < 80)           setTipPos({left:0, transform:"none"});
+      else if (rect.right > vw - 80) setTipPos({right:0, left:"auto", transform:"none"});
+      else                            setTipPos({left:"50%", transform:"translateX(-50%)"});
+      setTip(true);
+    };
     return (
       <div
         style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:`1px solid ${tip?"#2962ff":"#1e2438"}`,
                 cursor:"pointer",position:"relative",transition:"border-color 0.15s"}}
-        onMouseEnter={() => setTip(true)}
+        onMouseEnter={handleEnter}
         onMouseLeave={() => setTip(false)}
+        onTouchStart={handleEnter}
+        onTouchEnd={() => setTimeout(() => setTip(false), 1800)}
         onClick={() => hist && setHistModal({label, key: histKey})}
       >
         {tip && desc && (
-          <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",
+          <div style={{position:"absolute",bottom:"calc(100% + 6px)",...tipPos,
             background:"#1e2438",border:"1px solid #2a2e39",borderRadius:"6px",padding:"7px 10px",
             fontSize:"10px",color:"#c8ccd4",lineHeight:"1.4",width:"180px",zIndex:200,
             boxShadow:"0 4px 16px #00000088",pointerEvents:"none",textAlign:"left"}}>
