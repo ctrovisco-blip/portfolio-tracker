@@ -1088,11 +1088,11 @@ function Detail({ p }) {
                 })}
                 <line x1="0" y1="80" x2={years.length * 60} y2="80" stroke="#2a2e39" strokeWidth="1"/>
               </svg>
-              <div style={{display:"grid",gridTemplateColumns:`repeat(${years.length},1fr)`,gap:"4px",textAlign:"center"}}>
+              <div style={{display:"grid",gridTemplateColumns:`repeat(${years.length},minmax(0,1fr))`,gap:"4px",textAlign:"center"}}>
                 {years.map((y,i) => (
-                  <div key={y} style={{background:"#1a1f2e",borderRadius:"4px",padding:"5px 3px"}}>
+                  <div key={y} style={{background:"#1a1f2e",borderRadius:"4px",padding:"5px 2px",minWidth:0}}>
                     <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px"}}>{y}</div>
-                    <div style={{fontSize:"11px",fontWeight:"600",color:barCol(vals[i])}}>{fmtVal(vals[i])}</div>
+                    <div style={{fontSize:"10px",fontWeight:"600",color:barCol(vals[i]),whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{fmtVal(vals[i])}</div>
                   </div>
                 ))}
               </div>
