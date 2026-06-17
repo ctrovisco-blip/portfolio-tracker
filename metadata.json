@@ -254,5 +254,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "SPCX"
+  },
+  "ITU": {
+    "name": "Intuit",
+    "sector": "Outro",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "€",
+    "yf": "ITU"
   }
 }

@@ -30,5 +30,6 @@
   "NKEd_EQ": "NKE",
   "FB_US_EQ": "META",
   "MSFd_EQ": "MSF",
-  "SPCX_US_EQ": "SPCX"
+  "SPCX_US_EQ": "SPCX",
+  "ITUd_EQ": "ITU"
 }
