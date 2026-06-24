@@ -262,5 +262,13 @@
     "exchange": "",
     "cur": "€",
     "yf": "ITU"
+  },
+  "VICI": {
+    "name": "VICI Properties Inc.",
+    "sector": "REIT",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "VICI"
   }
 }
