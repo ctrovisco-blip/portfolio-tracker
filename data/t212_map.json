@@ -32,5 +32,6 @@
   "MSFd_EQ": "MSF",
   "SPCX_US_EQ": "SPCX",
   "ITUd_EQ": "ITU",
-  "VICI_US_EQ": "VICI"
+  "VICI_US_EQ": "VICI",
+  "GLWd_EQ": "GLW"
 }

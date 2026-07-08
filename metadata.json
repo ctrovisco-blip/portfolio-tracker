@@ -270,5 +270,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "VICI"
+  },
+  "GLW": {
+    "name": "Corning Incorporated",
+    "sector": "Tech & AI",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "€",
+    "yf": "GLW"
   }
 }
