@@ -41,7 +41,7 @@ Números em formato pt-PT (vírgula decimal, € prefixado).
 4. **Montar o HTML**: usar `.claude/skills/relatorio-posicoes/template.html`,
    substituindo `__DATA__` por um JSON com:
    - `summary`, `positions`, `ytd` (do metrics.json), `verdicts` (passo 3);
-   - `asofLong` (ex.: `"16 de Julho de 2026, 10:56 UTC"`);
+   - `asofLong` = `summary.asofLong` do metrics.json (já em hora de Lisboa);
    - `notes.currency` e `notes.concentration` (1-2 frases cada, com os números actuais);
    - `risks` (3-6 itens HTML `<b>Título.</b> explicação`) e `conclusions` (3-6 itens HTML).
    Publicar com a ferramenta Artifact usando o `url` acima. Se o template for

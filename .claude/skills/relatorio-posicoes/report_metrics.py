@@ -13,7 +13,12 @@ Convenções importantes:
 import json, sys
 from collections import defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import subprocess
+
+TZ = ZoneInfo("Europe/Lisbon")
+MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho",
+         "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
 pos    = json.load(open("data/positions.json", encoding="utf-8"))
 fx     = json.load(open("data/fx.json", encoding="utf-8"))
@@ -26,13 +31,17 @@ def last(series):
     if not series: return None
     return round(series[max(series)], 2)
 
-# data de actualização = último commit que tocou data/positions.json
+# data de actualização = último commit que tocou data/positions.json,
+# convertida para a hora de Lisboa
 try:
-    asof = subprocess.check_output(
-        ["git", "log", "-1", "--format=%ci", "--", "data/positions.json"],
-        text=True).strip()[:16] + " UTC"
+    raw = subprocess.check_output(
+        ["git", "log", "-1", "--format=%cI", "--", "data/positions.json"],
+        text=True).strip()
+    dt = datetime.fromisoformat(raw).astimezone(TZ)
 except Exception:
-    asof = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    dt = datetime.now(timezone.utc).astimezone(TZ)
+asof = dt.strftime("%Y-%m-%d %H:%M") + " (hora de Lisboa)"
+asof_long = f"{dt.day} de {MESES[dt.month - 1]} de {dt.year}, {dt:%H:%M} (hora de Lisboa)"
 
 nsells = defaultdict(int); sellval = defaultdict(float)
 exited = set()
@@ -86,6 +95,7 @@ w = sorted((r["weight"] for r in out), reverse=True)
 port = chart["portfolio"]
 summary = {
     "asof": asof,
+    "asofLong": asof_long,
     "totalEur": round(total, 2), "plEur": round(totPl, 2),
     "plPct": round(totPl / totCost * 100, 2), "costEur": round(totCost, 2),
     "estDivEur": round(sum(r["estDivEur"] for r in out), 2),
