@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Qualidade de Entrada | Portfolio Tracker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><circle cx='50' cy='50' r='30' fill='none' stroke='%233FB950' stroke-width='9'/><circle cx='50' cy='50' r='8' fill='%233FB950'/></svg>"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  color-scheme:dark;
+  --bg:#131722; --panel:#1a1f2e; --panel2:#161b29; --line:#232a3d;
+  --ink:#e6e9f0; --ink2:#8b93a7; --ink3:#5c6478;
+  --accent:#3FB950;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --p-valor:#3987e5; --p-rend:#199e70; --p-timing:#9085e9;
+}
+body{background:var(--bg);color:var(--ink);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:14px;line-height:1.5;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:#1a1f2e;}
+::-webkit-scrollbar-thumb{background:#1F2937;border-radius:2px;}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 64px;}
+h1{font-size:20px;font-weight:700;}
+h2{font-size:15px;font-weight:600;margin:32px 0 12px;color:var(--ink);}
+.sub{color:var(--ink2);font-size:12px;margin-top:4px;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0;}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+.tile .v{font-size:22px;font-weight:700;}
+.tile .l{font-size:11px;color:var(--ink2);margin-top:2px;}
+.controls{display:flex;gap:10px;align-items:center;margin:6px 0 16px;flex-wrap:wrap;}
+.controls label{font-size:12px;color:var(--ink2);}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;}
+/* ── tabela resumo ── */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:12px;}
+th,td{padding:8px 10px;text-align:right;white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
+th{color:var(--ink2);font-weight:500;font-size:11px;border-bottom:1px solid var(--line);}
+td:first-child,th:first-child{text-align:left;}
+tbody tr{border-bottom:1px solid var(--line);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#1e2438;}
+/* ── cartões ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.tick{font-size:15px;font-weight:700;}
+.nm{color:var(--ink2);font-size:12px;}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;
+  padding:4px 12px;font-size:11px;font-weight:600;border:1px solid;}
+.score-big{font-size:30px;font-weight:700;line-height:1;text-align:right;
+  font-variant-numeric:tabular-nums;}
+.score-lbl{font-size:10px;color:var(--ink2);text-align:right;margin-top:2px;}
+/* pilares */
+.pillars{margin:14px 0 6px;display:flex;flex-direction:column;gap:7px;}
+.pill-row{display:grid;grid-template-columns:92px 1fr 68px;gap:10px;align-items:center;font-size:11px;}
+.pill-row .pl{color:var(--ink2);}
+.pill-row .pv{text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums;}
+.bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:4px;}
+/* métricas */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:12px 0;}
+.m{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;}
+.m .mv{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
+.m .ml{font-size:10px;color:var(--ink2);margin-top:1px;}
+.m .mh{font-size:10px;color:var(--ink3);font-variant-numeric:tabular-nums;}
+/* range 52 semanas */
+.range{margin:14px 4px 4px;}
+.range .rl{display:flex;justify-content:space-between;font-size:10px;color:var(--ink2);margin-bottom:4px;}
+.rtrack{position:relative;height:6px;background:var(--panel2);border-radius:3px;}
+.rmark{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
+  transform:translate(-50%,-50%);border:2px solid var(--bg);}
+.rcost{position:absolute;top:50%;width:3px;height:16px;border-radius:2px;
+  transform:translate(-50%,-50%);background:var(--ink2);}
+.rlegend{display:flex;gap:14px;font-size:10px;color:var(--ink2);margin-top:8px;}
+.rlegend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+.rlegend .tick2{display:inline-block;width:3px;height:10px;background:var(--ink2);
+  border-radius:2px;margin-right:5px;vertical-align:-1px;}
+/* sparkline */
+.spark{margin-top:10px;position:relative;}
+.spark svg{width:100%;height:64px;display:block;}
+.spark .cap{font-size:10px;color:var(--ink3);margin-top:2px;
+  display:flex;gap:14px;}
+.spark .cap .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--accent);margin-right:4px;}
+.tip{position:absolute;pointer-events:none;background:#0d111c;border:1px solid var(--line);
+  border-radius:6px;padding:4px 8px;font-size:10px;color:var(--ink);display:none;
+  white-space:nowrap;z-index:5;font-variant-numeric:tabular-nums;}
+/* input valor intrínseco */
+.ivrow{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;
+  border-top:1px solid var(--line);font-size:11px;color:var(--ink2);flex-wrap:wrap;}
+.ivrow input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:5px 8px;width:92px;font-size:12px;font-family:inherit;
+  font-variant-numeric:tabular-nums;}
+.ivrow input:focus{outline:1px solid var(--p-valor);}
+.ms-chip{font-weight:600;font-variant-numeric:tabular-nums;}
+.note{font-size:11px;color:var(--ink2);}
+/* metodologia */
+.method{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;font-size:12.5px;color:var(--ink2);}
+.method b{color:var(--ink);font-weight:600;}
+.method ul{margin:6px 0 10px 18px;}
+.method li{margin:3px 0;}
+.method .pilltag{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;}
+.caveat{border-left:3px solid var(--warn);padding:10px 14px;background:var(--panel);
+  border-radius:0 10px 10px 0;font-size:12px;color:var(--ink2);margin-top:10px;}
+.caveat b{color:var(--ink);}
+footer{margin-top:36px;font-size:11px;color:var(--ink3);text-align:center;}
+/* ── mobile ── */
+@media(max-width:480px){
+  .wrap{padding:16px 10px 48px;}
+  .card{padding:12px;}
+  .score-big{font-size:26px;}
+  .tiles{grid-template-columns:repeat(2,1fr);}
+  .tile .v{font-size:18px;}
+  .mgrid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));}
+  .pill-row{grid-template-columns:86px 1fr 56px;gap:6px;font-size:10px;}
+  .ivrow input{width:80px;}
+  h1{font-size:18px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎯 Qualidade de Entrada</h1>
+  <div class="sub">Score de ponto de entrada por posição — confluência de <b style="color:var(--p-valor)">Valor</b>, <b style="color:var(--p-rend)">Rendimento</b> e <b style="color:var(--p-timing)">Timing</b> · dados de <span id="gen-date"></span></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="controls">
+    <label for="sortsel">Ordenar:</label>
+    <select id="sortsel">
+      <option value="score">Score (melhor entrada primeiro)</option>
+      <option value="ticker">Ticker (A–Z)</option>
+      <option value="yield">Dividend yield</option>
+    </select>
+  </div>
+
+  <h2>Resumo</h2>
+  <div class="tblwrap"><table id="tbl">
+    <thead><tr>
+      <th>Posição</th><th>Score</th><th>Veredicto</th>
+      <th>Valor</th><th>Rend.</th><th>Timing</th>
+      <th>Margem seg.</th><th>vs MA200</th><th>RSI</th><th>Yield vs 5A</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table></div>
+
+  <h2>Posições</h2>
+  <div class="grid" id="cards"></div>
+
+  <h2>Metodologia</h2>
+  <div class="method">
+    <p>O score (0–100) agrega três pilares com pesos base <b>40 / 30 / 30</b>, reponderados quando um pilar não se aplica (ETFs → só Timing; yield &lt; 1,5% → Rendimento com peso 10). Um score alto significa <b>confluência</b> de sinais de entrada, não uma previsão.</p>
+    <ul>
+      <li><span class="pilltag" style="background:var(--p-valor)"></span><b>Valor</b> — margem de segurança de Graham <i>(VI − P) / VI</i> sobre o teu valor intrínseco (DDM/DCF — input editável em cada cartão; ≥30% → máximo, 0% → neutro) + P/E atual vs. média histórica (≤0,8× → barato).</li>
+      <li><span class="pilltag" style="background:var(--p-rend)"></span><b>Rendimento</b> — yield atual vs. mediana de 5 anos (acima da mediana → barato para a sua própria história) + regra de Chowder <i>(yield + CAGR div. 5A ≥ 12, ou ≥ 8 se yield ≥ 4%)</i>; payout &gt; 85% penaliza (excepto REITs, avaliados por AFFO).</li>
+      <li><span class="pilltag" style="background:var(--p-timing)"></span><b>Timing</b> — distância às MA50/MA200 (abaixo → melhor entrada), RSI(14) (sobrevenda &lt; 30 → melhor), e desconto face ao máximo de 52 semanas.</li>
+    </ul>
+    <p><b>Veredictos:</b> ≥ 70 Zona de reforço · 50–69 Acumular em tranches · 35–49 Aguardar · &lt; 35 Esticado / caro.</p>
+  </div>
+  <div class="caveat" id="caveats">
+    <b>Limitações dos dados</b> — o yield histórico vem de dividendos ÷ market-cap anual (yfinance) e é indicativo, não exato; o CAGR de dividendos usa apenas anos completos (corrigido no fetcher — valores atuais semeados manualmente, recalculados no próximo refresh do pipeline); o payout dos REITs (O, VICI) é sobre EPS e por isso não penaliza o score — avaliar por AFFO; o valor intrínseco é o teu input (a página não faz DCF). Isto é um agregador de sinais, não uma recomendação.
+  </div>
+
+  <footer>Gerado por build_entry_dashboard.py · dados Trading212 + yfinance · <span id="gen-date2"></span></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+/* ── helpers ── */
+const fmtN = new Intl.NumberFormat('pt-PT',{maximumFractionDigits:2});
+const fmt1 = new Intl.NumberFormat('pt-PT',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nn = v => v !== null && v !== undefined && !Number.isNaN(v);
+const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+// interpolação linear por segmentos: pts = [[x,y],...] ordenados por x
+function piece(x, pts){
+  if(x<=pts[0][0]) return pts[0][1];
+  for(let i=1;i<pts.length;i++){
+    if(x<=pts[i][0]){
+      const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
+      return y0+(y1-y0)*(x-x0)/(x1-x0);
+    }
+  }
+  return pts[pts.length-1][1];
+}
+const mean = a => a.length ? a.reduce((s,v)=>s+v,0)/a.length : null;
+
+/* ── modelo de score ── */
+function scorePos(p, iv){
+  // pilar Valor
+  let msPct=null, msScore=null, peScore=null;
+  if(nn(iv) && iv>0 && nn(p.price)){
+    msPct = (iv-p.price)/iv*100;
+    msScore = piece(msPct, [[-25,0],[0,40],[30,100]]);
+  }
+  if(nn(p.pe) && nn(p.peAvg) && p.peAvg>0){
+    peScore = piece(p.pe/p.peAvg, [[0.7,100],[1.0,60],[1.35,15]]);
+  }
+  let valor=null;
+  if(nn(msScore)&&nn(peScore)) valor = 0.6*msScore+0.4*peScore;
+  else if(nn(msScore)) valor = msScore;
+  else if(nn(peScore)) valor = peScore;
+
+  // pilar Rendimento
+  let yldScore=null, chowder=null, chowderScore=null, rend=null;
+  if(nn(p['yield']) && p['yield']>0.05){
+    if(nn(p.yieldHist) && p.yieldHist>0)
+      yldScore = piece(p['yield']/p.yieldHist, [[0.7,20],[1.0,60],[1.3,100]]);
+    if(nn(p.divCagr)){
+      chowder = p['yield']+p.divCagr;
+      const T = p['yield']>=4 ? 8 : 12;
+      chowderScore = clamp(70+(chowder-T)*7.5, 5, 100);
+    }
+    const comps=[yldScore,chowderScore].filter(nn);
+    if(comps.length) rend = mean(comps);
+    // payout > 85% corrói a segurança do dividendo
+    // (excepto REITs/midstream: payout sobre EPS engana — usar AFFO/DCF)
+    if(nn(rend) && !p.payoutUnreliable && nn(p.payout) && p.payout>85)
+      rend = Math.max(5, rend - Math.min(30, p.payout-85));
+  }
+
+  // pilar Timing
+  const tcomps=[];
+  let d200=null,d50=null,fromHigh=null;
+  if(nn(p.ma200)&&nn(p.price)){
+    d200=(p.price-p.ma200)/p.ma200*100;
+    tcomps.push(piece(d200,[[-15,100],[0,65],[18,15]]));
+  }
+  if(nn(p.ma50)&&nn(p.price)){
+    d50=(p.price-p.ma50)/p.ma50*100;
+    tcomps.push(piece(d50,[[-10,90],[0,60],[12,25]]));
+  }
+  if(nn(p.rsi)) tcomps.push(piece(p.rsi,[[25,95],[35,85],[50,60],[65,32],[78,8]]));
+  if(nn(p.hi52)&&nn(p.price)&&p.hi52>0){
+    fromHigh=(p.hi52-p.price)/p.hi52*100;
+    tcomps.push(piece(fromHigh,[[0,22],[25,100]]));
+  }
+  const timing = tcomps.length? mean(tcomps): null;
+
+  // pesos dinâmicos
+  let w={valor:40,rend:30,timing:30};
+  if(nn(p['yield']) && p['yield']<1.5) w.rend=10;
+  if(!nn(valor)) w.valor=0;
+  if(!nn(rend))  w.rend=0;
+  if(!nn(timing))w.timing=0;
+  const tw=w.valor+w.rend+w.timing;
+  const total = tw>0 ? ((w.valor*(valor||0))+(w.rend*(rend||0))+(w.timing*(timing||0)))/tw : null;
+
+  return {total,valor,rend,timing,w,msPct,chowder,d200,d50,fromHigh};
+}
+
+function verdict(s){
+  if(!nn(s)) return {t:'—',c:'var(--ink3)'};
+  if(s>=70) return {t:'Zona de reforço',c:'var(--good)',i:'▲'};
+  if(s>=50) return {t:'Acumular em tranches',c:'var(--warn)',i:'◐'};
+  if(s>=35) return {t:'Aguardar',c:'var(--serious)',i:'◔'};
+  return {t:'Esticado / caro',c:'var(--critical)',i:'▽'};
+}
+
+/* ── estado ── */
+function getIV(p){
+  const ls = localStorage.getItem('iv_'+p.ticker);
+  if(ls!==null && ls!=='' && !Number.isNaN(parseFloat(ls))) return parseFloat(ls);
+  return nn(p.iv)? p.iv : null;
+}
+
+/* ── render ── */
+function fmtSigned(v,suf=''){ return (v>0?'+':'')+fmt1.format(v)+suf; }
+function metric(label, value, hint){
+  return `<div class="m"><div class="mv">${value}</div><div class="ml">${label}</div>${hint?`<div class="mh">${hint}</div>`:''}</div>`;
+}
+
+function sparkSVG(p){
+  if(!p.spark || p.spark.length<2) return '';
+  const w=460,h=60,pad=3;
+  const mn=Math.min(...p.spark), mx=Math.max(...p.spark);
+  const X=i=>pad+(w-2*pad)*i/(p.spark.length-1);
+  const Y=v=>mx===mn? h/2 : pad+(h-2*pad)*(1-(v-mn)/(mx-mn));
+  const pts=p.spark.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  const buys=(p.buyIdx||[]).map(i=>
+    `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.spark[i]).toFixed(1)}" r="3" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>`).join('');
+  return `<div class="spark" data-t="${p.ticker}">
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Preço 12 meses de ${p.ticker}">
+      <polyline points="${pts}" fill="none" stroke="var(--p-valor)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+      ${buys}
+    </svg>
+    <div class="tip"></div>
+    <div class="cap"><span>12 meses</span><span><span class="dot"></span>compras</span></div>
+  </div>`;
+}
+
+function rangeBar(p){
+  if(!nn(p.lo52)||!nn(p.hi52)||p.hi52<=p.lo52) return '';
+  const pos=v=>clamp((v-p.lo52)/(p.hi52-p.lo52)*100,0,100);
+  const vd=verdict(p._s.total);
+  const costM = nn(p.avgCost)? `<span class="rcost" style="left:${pos(p.avgCost)}%" title="Preço médio de compra: ${fmtN.format(p.avgCost)} ${p.cur}"></span>`:'';
+  return `<div class="range">
+    <div class="rl"><span>mín 52s ${fmtN.format(p.lo52)}</span><span>máx 52s ${fmtN.format(p.hi52)}</span></div>
+    <div class="rtrack">${costM}<span class="rmark" style="left:${pos(p.price)}%;background:${vd.c}" title="Preço atual: ${fmtN.format(p.price)} ${p.cur}"></span></div>
+    <div class="rlegend"><span><span class="dot" style="background:${vd.c}"></span>preço atual</span><span><span class="tick2"></span>preço médio de compra</span></div>
+  </div>`;
+}
+
+function pillarRow(label,color,score,weight){
+  const has=nn(score);
+  return `<div class="pill-row">
+    <span class="pl"><span class="pilltag" style="background:${color};display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px"></span>${label}</span>
+    <span class="bar"><i style="width:${has?clamp(score,0,100):0}%;background:${color}"></i></span>
+    <span class="pv">${has? Math.round(score)+' · p'+weight : 'n/a'}</span>
+  </div>`;
+}
+
+function card(p){
+  const s=p._s, vd=verdict(s.total);
+  const ivVal=getIV(p);
+  const ms = nn(s.msPct)? `<span class="ms-chip" style="color:${s.msPct>=20?'var(--good)':s.msPct>=0?'var(--warn)':'var(--critical)'}">${fmtSigned(s.msPct,'%')}</span>` : '<span class="note">define o VI →</span>';
+  const mets=[];
+  if(nn(p.pe)) mets.push(metric('P/E', fmt1.format(p.pe), nn(p.peAvg)?'média '+fmt1.format(p.peAvg):''));
+  if(nn(p['yield'])&&p['yield']>0.05) mets.push(metric('Yield', fmt1.format(p['yield'])+'%', nn(p.yieldHist)?'mediana 5A '+fmt1.format(p.yieldHist)+'%':''));
+  if(nn(s.chowder)) mets.push(metric('Chowder', fmt1.format(s.chowder), 'alvo ≥ '+(p['yield']>=4?8:12)));
+  if(nn(p.payout)) mets.push(metric('Payout', Math.round(p.payout)+'%', p.payoutUnreliable?(p.isReit?'REIT — ver AFFO':'sobre EPS — ver DCF'):''));
+  if(nn(s.d200)) mets.push(metric('vs MA200', fmtSigned(s.d200,'%'),''));
+  if(nn(s.d50)) mets.push(metric('vs MA50', fmtSigned(s.d50,'%'),''));
+  if(nn(p.rsi)) mets.push(metric('RSI 14', Math.round(p.rsi), p.rsi<30?'sobrevenda':p.rsi>70?'sobrecompra':''));
+  if(nn(s.fromHigh)) mets.push(metric('Desc. máx 52s', '−'+fmt1.format(s.fromHigh)+'%',''));
+
+  const etfNote = p.isEtf? `<div class="note" style="margin-top:8px">ETF/ETC — sem fundamentais; score = pilar Timing.</div>`:'';
+
+  return `<div class="card" id="card-${p.ticker}">
+    <div class="card-head">
+      <div>
+        <div class="tick">${p.flag} ${p.ticker} <span class="nm">· ${p.name}</span></div>
+        <div class="nm">${p.sector} · ${fmtN.format(p.price)} ${p.cur} <span style="color:${p.ppl>=0?'var(--accent)':'var(--critical)'}">(${p.ppl>=0?'+':''}${fmtN.format(p.ppl)} € P/L)</span></div>
+        <div style="margin-top:8px"><span class="badge" style="color:${vd.c};border-color:${vd.c}">${vd.i||''} ${vd.t}</span></div>
+      </div>
+      <div>
+        <div class="score-big" style="color:${vd.c}">${nn(s.total)?Math.round(s.total):'—'}</div>
+        <div class="score-lbl">score de entrada</div>
+      </div>
+    </div>
+    <div class="pillars">
+      ${pillarRow('Valor','var(--p-valor)',s.valor,s.w.valor)}
+      ${pillarRow('Rendimento','var(--p-rend)',s.rend,s.w.rend)}
+      ${pillarRow('Timing','var(--p-timing)',s.timing,s.w.timing)}
+    </div>
+    <div class="mgrid">${mets.join('')}</div>
+    ${rangeBar(p)}
+    ${sparkSVG(p)}
+    ${etfNote}
+    ${!p.isEtf? `<div class="ivrow">
+      <span>Valor intrínseco (${p.cur}):</span>
+      <input type="number" step="0.01" min="0" inputmode="decimal" data-iv="${p.ticker}"
+        value="${nn(ivVal)?ivVal:''}" placeholder="DDM / DCF"/>
+      <span>Margem de segurança: ${ms}</span>
+    </div>`:''}
+  </div>`;
+}
+
+function tableRow(p){
+  const s=p._s, vd=verdict(s.total);
+  const c=v=>nn(v)?Math.round(v):'—';
+  return `<tr>
+    <td>${p.flag} <b>${p.ticker}</b> <span style="color:var(--ink2)">${p.name}</span></td>
+    <td style="color:${vd.c};font-weight:700">${c(s.total)}</td>
+    <td style="color:${vd.c}">${vd.t}</td>
+    <td>${c(s.valor)}</td><td>${c(s.rend)}</td><td>${c(s.timing)}</td>
+    <td>${nn(s.msPct)?fmtSigned(s.msPct,'%'):'—'}</td>
+    <td>${nn(s.d200)?fmtSigned(s.d200,'%'):'—'}</td>
+    <td>${nn(p.rsi)?Math.round(p.rsi):'—'}</td>
+    <td>${nn(p['yield'])&&nn(p.yieldHist)?fmt1.format(p['yield'])+'% / '+fmt1.format(p.yieldHist)+'%':'—'}</td>
+  </tr>`;
+}
+
+function tiles(ps){
+  const scored=ps.filter(p=>nn(p._s.total)&&!p.isEtf);
+  const best=[...scored].sort((a,b)=>b._s.total-a._s.total)[0];
+  const zone=scored.filter(p=>p._s.total>=70).length;
+  const acc=scored.filter(p=>p._s.total>=50&&p._s.total<70).length;
+  document.getElementById('tiles').innerHTML=[
+    `<div class="tile"><div class="v">${ps.length}</div><div class="l">posições avaliadas</div></div>`,
+    `<div class="tile"><div class="v" style="color:var(--good)">${zone}</div><div class="l">em zona de reforço (≥70)</div></div>`,
+    `<div class="tile"><div class="v" style="color:var(--warn)">${acc}</div><div class="l">acumular em tranches (50–69)</div></div>`,
+    best?`<div class="tile"><div class="v">${best.flag} ${best.ticker}</div><div class="l">melhor entrada agora · score ${Math.round(best._s.total)}</div></div>`:''
+  ].join('');
+}
+
+/* ── tooltips das sparklines ── */
+function bindSparkTips(){
+  document.querySelectorAll('.spark').forEach(el=>{
+    const t=el.dataset.t, p=DATA.positions.find(x=>x.ticker===t);
+    const svg=el.querySelector('svg'), tip=el.querySelector('.tip');
+    if(!p||!svg) return;
+    svg.addEventListener('mousemove',e=>{
+      const r=svg.getBoundingClientRect();
+      const i=clamp(Math.round((e.clientX-r.left)/r.width*(p.spark.length-1)),0,p.spark.length-1);
+      tip.style.display='block';
+      tip.style.left=clamp(e.clientX-r.left+10,0,r.width-110)+'px';
+      tip.style.top='0px';
+      tip.textContent=`${p.sparkDates[i]} · ${fmtN.format(p.spark[i])} ${p.cur}`;
+    });
+    svg.addEventListener('mouseleave',()=>tip.style.display='none');
+  });
+}
+
+/* ── ciclo principal ── */
+function recompute(){
+  DATA.positions.forEach(p=>{ p._s=scorePos(p,getIV(p)); });
+}
+function render(){
+  recompute();
+  const mode=document.getElementById('sortsel').value;
+  const ps=[...DATA.positions].sort((a,b)=>{
+    if(mode==='ticker') return a.ticker.localeCompare(b.ticker);
+    if(mode==='yield') return (b['yield']||0)-(a['yield']||0);
+    return (b._s.total??-1)-(a._s.total??-1);
+  });
+  tiles(ps);
+  document.querySelector('#tbl tbody').innerHTML=ps.map(tableRow).join('');
+  document.getElementById('cards').innerHTML=ps.map(card).join('');
+  bindSparkTips();
+  document.querySelectorAll('input[data-iv]').forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      localStorage.setItem('iv_'+inp.dataset.iv, inp.value);
+      render();
+    });
+  });
+}
+
+document.getElementById('gen-date').textContent=DATA.generatedAt;
+document.getElementById('gen-date2').textContent=DATA.generatedAt;
+document.getElementById('sortsel').addEventListener('change',render);
+render();
+</script>
+</body>
+</html>

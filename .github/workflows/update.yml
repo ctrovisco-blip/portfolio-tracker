@@ -134,6 +134,9 @@ jobs:
       - name: Build HTML
         run: python build_html.py
 
+      - name: Build entry dashboard
+        run: python build_entry_dashboard.py
+
       - name: Generate weekly report
         # Corre ao sábado (após fetch completo) e em execuções manuais
         if: >-
@@ -147,7 +150,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html data/*.json metadata.json weekly_report.html
+          git add index.html entry_dashboard.html data/*.json metadata.json weekly_report.html
           # Só commita se houver mudanças
           if git diff --staged --quiet; then
             echo "Sem alteracoes, nada a commitar."

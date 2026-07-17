@@ -39,7 +39,9 @@ def div_cagr_5y(t):
             annual.setdefault(dt.year, 0)
             annual[dt.year] += float(amt)
         now = datetime.now().year
-        recent = {y: v for y, v in annual.items() if y >= now-5}
+        # Só anos completos: o ano corrente tem dividendos parciais e
+        # distorce o CAGR para baixo (ex.: a meio do ano só metade foi paga)
+        recent = {y: v for y, v in annual.items() if now-6 <= y < now}
         if len(recent) < 2: return None
         yrs = sorted(recent.keys())
         n = yrs[-1] - yrs[0]
