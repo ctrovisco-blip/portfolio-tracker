@@ -1,0 +1,6 @@
+{
+  "_doc": "Inputs do utilizador para o entry_dashboard. intrinsicValue: o teu valor justo (DDM/DCF) na moeda de cotação da posição — também editável na própria página (localStorage tem precedência). payoutUnreliable: true quando o payout sobre EPS engana (REITs → AFFO, midstream → DCF) e não deve penalizar o score.",
+  "ENB": { "payoutUnreliable": true, "note": "Midstream — avaliar payout sobre DCF, não EPS" },
+  "O":    { "payoutUnreliable": true, "note": "REIT — avaliar payout sobre AFFO" },
+  "VICI": { "payoutUnreliable": true, "note": "REIT — avaliar payout sobre AFFO" }
+}
