@@ -152,6 +152,12 @@ footer{margin-top:36px;font-size:11px;color:var(--ink3);text-align:center;}
   <h2>Posições</h2>
   <div class="grid" id="cards"></div>
 
+  <div id="watch-section" style="display:none">
+    <h2>👁 Watchlist — candidatas a entrada</h2>
+    <div class="sub" style="margin:-6px 0 12px">Tickers do separador Screener do tracker. Adiciona/remove lá — aparecem aqui com a mesma avaliação no refresh seguinte.</div>
+    <div class="grid" id="wcards"></div>
+  </div>
+
   <h2>Metodologia</h2>
   <div class="method">
     <p>O score (0–100) agrega três pilares com pesos base <b>40 / 30 / 30</b>, reponderados quando um pilar não se aplica (ETFs → só Timing; yield &lt; 1,5% → Rendimento com peso 10). Um score alto significa <b>confluência</b> de sinais de entrada, não uma previsão.</p>
@@ -160,7 +166,8 @@ footer{margin-top:36px;font-size:11px;color:var(--ink3);text-align:center;}
       <li><span class="pilltag" style="background:var(--p-rend)"></span><b>Rendimento</b> — yield atual vs. mediana de 5 anos (acima da mediana → barato para a sua própria história) + regra de Chowder <i>(yield + CAGR div. 5A ≥ 12, ou ≥ 8 se yield ≥ 4%)</i>; payout &gt; 85% penaliza (excepto REITs, avaliados por AFFO).</li>
       <li><span class="pilltag" style="background:var(--p-timing)"></span><b>Timing</b> — distância às MA50/MA200 (abaixo → melhor entrada), RSI(14) (sobrevenda &lt; 30 → melhor), e desconto face ao máximo de 52 semanas.</li>
     </ul>
-    <p><b>Veredictos:</b> ≥ 70 Zona de reforço · 50–69 Acumular em tranches · 35–49 Aguardar · &lt; 35 Esticado / caro.</p>
+    <p><b>Veredictos:</b> ≥ 70 Zona de reforço · 50–69 Acumular em tranches · 35–49 Aguardar · &lt; 35 Esticado / caro. Sem pelo menos dois pilares com dados (ou Timing completo), não há score — evita veredictos assentes num único sinal.</p>
+    <p style="margin-top:8px"><b>Watchlist:</b> os tickers do separador Screener do tracker que ainda não são posições aparecem na secção 👁 com a mesma avaliação — é aí que adicionas as candidatas a entrada.</p>
   </div>
   <div class="caveat" id="caveats">
     <b>Limitações dos dados</b> — o yield histórico vem de dividendos ÷ market-cap anual (yfinance) e é indicativo, não exato; o CAGR de dividendos usa apenas anos completos (corrigido no fetcher — valores atuais semeados manualmente, recalculados no próximo refresh do pipeline); o payout dos REITs (O, VICI) é sobre EPS e por isso não penaliza o score — avaliar por AFFO; o valor intrínseco é o teu input (a página não faz DCF). Isto é um agregador de sinais, não uma recomendação.
@@ -240,7 +247,9 @@ function scorePos(p, iv){
     fromHigh=(p.hi52-p.price)/p.hi52*100;
     tcomps.push(piece(fromHigh,[[0,22],[25,100]]));
   }
-  const timing = tcomps.length? mean(tcomps): null;
+  // Timing só é fiável com ≥3 componentes — com dados parciais (ex.: ticker
+  // recém-adicionado, só extremos 52s) um único sinal dominaria o score
+  const timing = tcomps.length>=3? mean(tcomps): null;
 
   // pesos dinâmicos
   let w={valor:40,rend:30,timing:30};
@@ -249,7 +258,10 @@ function scorePos(p, iv){
   if(!nn(rend))  w.rend=0;
   if(!nn(timing))w.timing=0;
   const tw=w.valor+w.rend+w.timing;
-  const total = tw>0 ? ((w.valor*(valor||0))+(w.rend*(rend||0))+(w.timing*(timing||0)))/tw : null;
+  let total = tw>0 ? ((w.valor*(valor||0))+(w.rend*(rend||0))+(w.timing*(timing||0)))/tw : null;
+  // Um único pilar não chega para veredicto — excepto Timing completo (ETFs)
+  const nPil=[valor,rend,timing].filter(nn).length;
+  if(nPil===0 || (nPil===1 && !nn(timing))) total=null;
 
   return {total,valor,rend,timing,w,msPct,chowder,d200,d50,fromHigh};
 }
@@ -290,7 +302,7 @@ function sparkSVG(p){
       ${buys}
     </svg>
     <div class="tip"></div>
-    <div class="cap"><span>12 meses</span><span><span class="dot"></span>compras</span></div>
+    <div class="cap"><span>12 meses</span>${(p.buyIdx||[]).length?'<span><span class="dot"></span>compras</span>':''}</div>
   </div>`;
 }
 
@@ -299,10 +311,11 @@ function rangeBar(p){
   const pos=v=>clamp((v-p.lo52)/(p.hi52-p.lo52)*100,0,100);
   const vd=verdict(p._s.total);
   const costM = nn(p.avgCost)? `<span class="rcost" style="left:${pos(p.avgCost)}%" title="Preço médio de compra: ${fmtN.format(p.avgCost)} ${p.cur}"></span>`:'';
+  const costLegend = nn(p.avgCost)? `<span><span class="tick2"></span>preço médio de compra</span>`:'';
   return `<div class="range">
     <div class="rl"><span>mín 52s ${fmtN.format(p.lo52)}</span><span>máx 52s ${fmtN.format(p.hi52)}</span></div>
     <div class="rtrack">${costM}<span class="rmark" style="left:${pos(p.price)}%;background:${vd.c}" title="Preço atual: ${fmtN.format(p.price)} ${p.cur}"></span></div>
-    <div class="rlegend"><span><span class="dot" style="background:${vd.c}"></span>preço atual</span><span><span class="tick2"></span>preço médio de compra</span></div>
+    <div class="rlegend"><span><span class="dot" style="background:${vd.c}"></span>preço atual</span>${costLegend}</div>
   </div>`;
 }
 
@@ -328,14 +341,21 @@ function card(p){
   if(nn(s.d50)) mets.push(metric('vs MA50', fmtSigned(s.d50,'%'),''));
   if(nn(p.rsi)) mets.push(metric('RSI 14', Math.round(p.rsi), p.rsi<30?'sobrevenda':p.rsi>70?'sobrecompra':''));
   if(nn(s.fromHigh)) mets.push(metric('Desc. máx 52s', '−'+fmt1.format(s.fromHigh)+'%',''));
+  if(nn(p.targetPrice)&&nn(p.price)&&p.price>0){
+    const up=(p.targetPrice/p.price-1)*100;
+    mets.push(metric('Alvo analistas', fmtN.format(p.targetPrice)+' '+p.cur, fmtSigned(up,'%')+' vs atual'));
+  }
 
   const etfNote = p.isEtf? `<div class="note" style="margin-top:8px">ETF/ETC — sem fundamentais; score = pilar Timing.</div>`:'';
+  const watchNote = p.isWatch && !p.spark.length? `<div class="note" style="margin-top:8px">Ticker recém-adicionado — série de preços e históricos completos entram no próximo refresh de dados.</div>`:'';
+  const pplHtml = nn(p.ppl)? ` <span style="color:${p.ppl>=0?'var(--accent)':'var(--critical)'}">(${p.ppl>=0?'+':''}${fmtN.format(p.ppl)} € P/L)</span>`
+    : (p.isWatch? ' <span style="color:var(--ink3)">· watchlist</span>':'');
 
   return `<div class="card" id="card-${p.ticker}">
     <div class="card-head">
       <div>
-        <div class="tick">${p.flag} ${p.ticker} <span class="nm">· ${p.name}</span></div>
-        <div class="nm">${p.sector} · ${fmtN.format(p.price)} ${p.cur} <span style="color:${p.ppl>=0?'var(--accent)':'var(--critical)'}">(${p.ppl>=0?'+':''}${fmtN.format(p.ppl)} € P/L)</span></div>
+        <div class="tick">${p.isWatch?'👁 ':''}${p.flag} ${p.ticker} <span class="nm">· ${p.name}</span></div>
+        <div class="nm">${p.sector} · ${fmtN.format(p.price)} ${p.cur}${pplHtml}</div>
         <div style="margin-top:8px"><span class="badge" style="color:${vd.c};border-color:${vd.c}">${vd.i||''} ${vd.t}</span></div>
       </div>
       <div>
@@ -351,7 +371,7 @@ function card(p){
     <div class="mgrid">${mets.join('')}</div>
     ${rangeBar(p)}
     ${sparkSVG(p)}
-    ${etfNote}
+    ${etfNote}${watchNote}
     ${!p.isEtf? `<div class="ivrow">
       <span>Valor intrínseco (${p.cur}):</span>
       <input type="number" step="0.01" min="0" inputmode="decimal" data-iv="${p.ticker}"
@@ -365,7 +385,7 @@ function tableRow(p){
   const s=p._s, vd=verdict(s.total);
   const c=v=>nn(v)?Math.round(v):'—';
   return `<tr>
-    <td>${p.flag} <b>${p.ticker}</b> <span style="color:var(--ink2)">${p.name}</span></td>
+    <td>${p.isWatch?'👁 ':''}${p.flag} <b>${p.ticker}</b> <span style="color:var(--ink2)">${p.name}</span></td>
     <td style="color:${vd.c};font-weight:700">${c(s.total)}</td>
     <td style="color:${vd.c}">${vd.t}</td>
     <td>${c(s.valor)}</td><td>${c(s.rend)}</td><td>${c(s.timing)}</td>
@@ -381,11 +401,12 @@ function tiles(ps){
   const best=[...scored].sort((a,b)=>b._s.total-a._s.total)[0];
   const zone=scored.filter(p=>p._s.total>=70).length;
   const acc=scored.filter(p=>p._s.total>=50&&p._s.total<70).length;
+  const nPos=ps.filter(p=>!p.isWatch).length, nWatch=ps.filter(p=>p.isWatch).length;
   document.getElementById('tiles').innerHTML=[
-    `<div class="tile"><div class="v">${ps.length}</div><div class="l">posições avaliadas</div></div>`,
+    `<div class="tile"><div class="v">${nPos}${nWatch?` <span style="font-size:13px;color:var(--ink2)">+ ${nWatch} 👁</span>`:''}</div><div class="l">posições${nWatch?' + watchlist':''} avaliadas</div></div>`,
     `<div class="tile"><div class="v" style="color:var(--good)">${zone}</div><div class="l">em zona de reforço (≥70)</div></div>`,
     `<div class="tile"><div class="v" style="color:var(--warn)">${acc}</div><div class="l">acumular em tranches (50–69)</div></div>`,
-    best?`<div class="tile"><div class="v">${best.flag} ${best.ticker}</div><div class="l">melhor entrada agora · score ${Math.round(best._s.total)}</div></div>`:''
+    best?`<div class="tile"><div class="v">${best.isWatch?'👁 ':''}${best.flag} ${best.ticker}</div><div class="l">melhor entrada agora · score ${Math.round(best._s.total)}</div></div>`:''
   ].join('');
 }
 
@@ -421,7 +442,10 @@ function render(){
   });
   tiles(ps);
   document.querySelector('#tbl tbody').innerHTML=ps.map(tableRow).join('');
-  document.getElementById('cards').innerHTML=ps.map(card).join('');
+  document.getElementById('cards').innerHTML=ps.filter(p=>!p.isWatch).map(card).join('');
+  const watch=ps.filter(p=>p.isWatch);
+  document.getElementById('watch-section').style.display=watch.length?'':'none';
+  document.getElementById('wcards').innerHTML=watch.map(card).join('');
   bindSparkTips();
   document.querySelectorAll('input[data-iv]').forEach(inp=>{
     inp.addEventListener('change',()=>{
