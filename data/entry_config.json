@@ -11,5 +11,9 @@
   "META": { "intrinsicValue": 680,  "note": "EPS 27,4 $ × 24-25; alvo analistas 826 $" },
   "MSF":  { "intrinsicValue": 420,  "note": "EPS 14,8 € × 30 — P/E 23,7 vs mediana 35 pós-correção 2026" },
   "VICI": { "intrinsicValue": 29,   "payoutUnreliable": true, "note": "Gordon (y 6,7%, g 3%, r 9,5%) + P/AFFO ~13× — REIT" },
-  "GLW":  { "intrinsicValue": 100,  "note": "P/E 78 vs mediana 45 — crescimento óptico pago à cabeça" }
+  "GLW":  { "intrinsicValue": 100,  "note": "P/E 78 vs mediana 45 — crescimento óptico pago à cabeça" },
+  "V":    { "intrinsicValue": 375,  "note": "EPS fwd ~13 $ × ~29 (mediana 30,5) — mesma lógica da MA" },
+  "NKE":  { "intrinsicValue": 50,   "note": "EPS normalizado ~3 $ × 18 (turnaround) — Gordon dá 43 $, alvo analistas 51 $" },
+  "OKLO": { "note": "Pré-receitas (EPS -0,84) — sem fluxos para descontar, VI não aplicável; avaliar por timing" },
+  "AEVA": { "note": "Sem lucros (EPS -2,47) — VI não aplicável; receitas +46% mas base minúscula" }
 }
