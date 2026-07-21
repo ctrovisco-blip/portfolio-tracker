@@ -118,7 +118,7 @@ footer{margin-top:36px;font-size:11px;color:var(--ink3);text-align:center;}
   .tile .v{font-size:18px;}
   .mgrid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));}
   .pill-row{grid-template-columns:86px 1fr 56px;gap:6px;font-size:10px;}
-  .ivrow input{width:80px;}
+  .ivrow input{width:88px;}
   h1{font-size:18px;}
 }
 </style>
@@ -267,7 +267,7 @@ function scorePos(p, iv){
 }
 
 function verdict(s){
-  if(!nn(s)) return {t:'—',c:'var(--ink3)'};
+  if(!nn(s)) return {t:'a aguardar dados',c:'var(--ink3)',i:'◌'};
   if(s>=70) return {t:'Zona de reforço',c:'var(--good)',i:'▲'};
   if(s>=50) return {t:'Acumular em tranches',c:'var(--warn)',i:'◐'};
   if(s>=35) return {t:'Aguardar',c:'var(--serious)',i:'◔'};
@@ -434,8 +434,11 @@ function recompute(){
 }
 function render(){
   recompute();
+  // Mesma semântica do separador Screener do tracker: tickers apagados lá
+  // (localStorage partilhado no mesmo domínio) não aparecem na watchlist
+  let delW=[]; try{ delW=JSON.parse(localStorage.getItem('screener_deleted')||'[]'); }catch(e){}
   const mode=document.getElementById('sortsel').value;
-  const ps=[...DATA.positions].sort((a,b)=>{
+  const ps=DATA.positions.filter(p=>!p.isWatch||!delW.includes(p.ticker)).sort((a,b)=>{
     if(mode==='ticker') return a.ticker.localeCompare(b.ticker);
     if(mode==='yield') return (b['yield']||0)-(a['yield']||0);
     return (b._s.total??-1)-(a._s.total??-1);
