@@ -33,6 +33,9 @@ positions    = load("positions.json", [])
 fundamentals = load("fundamentals.json", {})
 chart_data   = load("chart_data.json", {})
 entry_config = load("entry_config.json", {}) or {}
+screener     = load("screener.json", {}) or {}
+
+CUR_SYMBOL = {"USD": "$", "EUR": "€", "GBp": "p", "GBP": "£", "CAD": "C$"}
 
 CUR_YEAR = datetime.now().year
 
@@ -97,7 +100,36 @@ def pe_hist_avg(hist):
     return vals[n//2] if n % 2 else (vals[n//2 - 1] + vals[n//2]) / 2
 
 
-# ── Montar métricas por posição ──────────────────────────────────────────────
+# ── Montar métricas por posição / watchlist ──────────────────────────────────
+
+def technicals(t, cur_price, buy_dates):
+    """MA50/MA200, RSI, extremos 52s e sparkline a partir da série de 1 ano."""
+    out = {"ma50": None, "ma200": None, "rsi": None, "hi52": None, "lo52": None,
+           "spark": [], "sparkDates": [], "buyIdx": []}
+    dates, prices = price_series_1y(t, cur_price) if cur_price else (None, None)
+    if not prices:
+        return out
+    out["ma50"], out["ma200"] = sma(prices, 50), sma(prices, 200)
+    out["rsi"] = rsi14(prices)
+    out["hi52"], out["lo52"] = max(prices), min(prices)
+    # Amostragem da sparkline (~90 pontos) + marcas de compra
+    step = max(1, len(prices) // 90)
+    idx_sampled = list(range(0, len(prices), step))
+    if idx_sampled[-1] != len(prices) - 1:
+        idx_sampled.append(len(prices) - 1)
+    out["spark"] = [round(prices[i], 4) for i in idx_sampled]
+    out["sparkDates"] = [dates[i] for i in idx_sampled]
+    first_date = dates[0]
+    buy_idx = []
+    for bd in buy_dates:
+        if bd >= first_date:
+            # índice da amostra mais próxima da data de compra
+            j = min(range(len(out["sparkDates"])),
+                    key=lambda k: abs((datetime.fromisoformat(out["sparkDates"][k])
+                                       - datetime.fromisoformat(bd)).days))
+            buy_idx.append(j)
+    out["buyIdx"] = sorted(set(buy_idx))
+    return out
 
 rows = []
 for p in positions:
@@ -106,31 +138,6 @@ for p in positions:
     hist = f.get("history", {}) or {}
     cfg = entry_config.get(t, {}) or {}
 
-    cur_price = p.get("curPrice")
-    dates, prices = price_series_1y(t, cur_price) if cur_price else (None, None)
-
-    ma50 = ma200 = rsi = hi52 = lo52 = None
-    spark, spark_dates, buy_idx = [], [], []
-    if prices:
-        ma50, ma200 = sma(prices, 50), sma(prices, 200)
-        rsi = rsi14(prices)
-        hi52, lo52 = max(prices), min(prices)
-        # Amostragem da sparkline (~90 pontos) + marcas de compra
-        step = max(1, len(prices) // 90)
-        idx_sampled = list(range(0, len(prices), step))
-        if idx_sampled[-1] != len(prices) - 1:
-            idx_sampled.append(len(prices) - 1)
-        spark = [round(prices[i], 4) for i in idx_sampled]
-        spark_dates = [dates[i] for i in idx_sampled]
-        first_date = dates[0]
-        for bd in p.get("buyDates", []):
-            if bd >= first_date:
-                # índice da amostra mais próxima da data de compra
-                j = min(range(len(spark_dates)),
-                        key=lambda k: abs((datetime.fromisoformat(spark_dates[k])
-                                           - datetime.fromisoformat(bd)).days))
-                buy_idx.append(j)
-
     sector = p.get("sector", "")
     is_etf  = "ETF" in sector or "ETC" in sector
     is_reit = "REIT" in sector
@@ -138,21 +145,60 @@ for p in positions:
     rows.append({
         "ticker": t, "name": p.get("name", t), "sector": sector,
         "flag": p.get("flag", ""), "cur": p.get("cur", ""),
-        "price": cur_price, "avgCost": p.get("avgPrice"),
+        "price": p.get("curPrice"), "avgCost": p.get("avgPrice"),
         "qty": p.get("qty"), "ppl": p.get("ppl"),
-        "isEtf": is_etf, "isReit": is_reit,
+        "isEtf": is_etf, "isReit": is_reit, "isWatch": False,
         "payoutUnreliable": is_reit or bool(cfg.get("payoutUnreliable")),
         "pe": f.get("pe"), "peAvg": pe_hist_avg(hist.get("pe")),
         "yield": f.get("divYield"),
         "yieldHist": hist_median(hist.get("divYield")),
         "divCagr": f.get("divCagr5y"), "payout": f.get("payoutRatio"),
         "fcfYield": f.get("fcfYield"),
-        "ma50": ma50, "ma200": ma200, "rsi": rsi,
-        "hi52": hi52, "lo52": lo52,
-        "spark": spark, "sparkDates": spark_dates, "buyIdx": sorted(set(buy_idx)),
+        "targetPrice": None,
         "iv": cfg.get("intrinsicValue"),
         "ivNote": cfg.get("note"),
+        **technicals(t, p.get("curPrice"), p.get("buyDates", [])),
     })
+
+# Watchlist: tickers do screener que não são posições — mesma avaliação,
+# sem P/L nem preço médio; fundamentais caem para o screener enquanto o
+# fetch_fundamentals ainda não os cobriu (1º run após adicionar o ticker)
+pos_set = {p["ticker"] for p in positions}
+for t, s in screener.items():
+    if t in pos_set or not isinstance(s, dict):
+        continue
+    f = fundamentals.get(t) or {}
+    hist = f.get("history", {}) or {}
+    cfg = entry_config.get(t, {}) or {}
+    sector = s.get("sector", "") or ""
+    is_reit = "REIT" in sector
+    pick = lambda kf, ks: f.get(kf) if f.get(kf) is not None else s.get(ks)
+
+    row = {
+        "ticker": t, "name": s.get("name", t), "sector": sector,
+        "flag": s.get("flag", ""),
+        "cur": CUR_SYMBOL.get(s.get("currency", ""), s.get("currency", "")),
+        "price": s.get("curPrice"), "avgCost": None,
+        "qty": None, "ppl": None,
+        "isEtf": False, "isReit": is_reit, "isWatch": True,
+        "payoutUnreliable": is_reit or bool(cfg.get("payoutUnreliable")),
+        # P/E negativo (empresa sem lucros) não é comparável — ignorar
+        "pe": (lambda v: v if v and v > 0 else None)(pick("pe", "pe")),
+        "peAvg": pe_hist_avg(hist.get("pe")),
+        "yield": pick("divYield", "divYield"),
+        "yieldHist": hist_median(hist.get("divYield")),
+        "divCagr": pick("divCagr5y", "divCagr5y"),
+        "payout": pick("payoutRatio", "payoutRatio"),
+        "fcfYield": pick("fcfYield", "fcfYield"),
+        "targetPrice": s.get("targetPrice"),
+        "iv": cfg.get("intrinsicValue"),
+        "ivNote": cfg.get("note"),
+        **technicals(t, s.get("curPrice"), []),
+    }
+    # Sem série de 1 ano (ticker acabado de adicionar): usar extremos do screener
+    if row["hi52"] is None:
+        row["hi52"], row["lo52"] = s.get("week52High"), s.get("week52Low")
+    rows.append(row)
 
 payload = {
     "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),

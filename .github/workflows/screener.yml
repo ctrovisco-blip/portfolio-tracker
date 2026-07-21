@@ -53,14 +53,27 @@ jobs:
         continue-on-error: true
         run: python fetch_news.py
 
+      # Watchlist: séries de preço + fundamentais yfinance para os tickers
+      # do screener, para o entry_dashboard os avaliar com dados completos
+      - name: Fetch chart data (inclui watchlist)
+        continue-on-error: true
+        run: python fetch_chart_data.py
+
+      - name: Fetch fundamentals (inclui watchlist)
+        continue-on-error: true
+        run: python fetch_fundamentals.py
+
       - name: Build HTML
         run: python build_html.py
+
+      - name: Build entry dashboard
+        run: python build_entry_dashboard.py
 
       - name: Commit & push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html data/screener.json data/news.json
+          git add index.html entry_dashboard.html data/screener.json data/news.json data/chart_data.json data/fundamentals.json
           if git diff --staged --quiet; then
             echo "Sem alteracoes."
             exit 0

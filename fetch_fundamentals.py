@@ -317,10 +317,17 @@ def buyback_yield(t, mkt_cap):
         return None
     except: return None
 
+# Posições + watchlist do screener (avaliada no entry_dashboard)
+targets = [(p["ticker"], METADATA.get(p["ticker"], {}).get("yf")) for p in positions]
+if os.path.exists("data/screener.json"):
+    with open("data/screener.json", encoding="utf-8") as f:
+        _screener = json.load(f)
+    _pos = {p["ticker"] for p in positions}
+    # Screener usa símbolos US compatíveis com o Yahoo; metadata.json pode sobrepor
+    targets += [(t, METADATA.get(t, {}).get("yf", t)) for t in _screener if t not in _pos]
+
 results = {}
-for p in positions:
-    ticker = p["ticker"]
-    yf_sym = METADATA.get(ticker, {}).get("yf")
+for ticker, yf_sym in targets:
     if yf_sym is None:
         print(f"SKIP {ticker}")
         results[ticker] = None
