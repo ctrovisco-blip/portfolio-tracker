@@ -1,6 +1,15 @@
 {
-  "_doc": "Inputs do utilizador para o entry_dashboard. intrinsicValue: o teu valor justo (DDM/DCF) na moeda de cotação da posição — também editável na própria página (localStorage tem precedência). payoutUnreliable: true quando o payout sobre EPS engana (REITs → AFFO, midstream → DCF) e não deve penalizar o score.",
-  "ENB": { "payoutUnreliable": true, "note": "Midstream — avaliar payout sobre DCF, não EPS" },
-  "O":    { "payoutUnreliable": true, "note": "REIT — avaliar payout sobre AFFO" },
-  "VICI": { "payoutUnreliable": true, "note": "REIT — avaliar payout sobre AFFO" }
+  "_doc": "Inputs do utilizador para o entry_dashboard. intrinsicValue: valor justo (DDM/DCF) na moeda de cotação da posição — também editável na própria página (localStorage tem precedência nesse dispositivo). payoutUnreliable: true quando o payout sobre EPS engana (REITs → AFFO, midstream → DCF) e não deve penalizar o score. Estimativas de 2026-07-21 — mecânicas, a rever: Gordon é hipersensível a r e g (±1pp move o VI 15-30%).",
+  "MO":   { "intrinsicValue": 58,   "note": "Gordon: y 5,7%, g 3%, r 9,5% (risco tabaco)" },
+  "ENB":  { "intrinsicValue": 43,   "payoutUnreliable": true, "note": "Gordon: y 5,1%, g 3% CAD, r 9% — midstream, payout sobre DCF" },
+  "NVDA": { "intrinsicValue": 190,  "note": "P/E justificado: EPS 5,71 € × 34 (crescimento ~40%)" },
+  "O":    { "intrinsicValue": 58,   "payoutUnreliable": true, "note": "Gordon (y 5%, g 2,5%, r 8,5%) + P/AFFO ~14× — REIT, payout sobre AFFO" },
+  "PG":   { "intrinsicValue": 150,  "note": "Gordon (g 5,5%) e P/E 21,5× convergem — justo valor" },
+  "JNJ":  { "intrinsicValue": 185,  "note": "P/E justificado: EPS 7,56 € × 24,6 (mediana histórica)" },
+  "RR":   { "intrinsicValue": 1500, "note": "EPS 69p × 21-23× (re-rating defesa) — incerteza alta" },
+  "MA":   { "intrinsicValue": 500,  "note": "EPS 15,3 € × 33 (mediana 34,8 com desconto)" },
+  "META": { "intrinsicValue": 680,  "note": "EPS 27,4 $ × 24-25; alvo analistas 826 $" },
+  "MSF":  { "intrinsicValue": 420,  "note": "EPS 14,8 € × 30 — P/E 23,7 vs mediana 35 pós-correção 2026" },
+  "VICI": { "intrinsicValue": 29,   "payoutUnreliable": true, "note": "Gordon (y 6,7%, g 3%, r 9,5%) + P/AFFO ~13× — REIT" },
+  "GLW":  { "intrinsicValue": 100,  "note": "P/E 78 vs mediana 45 — crescimento óptico pago à cabeça" }
 }
