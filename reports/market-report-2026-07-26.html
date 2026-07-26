@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Report — 2026-07-26</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --bg:      #060A12;
+  --bg2:     #0D1117;
+  --bg3:     #161B22;
+  --border:  #21262D;
+  --text:    #E6EDF3;
+  --text2:   #8B949E;
+  --accent:  #3FB950;
+  --pos:     #3FB950;
+  --neg:     #F85149;
+  --link:    #58A6FF;
+  --radius:  8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(6,10,18,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 56px;
+}
+
+.nav-brand {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-right: 32px;
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.nav-links a {
+  color: var(--text2);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color .15s, background .15s;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+
+.nav-date {
+  font-size: 12px;
+  color: var(--text2);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, #0D1117 0%, #060A12 60%);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 24px 40px;
+  text-align: center;
+}
+
+.hero-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.hero h1 {
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+}
+
+.hero-sub {
+  color: var(--text2);
+  font-size: 14px;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.section {
+  margin-bottom: 64px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.section-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+/* ── Card grid ───────────────────────────────────────────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .2s;
+}
+
+.card:hover {
+  border-color: #444D56;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.source-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.card-date,
+.card-author {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.card-summary {
+  font-size: 13px;
+  color: var(--text2);
+  flex: 1;
+}
+
+.card-link {
+  font-size: 12px;
+  color: var(--link);
+  text-decoration: none;
+  margin-top: auto;
+  align-self: flex-start;
+}
+.card-link:hover { text-decoration: underline; }
+
+/* Discord embed */
+.discord-embed {
+  background: var(--bg3);
+  border-left: 3px solid #5865F2;
+  padding: 8px 12px;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  color: var(--text2);
+}
+.discord-embed a { color: var(--link); text-decoration: none; }
+.discord-embed a:hover { text-decoration: underline; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: var(--bg2);
+}
+
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,.03); }
+
+.data-table th:not(:first-child),
+.data-table td.number {
+  text-align: right;
+}
+
+/* ── Earnings ────────────────────────────────────────────────────────────── */
+.earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.earnings-card .card-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.earnings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.earnings-table th {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.earnings-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.earnings-table td:not(:first-child) { text-align: right; }
+.earnings-table tr:last-child td { border-bottom: none; }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.ticker-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: .04em;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.ticker-badge.large {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.fiscal-year {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+/* ── Color classes ───────────────────────────────────────────────────────── */
+.pos { color: var(--pos); }
+.neg { color: var(--neg); }
+.neutral { color: var(--text2); }
+
+/* ── Subsection ──────────────────────────────────────────────────────────── */
+.subsection {
+  margin-bottom: 32px;
+}
+
+.subsection-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+/* ── Placeholder ─────────────────────────────────────────────────────────── */
+.placeholder {
+  color: var(--text2);
+  font-style: italic;
+  padding: 16px 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.8;
+}
+
+footer a { color: var(--link); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .nav { padding: 0 16px; }
+  main { padding: 24px 16px 60px; }
+  .hero { padding: 32px 16px; }
+  .card-grid { grid-template-columns: 1fr; }
+  .earnings-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <a class="nav-brand" href="index.html">📊 Market Reports</a>
+  <div class="nav-links">
+    <a href="#macro">Macro</a>
+    <a href="#earnings">Earnings</a>
+    <a href="#swings">Price Swings</a>
+    <a href="#business">Business</a>
+  </div>
+  <span class="nav-date">26 July 2026</span>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <p class="hero-eyebrow">Relatório Semanal de Mercado</p>
+  <h1>Market Report — 26 July 2026</h1>
+  <p class="hero-sub">Resumo da semana: macro, resultados, movimentos de preço e novidades empresariais</p>
+</div>
+
+<main>
+
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <!-- 1. MACRO CONTEXT                                                       -->
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <section id="macro" class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Contexto Macroeconómico</h2>
+    </div>
+
+    <div class="card-grid">
+      <p class="placeholder">Sem artigos macroeconómicos esta semana.</p>
+    </div>
+    
+  </section>
+
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <!-- 2. EARNINGS REPORTS                                                    -->
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <section id="earnings" class="section">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Earnings Reports</h2>
+    </div>
+    <div class="earnings-grid">
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">AAPL</span>
+        <span class="fiscal-year">FY 2018</span>
+      </div>
+      <h3 class="card-title">Apple Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$265.6B</td>
+            <td class="number pos">+398.60%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$112.0B</td>
+            <td class="number pos">+19.50%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$7.49</td>
+            <td class="number pos">+22.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$133.1B</td>
+            <td class="number pos">+8.00%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$359.2B</td>
+            <td class="number neg">-1.60%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">ABBV</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">AbbVie Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$61.2B</td>
+            <td class="number pos">+8.60%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$4.2B</td>
+            <td class="number neg">-1.20%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$2.37</td>
+            <td class="number neg">-1.20%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$15.1B</td>
+            <td class="number pos">+65.00%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$134.0B</td>
+            <td class="number neg">-0.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">ACN</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Accenture plc</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$69.7B</td>
+            <td class="number pos">+293.00%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$7.7B</td>
+            <td class="number pos">+249.40%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$12.29</td>
+            <td class="number pos">+249.10%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$10.2B</td>
+            <td class="number pos">+242.80%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$65.4B</td>
+            <td class="number pos">+16.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">ADBE</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">ADOBE INC.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$23.8B</td>
+            <td class="number pos">+10.50%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$7.1B</td>
+            <td class="number pos">+28.20%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$16.73</td>
+            <td class="number pos">+34.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$8.7B</td>
+            <td class="number pos">+29.10%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$29.5B</td>
+            <td class="number neg">-2.40%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">AMD</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">ADVANCED MICRO DEVICES INC</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$34.6B</td>
+            <td class="number pos">+34.30%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$4.3B</td>
+            <td class="number pos">+164.20%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$2.67</td>
+            <td class="number pos">+164.40%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$3.7B</td>
+            <td class="number pos">+94.40%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$76.9B</td>
+            <td class="number pos">+11.10%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">AMZN</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">AMAZON COM INC</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$716.9B</td>
+            <td class="number pos">+12.40%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$77.7B</td>
+            <td class="number pos">+31.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$7.29</td>
+            <td class="number pos">+28.80%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$80.0B</td>
+            <td class="number pos">+16.60%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$818.0B</td>
+            <td class="number pos">+30.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">AVGO</span>
+        <span class="fiscal-year">FY 2018</span>
+      </div>
+      <h3 class="card-title">Broadcom Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$20.8B</td>
+            <td class="number pos">+311.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$5.9B</td>
+            <td class="number neg">-58.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$4.91</td>
+            <td class="number pos">+286.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$25.5B</td>
+            <td class="number pos">+89.30%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$171.1B</td>
+            <td class="number pos">+3.30%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">BAC</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">BofA Finance LLC</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$113.1B</td>
+            <td class="number pos">+6.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$30.5B</td>
+            <td class="number pos">+13.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$3.86</td>
+            <td class="number pos">+19.50%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$3.4T</td>
+            <td class="number pos">+4.60%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">COST</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">COSTCO WHOLESALE CORP /NEW</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$275.2B</td>
+            <td class="number pos">+8.20%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$8.1B</td>
+            <td class="number pos">+9.90%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$18.24</td>
+            <td class="number pos">+9.90%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$10.4B</td>
+            <td class="number pos">+11.80%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$77.1B</td>
+            <td class="number pos">+10.40%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">CRM</span>
+        <span class="fiscal-year">FY 2017</span>
+      </div>
+      <h3 class="card-title">Salesforce, Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$8.4B</td>
+            <td class="number pos">+291.30%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$7.5B</td>
+            <td class="number pos">+20.30%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$7.85</td>
+            <td class="number pos">+21.90%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$8.3B</td>
+            <td class="number pos">+15.60%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$112.3B</td>
+            <td class="number pos">+9.10%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">CVX</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Chevron Corp</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$189.0B</td>
+            <td class="number neg">-6.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$12.3B</td>
+            <td class="number neg">-30.40%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$6.65</td>
+            <td class="number neg">-31.90%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$324.0B</td>
+            <td class="number pos">+26.10%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">GOOGL</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Alphabet Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$402.8B</td>
+            <td class="number pos">+15.10%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$132.2B</td>
+            <td class="number pos">+32.00%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$10.91</td>
+            <td class="number pos">+34.20%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$129.0B</td>
+            <td class="number pos">+14.80%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$595.3B</td>
+            <td class="number pos">+32.20%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">HD</span>
+        <span class="fiscal-year">FY 2010</span>
+      </div>
+      <h3 class="card-title">HOME DEPOT, INC.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$66.2B</td>
+            <td class="number neg">-7.20%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$14.2B</td>
+            <td class="number neg">-4.40%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$14.26</td>
+            <td class="number neg">-4.70%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$20.9B</td>
+            <td class="number neg">-3.00%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$105.1B</td>
+            <td class="number pos">+9.30%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">JNJ</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Johnson &amp; Johnson</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$94.2B</td>
+            <td class="number pos">+6.00%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$26.8B</td>
+            <td class="number pos">+90.60%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$11.13</td>
+            <td class="number pos">+90.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$21.6B</td>
+            <td class="number pos">+31.60%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$199.2B</td>
+            <td class="number pos">+10.60%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">JPM</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">JPMORGAN CHASE &amp; CO</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$182.4B</td>
+            <td class="number pos">+2.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$57.0B</td>
+            <td class="number neg">-2.40%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$20.05</td>
+            <td class="number pos">+1.30%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$4.4T</td>
+            <td class="number pos">+10.50%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">KO</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">COCA COLA CO</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$47.9B</td>
+            <td class="number pos">+1.90%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$13.1B</td>
+            <td class="number pos">+23.30%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$3.05</td>
+            <td class="number pos">+23.50%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$13.8B</td>
+            <td class="number pos">+37.70%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$104.8B</td>
+            <td class="number pos">+4.20%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">LLY</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">ELI LILLY &amp; Co</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$65.2B</td>
+            <td class="number pos">+44.70%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$20.6B</td>
+            <td class="number pos">+94.90%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$23.00</td>
+            <td class="number pos">+95.60%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$112.5B</td>
+            <td class="number pos">+42.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">MA</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Mastercard Inc</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$32.8B</td>
+            <td class="number pos">+16.40%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$3.1B</td>
+            <td class="number pos">+254.50%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$16.54</td>
+            <td class="number pos">+18.90%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$18.9B</td>
+            <td class="number pos">+21.30%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$54.2B</td>
+            <td class="number pos">+12.60%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">MCD</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">McDONALD’S CORPORATION</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$26.9B</td>
+            <td class="number pos">+3.70%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$8.6B</td>
+            <td class="number pos">+4.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$12.00</td>
+            <td class="number pos">+4.80%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$12.4B</td>
+            <td class="number pos">+5.80%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$59.5B</td>
+            <td class="number pos">+7.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">META</span>
+        <span class="fiscal-year">FY 2017</span>
+      </div>
+      <h3 class="card-title">Meta Platforms, Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$40.7B</td>
+            <td class="number pos">+47.10%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$60.5B</td>
+            <td class="number neg">-3.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$23.98</td>
+            <td class="number neg">-2.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$83.3B</td>
+            <td class="number pos">+20.00%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$366.0B</td>
+            <td class="number pos">+32.60%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">MRK</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Merck &amp; Co., Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$65.0B</td>
+            <td class="number pos">+1.30%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$18.3B</td>
+            <td class="number pos">+6.60%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$7.30</td>
+            <td class="number pos">+8.00%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$136.9B</td>
+            <td class="number pos">+16.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">MSFT</span>
+        <span class="fiscal-year">FY 2010</span>
+      </div>
+      <h3 class="card-title">MICROSOFT CORPORATION</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$62.5B</td>
+            <td class="number pos">+330.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$101.8B</td>
+            <td class="number pos">+15.50%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$13.70</td>
+            <td class="number pos">+15.50%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$128.5B</td>
+            <td class="number pos">+17.40%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$619.0B</td>
+            <td class="number pos">+20.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">NFLX</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">NETFLIX INC</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$45.2B</td>
+            <td class="number pos">+15.90%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$11.0B</td>
+            <td class="number pos">+26.10%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$2.58</td>
+            <td class="number pos">+27.10%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$13.3B</td>
+            <td class="number pos">+27.90%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$55.6B</td>
+            <td class="number pos">+3.70%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">NVDA</span>
+        <span class="fiscal-year">FY 2026</span>
+      </div>
+      <h3 class="card-title">NVIDIA CORP</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$215.9B</td>
+            <td class="number pos">+65.50%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$120.1B</td>
+            <td class="number pos">+64.70%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$4.93</td>
+            <td class="number pos">+66.00%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$130.4B</td>
+            <td class="number pos">+60.10%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$206.8B</td>
+            <td class="number pos">+85.30%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">PEP</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">PepsiCo, Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$93.9B</td>
+            <td class="number pos">+2.30%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$8.2B</td>
+            <td class="number neg">-14.00%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$6.02</td>
+            <td class="number neg">-13.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$11.5B</td>
+            <td class="number neg">-10.80%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$107.4B</td>
+            <td class="number pos">+8.00%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">PG</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">PROCTER &amp; GAMBLE CO</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$84.3B</td>
+            <td class="number pos">+0.30%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$16.0B</td>
+            <td class="number pos">+7.40%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$6.67</td>
+            <td class="number pos">+7.90%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$20.5B</td>
+            <td class="number pos">+10.30%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$125.2B</td>
+            <td class="number pos">+2.30%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">TSLA</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">Tesla, Inc.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$94.8B</td>
+            <td class="number neg">-2.90%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$3.8B</td>
+            <td class="number neg">-46.50%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$1.18</td>
+            <td class="number neg">-47.10%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$4.4B</td>
+            <td class="number neg">-38.50%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$137.8B</td>
+            <td class="number pos">+12.90%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">UNH</span>
+        <span class="fiscal-year">FY 2025</span>
+      </div>
+      <h3 class="card-title">UnitedHealth Group Incorporated</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$447.6B</td>
+            <td class="number pos">+11.80%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$12.1B</td>
+            <td class="number neg">-16.30%</td>
+          </tr>
+          <tr>
+            <td>EPS</td>
+            <td class="number">$13.28</td>
+            <td class="number neg">-15.10%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$19.0B</td>
+            <td class="number neg">-41.30%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$309.6B</td>
+            <td class="number pos">+3.80%</td>
+          </tr></tbody>
+      </table>
+    </div>
+    <div class="card earnings-card">
+      <div class="card-meta">
+        <span class="ticker-badge large">V</span>
+        <span class="fiscal-year">FY 2020</span>
+      </div>
+      <h3 class="card-title">VISA INC.</h3>
+      <table class="earnings-table">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Var. YoY</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number">$21.8B</td>
+            <td class="number neg">-4.90%</td>
+          </tr>
+          <tr>
+            <td>Net Income</td>
+            <td class="number">$20.1B</td>
+            <td class="number pos">+1.60%</td>
+          </tr>
+          <tr>
+            <td>EBIT</td>
+            <td class="number">$24.0B</td>
+            <td class="number pos">+1.70%</td>
+          </tr>
+          <tr>
+            <td>Total Assets</td>
+            <td class="number">$99.6B</td>
+            <td class="number pos">+5.40%</td>
+          </tr></tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <!-- 3. PRICE SWINGS                                                        -->
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <section id="swings" class="section">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Price Swings</h2>
+    </div>
+
+    <div class="subsection">
+      <h4 class="subsection-title">Índices — Variação Semanal</h4>
+      
+    <table class="data-table">
+      <thead><tr><th>Índice</th><th>Cotação</th><th>Var. Semana</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>S&P 500</td>
+          <td class="number">$7,408.30</td>
+          <td class="number neg">-0.47%</td>
+        </tr>
+        <tr>
+          <td>Nasdaq 100</td>
+          <td class="number">$28,454.81</td>
+          <td class="number neg">-0.52%</td>
+        </tr>
+        <tr>
+          <td>Dow Jones</td>
+          <td class="number">$51,711.65</td>
+          <td class="number neg">-0.25%</td>
+        </tr></tbody>
+    </table>
+    </div>
+
+    <div class="subsection">
+      <h4 class="subsection-title">MAG-7 — Variação Semanal &amp; YTD</h4>
+      
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Empresa</th><th>Cotação</th>
+          <th>Var. Semana</th><th>Var. YTD</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="ticker-badge">NVDA</span> NVIDIA</td>
+          <td class="number">$208.76</td>
+          <td class="number pos">+2.70%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AAPL</span> Apple</td>
+          <td class="number">$321.66</td>
+          <td class="number neg">-1.51%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">MSFT</span> Microsoft</td>
+          <td class="number">$381.58</td>
+          <td class="number neg">-5.15%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">META</span> Meta Platforms</td>
+          <td class="number">$606.10</td>
+          <td class="number neg">-6.15%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AMZN</span> Amazon</td>
+          <td class="number">$233.66</td>
+          <td class="number neg">-6.53%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">GOOGL</span> Alphabet</td>
+          <td class="number">$317.69</td>
+          <td class="number neg">-9.74%</td>
+          <td class="number neutral">nan%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">TSLA</span> Tesla</td>
+          <td class="number">$319.69</td>
+          <td class="number neg">-13.50%</td>
+          <td class="number neutral">nan%</td>
+        </tr></tbody>
+    </table>
+    </div>
+
+    <div class="subsection">
+      
+    <h4 class="subsection-title">Top 10 Gainers — S&amp;P 500</h4>
+    <table class="data-table">
+      <thead><tr><th>Ticker</th><th>Cotação</th><th>Var. Semana</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="ticker-badge">NVDA</span></td>
+          <td class="number">$208.76</td>
+          <td class="number pos">+2.70%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AAPL</span></td>
+          <td class="number">$321.66</td>
+          <td class="number neg">-1.51%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">MSFT</span></td>
+          <td class="number">$381.58</td>
+          <td class="number neg">-5.15%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">META</span></td>
+          <td class="number">$606.10</td>
+          <td class="number neg">-6.15%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AMZN</span></td>
+          <td class="number">$233.66</td>
+          <td class="number neg">-6.53%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">GOOGL</span></td>
+          <td class="number">$317.69</td>
+          <td class="number neg">-9.74%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">TSLA</span></td>
+          <td class="number">$319.69</td>
+          <td class="number neg">-13.50%</td>
+        </tr></tbody>
+    </table>
+    </div>
+
+    <div class="subsection">
+      
+    <h4 class="subsection-title">Top 10 Losers — S&amp;P 500</h4>
+    <table class="data-table">
+      <thead><tr><th>Ticker</th><th>Cotação</th><th>Var. Semana</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="ticker-badge">TSLA</span></td>
+          <td class="number">$319.69</td>
+          <td class="number neg">-13.50%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">GOOGL</span></td>
+          <td class="number">$317.69</td>
+          <td class="number neg">-9.74%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AMZN</span></td>
+          <td class="number">$233.66</td>
+          <td class="number neg">-6.53%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">META</span></td>
+          <td class="number">$606.10</td>
+          <td class="number neg">-6.15%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">MSFT</span></td>
+          <td class="number">$381.58</td>
+          <td class="number neg">-5.15%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">AAPL</span></td>
+          <td class="number">$321.66</td>
+          <td class="number neg">-1.51%</td>
+        </tr>
+        <tr>
+          <td><span class="ticker-badge">NVDA</span></td>
+          <td class="number">$208.76</td>
+          <td class="number pos">+2.70%</td>
+        </tr></tbody>
+    </table>
+    </div>
+
+    <div class="subsection">
+      <p class="placeholder">Nenhuma ação perto do mínimo de 52 semanas.</p>
+    </div>
+  </section>
+
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <!-- 4. BUSINESS UPDATE                                                     -->
+  <!-- ────────────────────────────────────────────────────────────────────── -->
+  <section id="business" class="section">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Business Update</h2>
+    </div>
+
+    <div class="card-grid">
+      <p class="placeholder">Sem notícias de negócios esta semana.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Gerado a 2026-07-26 10:00 UTC</p>
+  <p>
+    Fontes: WSJ · FT · Bloomberg · The Economist · Discord · Yahoo Finance · SEC EDGAR
+  </p>
+  <p>
+    <a href="index.html">← Arquivo de Relatórios</a>
+  </p>
+</footer>
+
+</body>
+</html>
