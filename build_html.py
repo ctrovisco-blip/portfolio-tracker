@@ -67,6 +67,13 @@ screener_js     = json.dumps(screener_data, separators=(',',':'), ensure_ascii=F
 timestamps_js   = json.dumps(timestamps,   separators=(',',':'))
 
 updated = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+build_ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+
+# ── Escrever data/version.json (usado pelo tracker para detetar nova versão) ──
+os.makedirs("data", exist_ok=True)
+with open("data/version.json", "w", encoding="utf-8") as f:
+    json.dump({"ts": build_ts, "updated": updated}, f)
+print(f"  version.json: {build_ts}")
 
 # ── Substituir placeholders ───────────────────────────────────────────────────
 
@@ -76,6 +83,7 @@ html = html.replace("/*__FUNDAMENTALS__*/", fundamentals_js)
 html = html.replace("/*__FX_RATES__*/",     fx_js)
 html = html.replace("/*__SCREENER_DATA__*/", screener_js)
 html = html.replace("/*__TIMESTAMPS__*/",   timestamps_js)
+html = html.replace("/*__BUILD_TS__*/",     f'"{build_ts}"')
 html = html.replace("__UPDATED__",          updated)
 
 # ── Escrever index.html ───────────────────────────────────────────────────────

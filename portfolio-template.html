@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Portfolio Tracker | Cláudio Trovisco</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><polyline points='8,72 28,42 48,57 68,24 92,34' fill='none' stroke='%233FB950' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -142,6 +145,7 @@ const CHART_DATA    = /*__CHART_DATA__*/;
 const FX_RATES      = /*__FX_RATES__*/;
 const SCREENER_DATA = /*__SCREENER_DATA__*/;
 const TIMESTAMPS    = /*__TIMESTAMPS__*/;
+const BUILD_TS      = /*__BUILD_TS__*/;
 </script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
@@ -1981,6 +1985,50 @@ function ScreenerView() {
   );
 }
 
+// ─── UPDATE BANNER ───────────────────────────────────────────────────────────
+function UpdateBanner() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const r = await fetch("data/version.json?_=" + Date.now());
+        if (!r.ok) return;
+        const { ts } = await r.json();
+        if (ts && ts !== BUILD_TS) setShow(true);
+      } catch {}
+    };
+    const id = setInterval(check, 5 * 60 * 1000); // a cada 5 min
+    check(); // verificar imediatamente ao carregar
+    return () => clearInterval(id);
+  }, []);
+
+  if (!show) return null;
+  return (
+    <div style={{
+      position:"fixed",bottom:"16px",left:"50%",transform:"translateX(-50%)",
+      zIndex:9999,background:"#1e2d1e",border:"1px solid #22C55E",borderRadius:"10px",
+      padding:"10px 16px",display:"flex",alignItems:"center",gap:"12px",
+      boxShadow:"0 4px 20px #00000099",fontFamily:"'Inter',sans-serif",
+      whiteSpace:"nowrap",
+    }}>
+      <span style={{fontSize:"11px",color:"#86efac"}}>🔄 Nova versão disponível</span>
+      <button
+        onClick={() => window.location.reload(true)}
+        style={{fontSize:"10px",fontWeight:"600",padding:"5px 12px",borderRadius:"6px",
+          cursor:"pointer",background:"#22C55E",border:"none",color:"#0a1a0a",
+          fontFamily:"'Inter',sans-serif"}}>
+        Atualizar
+      </button>
+      <button
+        onClick={() => setShow(false)}
+        style={{fontSize:"11px",background:"transparent",border:"none",
+          color:"#4ade80",cursor:"pointer",padding:"2px 4px"}}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab]           = useState("portfolio");
@@ -2076,6 +2124,7 @@ function App() {
   return (
     <div style={{background:"#131722",height:"100vh",display:"flex",flexDirection:"column",
       fontFamily:"'Inter',sans-serif",color:"#c8ccd4",fontSize:"11px",overflow:"hidden"}}>
+      <UpdateBanner/>
 
       {/* ── Header ── */}
       <div style={{background:"#1a1f2e",borderBottom:"1px solid #2a3042",padding:"0 16px",
