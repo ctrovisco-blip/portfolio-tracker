@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Portfolio Tracker | Cláudio Trovisco</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><polyline points='8,72 28,42 48,57 68,24 92,34' fill='none' stroke='%233FB950' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -24,7 +27,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 /* ── Grelha da tabela de posições (desktop) ───────────────────────── */
 .pos-grid{
   display:grid;
-  grid-template-columns:20px 1fr 68px 76px 76px 58px 130px;
+  grid-template-columns:20px 1fr 68px 76px 76px 130px;
   gap:4px;
   align-items:center;
 }
@@ -49,7 +52,8 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Header: esconder texto secundário e compactar */
   .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
-.hdr-freshness-text{display:none!important;}
+  .hdr-deploy{display:none!important;}
+  .hdr-freshness-text{display:none!important;}
 
   /* Painel direito: slide-in full-screen */
   .right-col{
@@ -74,7 +78,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   .mob-indicators-btn{display:block!important;}
 
   /* Tabela: logo | empresa | valor+% | retorno */
-  .pos-grid{grid-template-columns:20px 1fr 76px 52px 90px!important;}
+  .pos-grid{grid-template-columns:20px 1fr 76px 90px!important;}
   .col-price,.col-invested,.col-price-hdr,.col-invested-hdr{display:none!important;}
   .row-spark{display:none!important;}
 
@@ -112,8 +116,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   .summary-bar > div > div:nth-child(3){font-size:9px!important;}
 
   /* Botão Visão Geral — só mobile */
-  .mob-overview-btn{display:none!important;}
-  .mob-overview-sort{display:flex!important;}
+  .mob-overview-btn{display:flex!important;}
 
   /* Esconder botão Portfolio do header no mobile */
   .hdr-back{display:none!important;}
@@ -141,102 +144,11 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 const CHART_DATA    = /*__CHART_DATA__*/;
 const FX_RATES      = /*__FX_RATES__*/;
 const SCREENER_DATA = /*__SCREENER_DATA__*/;
-const NEWS_DATA     = /*__NEWS_DATA__*/;
 const TIMESTAMPS    = /*__TIMESTAMPS__*/;
+const BUILD_TS      = /*__BUILD_TS__*/;
 </script>
-<script type="text/babel" data-presets="react">
+<script type="text/babel">
 const { useState, useMemo, useRef, useEffect } = React;
-
-// ── News read-state helpers ───────────────────────────────────────────────────
-const NEWS_READ_KEY = "news_read";
-const getReadUrls = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(NEWS_READ_KEY) || "[]")); }
-  catch { return new Set(); }
-};
-const markUrlRead = url => {
-  try {
-    const s = getReadUrls(); s.add(url);
-    localStorage.setItem(NEWS_READ_KEY, JSON.stringify([...s]));
-  } catch {}
-};
-
-function NewsButton({ ticker, label, bgColor }) {
-  const articles = (NEWS_DATA[ticker] || []).filter(a => {
-    if (!a.ts) return true;
-    return (Date.now() / 1000 - a.ts) < 48 * 3600;
-  });
-  const [open, setOpen] = useState(false);
-  const [readUrls, setReadUrls] = useState(getReadUrls);
-  const unread = articles.filter(a => !readUrls.has(a.url)).length;
-  const fmtAge = ts => {
-    if (!ts) return "";
-    const h = Math.floor((Date.now()/1000 - ts) / 3600);
-    return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h/24)}d`;
-  };
-  const handleClick = url => { markUrlRead(url); setReadUrls(getReadUrls()); };
-  return (<>
-    <button onClick={() => setOpen(true)} style={{
-      width:"100%",marginTop:"10px",padding:"10px",
-      background: bgColor || "#1a1f2e",border:"1px solid #2a2e39",borderRadius:"6px",
-      color:"#c8ccd4",fontSize:"11px",fontWeight:"600",cursor:"pointer",
-      display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-      letterSpacing:"0.3px",
-    }}>
-      📰 Notícias recentes
-      {unread > 0 && (
-        <span style={{background:"#2962ff",color:"#fff",borderRadius:"10px",
-          padding:"1px 7px",fontSize:"9px",fontWeight:"700"}}>
-          {unread}
-        </span>
-      )}
-    </button>
-    {open && (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
-        display:"flex",alignItems:"flex-end",justifyContent:"center"}}
-        onClick={() => setOpen(false)}>
-        <div style={{background:"#131722",borderRadius:"12px 12px 0 0",
-          width:"100%",maxWidth:"500px",maxHeight:"80vh",display:"flex",flexDirection:"column"}}
-          onClick={e => e.stopPropagation()}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-            padding:"14px 16px 10px",borderBottom:"1px solid #1e2438",flexShrink:0}}>
-            <div>
-              <div style={{fontSize:"10px",color:"#787b86"}}>{label}</div>
-              <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>Notícias recentes</div>
-            </div>
-            <button onClick={() => setOpen(false)}
-              style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"20px",padding:"4px"}}>✕</button>
-          </div>
-          <div style={{overflowY:"auto",padding:"8px 12px 16px"}}>
-            {articles.length === 0 ? (
-              <div style={{textAlign:"center",color:"#6b7280",fontSize:"11px",padding:"24px 0"}}>
-                Sem notícias nas últimas 48h
-              </div>
-            ) : articles.map((a, i) => {
-              const isRead = readUrls.has(a.url);
-              return (
-              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                onClick={() => handleClick(a.url)}
-                style={{display:"block",textDecoration:"none",
-                  padding:"10px 0",borderBottom:"1px solid #1e2438",
-                  opacity: isRead ? 0.45 : 1, transition:"opacity 0.2s"}}>
-                <div style={{fontSize:"11px",color: isRead ? "#6b7280" : "#d1d4dc",
-                  fontWeight: isRead ? "400" : "500",
-                  lineHeight:"1.4",marginBottom:"5px"}}>{a.title}</div>
-                <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-                  <span style={{fontSize:"9px",color:"#5a6478",fontWeight:"600",
-                    textTransform:"uppercase",letterSpacing:"0.4px"}}>{a.source}</span>
-                  {a.ts && <span style={{fontSize:"9px",color:"#3d4663"}}>·</span>}
-                  {a.ts && <span style={{fontSize:"9px",color:"#5a6478"}}>{fmtAge(a.ts)}</span>}
-                </div>
-              </a>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    )}
-  </>);
-}
 
 const positions = /*__POSITIONS__*/;
 const FUNDAMENTALS = /*__FUNDAMENTALS__*/;
@@ -303,27 +215,15 @@ function LogoImg({ ticker, sector, flag, size = 20 }) {
 // ─── LINE CHART ───────────────────────────────────────────────────────────────
 function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y" }) {
   const [hoverIdx, setHoverIdx] = useState(null);
-  const [viewWindow, setViewWindow] = useState(null); // {start,end} | null = all
-  const [pinch, setPinch] = useState(null);           // {dist,start,end,anchorFrac}
-  const [panStart, setPanStart] = useState(null);     // {x,winStart,winEnd}
-  const lastTap = useRef(0);
   const svgRef = useRef(null);
 
-  const allEntries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
+  const entries = useMemo(() => Object.entries(seriesData || {}).sort((a,b)=>a[0]>b[0]?1:-1), [seriesData]);
 
-  // Reset zoom when data/range changes
-  useEffect(() => { setViewWindow(null); setHoverIdx(null); setPinch(null); }, [seriesData]);
-
-  if (!allEntries.length) return (
+  if (!entries.length) return (
     <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#6b7280",fontSize:"11px"}}>
       Sem dados históricos disponíveis
     </div>
   );
-
-  const visStart = viewWindow?.start ?? 0;
-  const visEnd   = viewWindow?.end   ?? (allEntries.length - 1);
-  const entries  = allEntries.slice(visStart, visEnd + 1);
-  const isZoomed = visStart > 0 || visEnd < allEntries.length - 1;
 
   const W = 700, H = 140;
   const PAD = { top:16, right:58, bottom:26, left:48 };
@@ -384,66 +284,13 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
   };
 
-  const pinchDist = (t) => {
-    const dx = t[0].clientX - t[1].clientX;
-    const dy = t[0].clientY - t[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-  };
-
-  const handleTouchStart = (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const rect = svgRef.current?.getBoundingClientRect();
-      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const frac = rect ? Math.max(0, Math.min(1, (midX - rect.left) / rect.width)) : 0.5;
-      setPinch({ dist: pinchDist(e.touches), start: visStart, end: visEnd, anchorFrac: frac });
-      setPanStart(null);
-    } else if (e.touches.length === 1) {
-      setPanStart({ x: e.touches[0].clientX, winStart: visStart, winEnd: visEnd });
-    }
-  };
-
   const handleTouchMove = (e) => {
     e.preventDefault();
-    if (e.touches.length === 2) {
-      if (!pinch) return;
-      const newDist = Math.max(1, pinchDist(e.touches));
-      const scale   = pinch.dist / newDist;
-      const span    = pinch.end - pinch.start;
-      const newSpan = Math.max(5, Math.round(span * scale));
-      // Anchor zoom to the original pinch midpoint fraction
-      const anchor  = pinch.start + pinch.anchorFrac * span;
-      const newStart = Math.max(0, Math.round(anchor - pinch.anchorFrac * newSpan));
-      const newEnd   = Math.min(allEntries.length - 1, newStart + newSpan);
-      if (newEnd - newStart >= 5) setViewWindow({ start: newStart, end: newEnd });
-      return;
-    }
-    // Single finger
     const touch = e.touches[0];
-    const rect = svgRef.current?.getBoundingClientRect() || e.currentTarget.getBoundingClientRect();
-    // Pan when zoomed
-    if (isZoomed && panStart) {
-      const dxPx  = touch.clientX - panStart.x;
-      const span  = panStart.winEnd - panStart.winStart;
-      const shift = Math.round(-dxPx / rect.width * span);
-      const s = Math.max(0, Math.min(allEntries.length - 1 - span, panStart.winStart + shift));
-      setViewWindow({ start: s, end: Math.min(allEntries.length - 1, s + span) });
-    }
-    // Hover crosshair
+    const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = (touch.clientX - rect.left) * (W / rect.width) - PAD.left;
     const idx = Math.round((mouseX / cW) * (entries.length - 1));
     setHoverIdx(Math.max(0, Math.min(entries.length - 1, idx)));
-  };
-
-  const handleTouchEnd = (e) => {
-    if (e.touches.length < 2) setPinch(null);
-    if (e.touches.length === 0) {
-      setPanStart(null);
-      setHoverIdx(null);
-      const now = Date.now();
-      if (now - lastTap.current < 300) setViewWindow(null);
-      lastTap.current = now;
-    }
   };
 
   const hov = hoverIdx;
@@ -457,22 +304,12 @@ function LineChart({ seriesData, color, label, buyDates, overlays=[], range="1y"
 
   return (
     <div style={{position:"relative",userSelect:"none",height:"100%"}}>
-      {isZoomed && (
-        <div onClick={() => setViewWindow(null)}
-          style={{position:"absolute",top:"4px",right:"4px",zIndex:20,
-            background:"#2962ff22",border:"1px solid #2962ff66",borderRadius:"4px",
-            padding:"2px 7px",fontSize:"9px",color:"#2962ff",cursor:"pointer",
-            lineHeight:"16px",letterSpacing:"0.3px"}}>
-          ⟳ repor zoom
-        </div>
-      )}
       <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        style={{display:"block",touchAction:"none"}}
+        style={{display:"block"}}
         onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}>
+        onTouchMove={handleTouchMove} onTouchEnd={() => setHoverIdx(null)}
+        style={{display:"block",touchAction:"pan-y"}}>
         <defs>
           <linearGradient id={`grad_${safeId}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lineCol} stopOpacity={isPos?"0.22":"0.18"}/>
@@ -821,12 +658,6 @@ function PositionRow({ p, selected, onClick }) {
           {weightPct.toFixed(1)}%
         </div>
       </div>
-      {/* Peso % (por custo investido) */}
-      <div className="col-weight" style={{textAlign:"right"}}>
-        <div style={{fontSize:"10px",fontWeight:"500",color:"#787b86",fontVariantNumeric:"tabular-nums"}}>
-          {TOTAL_COST_EUR > 0 ? (costEur / TOTAL_COST_EUR * 100).toFixed(1) : "—"}%
-        </div>
-      </div>
       {/* Retorno */}
       <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:"5px"}}>
         <div className="row-spark" style={{opacity:selected?1:0.6}}>
@@ -847,37 +678,12 @@ function PositionRow({ p, selected, onClick }) {
 }
 
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
-const METRIC_META = {
-  revenue:           {title:"Receita",             unit:"B"},
-  grossMargin:       {title:"Margem Bruta",        unit:"%"},
-  operatingMargin:   {title:"Margem Operacional",  unit:"%"},
-  netMargin:         {title:"Margem Líquida",      unit:"%"},
-  netIncome:         {title:"Resultado Líquido",   unit:"B"},
-  eps:               {title:"EPS (diluído)",       unit:"cur"},
-  fcf:               {title:"Free Cash Flow",      unit:"B"},
-  fcfYield:          {title:"FCF Yield",           unit:"%"},
-  totalDebt:         {title:"Dívida Total",        unit:"B"},
-  marketCap:         {title:"Market Cap",          unit:"B"},
-  pe:                {title:"P/E Ratio",           unit:"x"},
-  debtToEquity:      {title:"Debt/Equity",         unit:"%"},
-  currentRatio:      {title:"Current Ratio",       unit:"x"},
-  roe:               {title:"ROE",                 unit:"%"},
-  roa:               {title:"ROA",                 unit:"%"},
-  payoutRatio:       {title:"Payout Ratio",        unit:"%"},
-  divYield:          {title:"Dividend Yield",      unit:"%"},
-  buybackYield:      {title:"Buyback Yield",       unit:"%"},
-  shareholderYield:  {title:"Shareholder Yield",   unit:"%"},
-  sharesOutstanding: {title:"Nº de Ações",         unit:"B"},
-  dps:               {title:"Dividendo por Ação",  unit:"cur"},
-};
-
 function Detail({ p }) {
   const ret = pctReturn(p);
   const col = SECTOR_COLORS[p.sector] || "#5a6478";
   const posValue  = p.qty * p.curPrice;
   const costBasis = p.qty * p.avgPrice;
   const f = FUNDAMENTALS[p.ticker];
-  const [histModal, setHistModal] = React.useState(null);
 
   const fmtPct = (v, d=2) => v == null ? "—" : `${v.toFixed(d)}%`;
   const fmtNum = (v, d=1) => v == null ? "—" : v.toFixed(d);
@@ -895,62 +701,12 @@ function Detail({ p }) {
   const roeCol    = v => v==null?"#6b7280":v>20?"#089981":v>10?"#c8ccd4":v>0?"#F0883E":"#ef5350";
   const growthCol = v => v==null?"#6b7280":v>15?"#089981":v>5?"#c8ccd4":v>0?"#F0883E":"#ef5350";
 
-  const INDICATOR_DESC = {
-    "Market Cap":        "Valor total de mercado da empresa: preço da ação × número de ações em circulação.",
-    "Total Debt":        "Dívida total da empresa (curto + longo prazo).",
-    "P/E Ratio":         "Preço / Lucro por ação. Quantos anos de lucros atuais pagas pelo preço de hoje — quanto mais baixo, mais barata a ação.",
-    "Gross Margin":      "(Receita − custo dos produtos vendidos) / Receita. Mede o poder de preço do negócio.",
-    "Net Margin":        "Lucro líquido / Receita. Quanto de cada dólar/euro de vendas se converte em lucro final.",
-    "ROE":               "Retorno sobre capitais próprios: lucro líquido / capital dos acionistas. Acima de 15–20% é excelente.",
-    "FCF Yield":         "Free cash flow / Market cap. Cash livre gerado por ano face ao preço pago pela empresa.",
-    "Revenue Growth":    "Crescimento da receita face ao ano fiscal anterior.",
-    "Dividend Yield":    "Dividendo anual / Preço da ação.",
-    "Buyback Yield":     "Valor gasto em recompras de ações / Market cap.",
-    "Shareholder Yield": "Dividend yield + buyback yield: retorno total devolvido ao acionista.",
-    "Payout Ratio":      "Percentagem dos lucros paga em dividendos. Abaixo de ~60–80% é geralmente sustentável.",
-    "Div CAGR 5 anos":   "Taxa de crescimento anual composto do dividendo nos últimos 5 anos.",
-  };
-
-  const Card = ({label, value, color, histKey}) => {
-    const desc = INDICATOR_DESC[label];
-    const hist = histKey && f && f.history && f.history[histKey];
-    const [tip, setTip] = React.useState(false);
-    const [tipPos, setTipPos] = React.useState({left:"50%",transform:"translateX(-50%)"});
-    const handleEnter = e => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const vw = window.innerWidth;
-      if (rect.left < 80)           setTipPos({left:0, transform:"none"});
-      else if (rect.right > vw - 80) setTipPos({right:0, left:"auto", transform:"none"});
-      else                            setTipPos({left:"50%", transform:"translateX(-50%)"});
-      setTip(true);
-    };
-    return (
-      <div
-        style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:`1px solid ${tip?"#2962ff":"#1e2438"}`,
-                cursor:"pointer",position:"relative",transition:"border-color 0.15s"}}
-        onMouseEnter={handleEnter}
-        onMouseLeave={() => setTip(false)}
-        onTouchStart={handleEnter}
-        onTouchEnd={() => setTimeout(() => setTip(false), 1800)}
-        onClick={() => hist && setHistModal({label, key: histKey})}
-      >
-        {tip && desc && (
-          <div style={{position:"absolute",bottom:"calc(100% + 6px)",...tipPos,
-            background:"#1e2438",border:"1px solid #2a2e39",borderRadius:"6px",padding:"7px 10px",
-            fontSize:"10px",color:"#c8ccd4",lineHeight:"1.4",width:"180px",zIndex:200,
-            boxShadow:"0 4px 16px #00000088",pointerEvents:"none",textAlign:"left"}}>
-            {desc}
-            {hist && <div style={{marginTop:"4px",color:"#2962ff",fontSize:"9px"}}>Clica para ver histórico →</div>}
-          </div>
-        )}
-        <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase",display:"flex",alignItems:"center",gap:"4px"}}>
-          {label}
-          {hist && <span style={{color:"#2962ff",fontSize:"8px",lineHeight:1}}>↗</span>}
-        </div>
-        <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
-      </div>
-    );
-  };
+  const Card = ({label, value, color}) => (
+    <div style={{background:"#1a1f2e",borderRadius:"5px",padding:"7px 9px",border:"1px solid #1e2438"}}>
+      <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"4px",letterSpacing:"0.5px",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:"11px",color:color||"#c8ccd4",fontWeight:"600",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+    </div>
+  );
 
   const Section = ({title}) => (
     <div style={{fontSize:"9px",color:"#5a6478",letterSpacing:"1.5px",margin:"10px 0 5px 1px",textTransform:"uppercase"}}>{title}</div>
@@ -993,28 +749,28 @@ function Detail({ p }) {
       {f ? (<>
         <Section title="Avaliação"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"                          histKey="marketCap"/>
-          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"} histKey="totalDebt"/>
-          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}                     histKey="pe"/>
+          <Card label="Market Cap"  value={fmtStr(f.marketCap)}  color="#c8ccd4"/>
+          <Card label="Total Debt"  value={fmtStr(f.totalDebt)}  color={f.totalDebt?"#F0883E":"#6b7280"}/>
+          <Card label="P/E Ratio"   value={fmtNum(f.pe)}         color={peCol(f.pe)}/>
         </div>
 
         <Section title="Rentabilidade"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)} histKey="grossMargin"/>
-          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}   histKey="netMargin"/>
-          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}            histKey="roe"/>
+          <Card label="Gross Margin"   value={fmtPct(f.grossMargin)}   color={marginCol(f.grossMargin)}/>
+          <Card label="Net Margin"     value={fmtPct(f.netMargin)}     color={marginCol(f.netMargin)}/>
+          <Card label="ROE"            value={fmtPct(f.roe)}           color={roeCol(f.roe)}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px",marginTop:"4px"}}>
-          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}       histKey="fcfYield"/>
-          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)} histKey="revenue"/>
+          <Card label="FCF Yield"      value={fmtPct(f.fcfYield)}      color={fcfCol(f.fcfYield)}/>
+          <Card label="Revenue Growth" value={f.revenueGrowth != null ? `${f.revenueGrowth>0?"+":""}${f.revenueGrowth.toFixed(1)}%` : "—"} color={growthCol(f.revenueGrowth)}/>
         </div>
 
         <Section title="Retorno ao Acionista"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}         histKey="divYield"/>
-          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}     histKey="buybackYield"/>
-          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)} histKey="shareholderYield"/>
-          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}     histKey="payoutRatio"/>
+          <Card label="Dividend Yield"    value={fmtPct(f.divYield)}         color={yieldCol(f.divYield)}/>
+          <Card label="Buyback Yield"     value={fmtPct(f.buybackYield)}     color={yieldCol(f.buybackYield)}/>
+          <Card label="Shareholder Yield" value={fmtPct(f.shareholderYield)} color={yieldCol(f.shareholderYield)}/>
+          <Card label="Payout Ratio"      value={fmtPct(f.payoutRatio,1)}    color={payoutCol(f.payoutRatio)}/>
         </div>
 
         <Section title="Crescimento do Dividendo"/>
@@ -1044,76 +800,6 @@ function Detail({ p }) {
           Dados fundamentais não disponíveis
         </div>
       )}
-
-      {histModal && f && f.history && f.history[histModal.key] && (() => {
-        const meta   = METRIC_META[histModal.key] || {};
-        const unit   = meta.unit || "%";
-        const title  = meta.title || histModal.label;
-        const raw    = f.history[histModal.key];
-        const years  = Object.keys(raw).map(Number).sort();
-        const vals   = years.map(y => raw[y]);
-        const max    = Math.max(...vals.map(Math.abs));
-        const fmtBig = v => {
-          if (Math.abs(v) >= 1e12) return `${(v/1e12).toFixed(2)}T`;
-          if (Math.abs(v) >= 1e9)  return `${(v/1e9).toFixed(1)}B`;
-          if (Math.abs(v) >= 1e6)  return `${(v/1e6).toFixed(0)}M`;
-          return String(Math.round(v));
-        };
-        const fmtVal = v => {
-          if (unit === "%")   return `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
-          if (unit === "B")   return fmtBig(v);
-          if (unit === "cur") return fmtBig(v);
-          if (unit === "x")   return `${v.toFixed(2)}x`;
-          return v.toFixed(1);
-        };
-        const barCol = v => v >= 0 ? "#089981" : "#ef5350";
-        return (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:9999,
-            display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}
-            onClick={() => setHistModal(null)}>
-            <div style={{background:"#131722",border:"1px solid #2a2e39",borderRadius:"10px",
-              padding:"20px",width:"100%",maxWidth:"380px"}}
-              onClick={e => e.stopPropagation()}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
-                <div>
-                  <div style={{fontSize:"11px",color:"#787b86",marginBottom:"2px"}}>{p.ticker} · {p.name}</div>
-                  <div style={{fontSize:"13px",fontWeight:"700",color:"#e0e3eb"}}>{title}</div>
-                </div>
-                <button onClick={() => setHistModal(null)}
-                  style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"4px"}}>✕</button>
-              </div>
-              <svg width="100%" viewBox={`0 0 ${years.length * 60} 100`} style={{display:"block",marginBottom:"12px"}}>
-                {vals.map((v, i) => {
-                  const barH = max > 0 ? Math.abs(v) / max * 70 : 0;
-                  const x = i * 60 + 5;
-                  const baseline = 80;
-                  const y = v >= 0 ? baseline - barH : baseline;
-                  return (
-                    <g key={years[i]}>
-                      <rect x={x} y={y} width={50} height={Math.max(barH, 1)} fill={barCol(v)} rx="3" opacity="0.85"/>
-                      <text x={x + 25} y={baseline + 12} textAnchor="middle" fill="#6b7280" fontSize="9">{years[i]}</text>
-                      <text x={x + 25} y={v >= 0 ? y - 3 : y + barH + 11} textAnchor="middle"
-                        fill={barCol(v)} fontSize="9" fontWeight="600">{fmtVal(v)}</text>
-                    </g>
-                  );
-                })}
-                <line x1="0" y1="80" x2={years.length * 60} y2="80" stroke="#2a2e39" strokeWidth="1"/>
-              </svg>
-              <div style={{display:"grid",gridTemplateColumns:`repeat(${years.length},minmax(0,1fr))`,gap:"4px",textAlign:"center"}}>
-                {years.map((y,i) => (
-                  <div key={y} style={{background:"#1a1f2e",borderRadius:"4px",padding:"5px 2px",minWidth:0}}>
-                    <div style={{fontSize:"9px",color:"#787b86",marginBottom:"2px"}}>{y}</div>
-                    <div style={{fontSize:"10px",fontWeight:"600",color:barCol(vals[i]),whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{fmtVal(vals[i])}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── News button ── */}
-      <NewsButton ticker={p.ticker} label={`${p.ticker} · ${p.name}`} bgColor="#1a1f2e" />
     </div>
   );
 }
@@ -1276,25 +962,16 @@ function PortfolioOverview({ positions, onSelect }) {
 }
 
 
-// ─── DEPLOY + COUNTDOWN (combined widget) ────────────────────────────────────
-function DeployCountdown() {
-  const REFRESH_MS = 15 * 60 * 1000;
-  const [status,    setStatus]   = useState("idle"); // idle | asking | running | ok | err
-  const [token,     setToken]    = useState(() => localStorage.getItem("gh_pat") || "");
-  const [inputVal,  setInput]    = useState("");
-  const [errMsg,    setErrMsg]   = useState("");
-  const [minsLeft,  setMinsLeft] = useState(15);
-  const ref = useRef(null);
+// ─── DEPLOY BUTTON ────────────────────────────────────────────────────────────
+const GH_REPO     = "ctrovisco-blip/portfolio-tracker";
+const GH_WORKFLOW = "update.yml";
 
-  // Auto-refresh timer + countdown
-  useEffect(() => {
-    const deadline = Date.now() + REFRESH_MS;
-    const tick = setInterval(() => {
-      setMinsLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 60000)));
-    }, 10000);
-    const reload = setTimeout(() => location.reload(), REFRESH_MS);
-    return () => { clearInterval(tick); clearTimeout(reload); };
-  }, []);
+function DeployButton() {
+  const [status, setStatus]   = useState("idle"); // idle | asking | running | ok | err
+  const [token, setToken]     = useState(() => localStorage.getItem("gh_pat") || "");
+  const [inputVal, setInput]  = useState("");
+  const [errMsg, setErrMsg]   = useState("");
+  const ref = useRef(null);
 
   // Fechar modal ao clicar fora
   useEffect(() => {
@@ -1309,8 +986,15 @@ function DeployCountdown() {
     try {
       const res = await fetch(
         `https://api.github.com/repos/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`,
-        { method:"POST", headers:{ "Authorization":`Bearer ${pat}`, "Accept":"application/vnd.github+json", "Content-Type":"application/json" },
-          body: JSON.stringify({ ref:"main" }) }
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${pat}`,
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ref: "main" }),
+        }
       );
       if (res.status === 204) {
         setStatus("ok");
@@ -1346,67 +1030,75 @@ function DeployCountdown() {
     setToken(""); setStatus("idle");
   };
 
-  const col    = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : status==="running" ? "#5b8af5" : "#6b7280";
-  const bg     = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : status==="running" ? "#2962ff11" : "#1e2438";
-  const border = status==="ok" ? "#22C55E44" : status==="err" ? "#ef535044" : status==="running" ? "#2962ff44" : "#2a3042";
-
-  const label = status==="running" ? "⏳ a correr…"
-              : status==="ok"      ? "✓ em curso"
-              : status==="err"     ? "✗ erro"
-              : `↻ ${minsLeft}m`;
+  const btnColor = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#787b86";
+  const btnBg    = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : "#1e2438";
+  const btnBorder= status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#5a6478";
+  const btnLabel = status==="running" ? "⏳" : status==="ok" ? "✓ A correr" : status==="err" ? "✗ Erro" : "↻ Deploy";
 
   return (
-    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",gap:"2px"}}>
-      <button className="cb" onClick={handleClick}
-        style={{fontSize:"9px",color:col,background:bg,
-          border:`1px solid ${border}`,borderRadius: token&&status==="idle" ? "5px 0 0 5px" : "5px",
-          padding:"4px 10px",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",
-          transition:"all 0.2s"}}>
-        {label}
-      </button>
-      {token && status==="idle" && (
-        <button className="cb" onClick={handleClear} title="Remover token"
-          style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
-            border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
-            padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
-          ×
+    <div ref={ref} style={{position:"relative"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"2px"}}>
+        <button className="cb" onClick={handleClick}
+          style={{fontSize:"9px",color:btnColor,background:btnBg,
+            border:`1px solid ${btnBorder}`,borderRadius:token?"5px 0 0 5px":"5px",
+            padding:"4px 10px",fontFamily:"'Inter',sans-serif",
+            animation: status==="running" ? "spin 1s linear infinite" : "none"}}>
+          {btnLabel}
         </button>
-      )}
-      {status==="asking" && (
-        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:100,
-          background:"#1a1f2e",border:"1px solid #3a4060",borderRadius:"8px",
-          padding:"12px",width:"260px",boxShadow:"0 8px 24px #00000066"}}>
-          <div style={{fontSize:"10px",color:"#c8ccd4",marginBottom:"8px",fontWeight:"600"}}>
+        {token && status==="idle" && (
+          <button className="cb" onClick={handleClear} title="Remover token"
+            style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
+              border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
+              padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Modal para introduzir PAT */}
+      {status === "asking" && (
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,
+          background:"#1e2438",border:"1px solid #2a3042",borderRadius:"10px",
+          padding:"14px",width:"260px",boxShadow:"0 8px 32px #00000099"}}>
+          <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
             GitHub Personal Access Token
+          </div>
+          <div style={{fontSize:"9px",color:"#6b7280",marginBottom:"10px",lineHeight:1.6}}>
+            Precisa do scope <span style={{color:"#2962ff",fontFamily:"monospace"}}>repo</span>.{" "}
+            <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Deploy"
+              target="_blank" rel="noopener"
+              style={{color:"#2962ff",textDecoration:"none"}}>Criar token Classic ↗</a>
           </div>
           <input autoFocus value={inputVal} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&handleSave()}
-            placeholder="ghp_…"
-            style={{width:"100%",boxSizing:"border-box",background:"#131722",
-              border:"1px solid #3a4060",borderRadius:"5px",padding:"6px 8px",
-              color:"#c8ccd4",fontSize:"10px",fontFamily:"'Inter',sans-serif",outline:"none"}}/>
-          <div style={{display:"flex",gap:"6px",marginTop:"8px"}}>
-            <button className="cb" onClick={handleSave}
-              style={{flex:1,fontSize:"9px",padding:"5px",borderRadius:"5px",
-                background:"#2962ff",border:"none",color:"#fff",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
-              Guardar e Deploy
-            </button>
+            type="password" placeholder="ghp_xxxxxxxxxxxx"
+            style={{width:"100%",background:"#131722",border:"1px solid #2a3042",borderRadius:"6px",
+              padding:"6px 8px",color:"#c8ccd4",fontSize:"10px",fontFamily:"monospace",
+              outline:"none",marginBottom:"8px"}}/>
+          <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
             <button className="cb" onClick={()=>setStatus("idle")}
-              style={{fontSize:"9px",padding:"5px 8px",borderRadius:"5px",cursor:"pointer",
-                background:"transparent",border:"1px solid #2a3042",color:"#6b7280",fontFamily:"'Inter',sans-serif"}}>
-              Cancelar
-            </button>
+              style={{fontSize:"9px",color:"#6b7280",background:"transparent",border:"1px solid #2a3042",
+                borderRadius:"5px",padding:"4px 10px"}}>Cancelar</button>
+            <button className="cb" onClick={handleSave}
+              style={{fontSize:"9px",color:"#e0e3eb",background:"#2962ff",border:"1px solid #2962ff",
+                borderRadius:"5px",padding:"4px 12px",fontWeight:"600"}}>Guardar & Correr</button>
           </div>
-          {status==="err" && <div style={{fontSize:"9px",color:"#ef5350",marginTop:"6px"}}>{errMsg}</div>}
+          <div style={{fontSize:"9px",color:"#2a3042",marginTop:"8px",lineHeight:1.5}}>
+            O token fica guardado apenas neste browser (localStorage). Nunca é enviado para servidores externos.
+          </div>
+        </div>
+      )}
+      {status === "err" && (
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,
+          background:"#1A0000",border:"1px solid #7F1D1D",borderRadius:"6px",
+          padding:"8px 10px",width:"200px",fontSize:"9px",color:"#F87171"}}>
+          {errMsg}
         </div>
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
-
-const GH_REPO     = "ctrovisco-blip/portfolio-tracker";
-const GH_WORKFLOW = "update.yml";
 
 // ─── FRESHNESS INDICATOR ──────────────────────────────────────────────────────
 function FreshnessIndicator() {
@@ -1626,7 +1318,6 @@ function generateReportHTML(cards) {
       ${metric('P/E Ratio',    fmtNum(data.pe),          peCol(data.pe))}
       ${metric('Price/Book',   fmtNum(data.priceToBook), pbCol(data.priceToBook))}
       ${metric('Price/Sales',  fmtNum(data.priceToSales), psCol(data.priceToSales))}
-      ${metric('EV/EBITDA',   fmtNum(data.evEbitda),    psCol(data.evEbitda))}
       ${metric('Beta',         fmtNum(data.beta, 2),     betaCol(data.beta))}
       ${metric('Debt/Equity',  data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : '—', deCol(data.debtToEquity))}
       ${metric('Curr. Ratio',  fmtNum(data.currentRatio, 2), crCol(data.currentRatio))}
@@ -1640,19 +1331,14 @@ function generateReportHTML(cards) {
       ${metric('Op. Margin',    fmtPct(data.operatingMargin), opMarCol(data.operatingMargin))}
       ${metric('Net Margin',    fmtPct(data.netMargin),    marginCol(data.netMargin),   data.netMarginHistory)}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:5px">
-      ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
-      ${metric('ROA',           fmtPct(data.roa),         roeCol(data.roa))}
-      ${metric('ROIC',          fmtPct(data.roic),        roeCol(data.roic))}
-      ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
-    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
+      ${metric('ROE',           fmtPct(data.roe),         roeCol(data.roe))}
+      ${metric('FCF Yield',     fmtPct(data.fcfYield),    fcfCol(data.fcfYield),    data.fcfHistory)}
       ${metric('Rev. Growth',   fmtGrowth(data.revenueGrowth), growthCol(data.revenueGrowth), data.revenueHistory)}
     </div>
 
     ${sectionTitle('Por Ação')}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-      ${metric('Nº Acções',  fmtStr(data.sharesOutstanding), '#374151')}
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">
       ${metric('EPS',        data.eps != null ? `${sym}${data.eps.toFixed(2)}` : '—', '#374151')}
       ${metric('EPS Growth', fmtGrowth(data.epsGrowth), epsGrCol(data.epsGrowth))}
     </div>
@@ -1670,15 +1356,6 @@ function generateReportHTML(cards) {
       <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.6px">Div CAGR 5 anos</div>
       <div style="font-size:20px;font-weight:800;color:${cagrCol(data.divCagr5y)}">${data.divCagr5y != null ? fmtGrowth(data.divCagr5y, 1) : '—'}</div>
     </div>
-
-    ${(data.insiderOwnership != null || data.institutionalOwnership != null || data.shortInterest != null || data.analystBuy != null) ? `
-    ${sectionTitle('Acionariado')}
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
-      ${data.insiderOwnership != null ? metric('Insiders', `${data.insiderOwnership.toFixed(1)}%`, data.insiderOwnership>5?'#065f46':'#374151') : ''}
-      ${data.institutionalOwnership != null ? metric('Institucional', `${data.institutionalOwnership.toFixed(1)}%`, '#374151') : ''}
-      ${data.shortInterest != null ? metric('Short Interest', `${data.shortInterest.toFixed(1)}%`, data.shortInterest>10?'#b91c1c':data.shortInterest>5?'#92400e':'#374151') : ''}
-      ${data.analystBuy != null ? (() => { const total=data.analystBuy+data.analystHold+data.analystSell; return metric(`Analistas (${total})`, `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`, data.analystBuy/total>0.6?'#065f46':data.analystBuy/total>0.4?'#374151':'#92400e'); })() : ''}
-    </div>` : ''}
 
     ${data.summary ? `
     <div style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px">
@@ -1899,7 +1576,7 @@ function ScreenerFetchBar() {
   );
 }
 
-function ScreenerCard({ ticker, data, onRemove, onDelete }) {
+function ScreenerCard({ ticker, data, onRemove }) {
   const inPortfolio = positions.some(p => p.ticker === ticker);
   const col = SECTOR_COLORS[data.sector] || "#5a6478";
 
@@ -2102,23 +1779,13 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
             ⎙
           </button>
           {onRemove && (
-            <button onClick={() => onRemove(ticker)} title="Ocultar (restaurável)"
+            <button onClick={() => onRemove(ticker)}
               style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
                 cursor:"pointer",fontSize:"12px",padding:"3px 7px",lineHeight:1,
                 borderRadius:"4px",transition:"all 0.12s"}}
-              onMouseEnter={e=>{e.currentTarget.style.color="#c8ccd4";e.currentTarget.style.borderColor="#5a6478";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-              ×
-            </button>
-          )}
-          {onDelete && (
-            <button onClick={() => onDelete(ticker)} title="Apagar definitivamente"
-              style={{background:"transparent",border:"1px solid #2a3042",color:"#5a6478",
-                cursor:"pointer",fontSize:"11px",padding:"3px 7px",lineHeight:1,
-                borderRadius:"4px",transition:"all 0.12s"}}
               onMouseEnter={e=>{e.currentTarget.style.color="#ef5350";e.currentTarget.style.borderColor="#ef535044";}}
               onMouseLeave={e=>{e.currentTarget.style.color="#5a6478";e.currentTarget.style.borderColor="#2a3042";}}>
-              🗑
+              ×
             </button>
           )}
         </div>
@@ -2136,7 +1803,6 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         <CardItem label="P/E Ratio"    value={fmtNum(data.pe)}           color={peCol(data.pe)}/>
         <CardItem label="Price/Book"   value={fmtNum(data.priceToBook)}  color={pbCol(data.priceToBook)}/>
         <CardItem label="Price/Sales"  value={fmtNum(data.priceToSales)} color={psCol(data.priceToSales)}/>
-        <CardItem label="EV/EBITDA"    value={fmtNum(data.evEbitda)}     color={psCol(data.evEbitda)}/>
         <CardItem label="Beta"         value={fmtNum(data.beta, 2)}      color={betaCol(data.beta)}/>
         <CardItem label="Debt/Equity"  value={data.debtToEquity != null ? `${data.debtToEquity.toFixed(0)}%` : "—"} color={deCol(data.debtToEquity)}/>
         <CardItem label="Curr. Ratio"  value={fmtNum(data.currentRatio, 2)} color={crCol(data.currentRatio)}/>
@@ -2156,23 +1822,20 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         <CardItem label="Op. Margin"    value={fmtPct(data.operatingMargin)}   color={opMarCol(data.operatingMargin)}/>
         <CardItem label="Net Margin"    value={fmtPct(data.netMargin)}         color={marginCol(data.netMargin)}   history={data.netMarginHistory}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
-        <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
-        <CardItem label="ROA"         value={fmtPct(data.roa)}             color={roeCol(data.roa)}/>
-        <CardItem label="ROIC"        value={fmtPct(data.roic)}            color={roeCol(data.roic)}/>
-        <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
-      </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px",marginTop:"4px"}}>
+        <CardItem label="ROE"         value={fmtPct(data.roe)}             color={roeCol(data.roe)}/>
+        <CardItem label="FCF Yield"   value={fmtPct(data.fcfYield)}        color={fcfCol(data.fcfYield)}     history={data.fcfHistory}/>
         <CardItem label="Rev. Growth"
           value={data.revenueGrowth != null ? `${data.revenueGrowth>0?"+":""}${data.revenueGrowth.toFixed(1)}%` : "—"}
           color={growthCol(data.revenueGrowth)} history={data.revenueHistory}/>
       </div>
 
       <Section title="Por Ação"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"4px"}}>
-        <CardItem label="Nº Acções"   value={fmtStr(data.sharesOutstanding)}  color="#c8ccd4"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
         <CardItem label="EPS"         value={data.eps != null ? `${currencySymbol}${data.eps.toFixed(2)}` : "—"} color="#c8ccd4"/>
-        <CardItem label="EPS Growth"  value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"} color={epsGrCol(data.epsGrowth)}/>
+        <CardItem label="EPS Growth"
+          value={data.epsGrowth != null ? `${data.epsGrowth>0?"+":""}${data.epsGrowth.toFixed(1)}%` : "—"}
+          color={epsGrCol(data.epsGrowth)}/>
       </div>
 
       <Section title="Retorno ao Acionista"/>
@@ -2207,35 +1870,6 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         </div>
       </div>
 
-      {/* Acionariado (FMP) */}
-      {(data.insiderOwnership != null || data.institutionalOwnership != null ||
-        data.shortInterest != null || data.analystBuy != null) && (
-        <>
-          <Section title="Acionariado"/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-            {data.insiderOwnership != null && (
-              <CardItem label="Insiders" value={`${data.insiderOwnership.toFixed(1)}%`}
-                color={data.insiderOwnership>5?"#089981":"#c8ccd4"}/>
-            )}
-            {data.institutionalOwnership != null && (
-              <CardItem label="Institucional" value={`${data.institutionalOwnership.toFixed(1)}%`}
-                color="#c8ccd4"/>
-            )}
-            {data.shortInterest != null && (
-              <CardItem label="Short Interest" value={`${data.shortInterest.toFixed(1)}%`}
-                color={data.shortInterest>10?"#ef5350":data.shortInterest>5?"#F0883E":"#c8ccd4"}/>
-            )}
-            {data.analystBuy != null && (() => {
-              const total = data.analystBuy + data.analystHold + data.analystSell;
-              const label = `${data.analystBuy}B · ${data.analystHold}H · ${data.analystSell}S`;
-              const buyPct = data.analystBuy / total;
-              return <CardItem label={`Analistas (${total})`} value={label}
-                color={buyPct>0.6?"#089981":buyPct>0.4?"#c8ccd4":"#F0883E"}/>;
-            })()}
-          </div>
-        </>
-      )}
-
       {/* AI Summary */}
       {data.summary && (
         <div style={{marginTop:"10px",background:"#131722",borderRadius:"6px",
@@ -2255,9 +1889,6 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
         </div>
       )}
 
-      {/* News button */}
-      <NewsButton ticker={ticker} label={`${ticker} · ${data.name}`} bgColor="#131722" />
-
       {data.fetchedAt && (
         <div style={{marginTop:"8px",fontSize:"8px",color:"#5a6478",textAlign:"right",letterSpacing:"0.3px"}}>
           Actualizado: {data.fetchedAt}
@@ -2267,35 +1898,10 @@ function ScreenerCard({ ticker, data, onRemove, onDelete }) {
   );
 }
 
-function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted }) {
+function ScreenerView() {
   const allTickers = Object.keys(SCREENER_DATA);
-  const [hidden, setHidden] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_hidden") || "[]"); } catch { return []; }
-  });
-
-  const hide = t => setHidden(h => {
-    const next = [...h, t];
-    localStorage.setItem("screener_hidden", JSON.stringify(next));
-    return next;
-  });
-  const del = t => {
-    setDeleted(d => {
-      const next = [...d, t];
-      localStorage.setItem("screener_deleted", JSON.stringify(next));
-      return next;
-    });
-    setHidden(h => {
-      const next = h.filter(x => x !== t);
-      localStorage.setItem("screener_hidden", JSON.stringify(next));
-      return next;
-    });
-  };
-  const restoreHidden = () => {
-    setHidden([]);
-    localStorage.removeItem("screener_hidden");
-  };
-
-  const visible = allTickers.filter(t => !hidden.includes(t) && !deleted.includes(t));
+  const [hidden, setHidden] = useState([]);
+  const visible = allTickers.filter(t => !hidden.includes(t));
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#131722"}}>
@@ -2307,15 +1913,6 @@ function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted
       }}>
         <ScreenerFetchBar/>
         <div style={{flex:1}}/>
-        {hidden.length > 0 && visible.length > 0 && (
-          <button onClick={restoreHidden}
-            title={`Mostrar ${hidden.length} stock(s) oculta(s)`}
-            style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
-              background:"#1e2438",border:"1px solid #2a3042",color:"#6b7280",
-              fontFamily:"'Inter',sans-serif",flexShrink:0}}>
-            Mostrar ocultas ({hidden.length})
-          </button>
-        )}
         {visible.length > 0 && (
           <button
             onClick={() => openPDF(visible.map(t => ({ticker: t, data: SCREENER_DATA[t], chartPeriod: "6M"})))}
@@ -2353,8 +1950,7 @@ function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted
                 key={ticker}
                 ticker={ticker}
                 data={SCREENER_DATA[ticker]}
-                onRemove={hide}
-                onDelete={del}
+                onRemove={t => setHidden(h => [...h, t])}
               />
             ))}
           </div>
@@ -2376,11 +1972,11 @@ function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted
             </div>
           )}
           {hidden.length > 0 && (
-            <button onClick={restoreHidden}
+            <button onClick={() => setHidden([])}
               style={{fontSize:"9px",padding:"5px 12px",borderRadius:"5px",cursor:"pointer",
                 background:"#1e2438",border:"1px solid #2a3042",color:"#787b86",
                 fontFamily:"'Inter',sans-serif"}}>
-              Mostrar ocultas ({hidden.length})
+              Mostrar todos ({allTickers.length})
             </button>
           )}
         </div>
@@ -2389,12 +1985,53 @@ function ScreenerView({ screenerDeleted: deleted, setScreenerDeleted: setDeleted
   );
 }
 
+// ─── UPDATE BANNER ───────────────────────────────────────────────────────────
+function UpdateBanner() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const r = await fetch("data/version.json?_=" + Date.now());
+        if (!r.ok) return;
+        const { ts } = await r.json();
+        if (ts && ts !== BUILD_TS) setShow(true);
+      } catch {}
+    };
+    const id = setInterval(check, 5 * 60 * 1000); // a cada 5 min
+    check(); // verificar imediatamente ao carregar
+    return () => clearInterval(id);
+  }, []);
+
+  if (!show) return null;
+  return (
+    <div style={{
+      position:"fixed",bottom:"16px",left:"50%",transform:"translateX(-50%)",
+      zIndex:9999,background:"#1e2d1e",border:"1px solid #22C55E",borderRadius:"10px",
+      padding:"10px 16px",display:"flex",alignItems:"center",gap:"12px",
+      boxShadow:"0 4px 20px #00000099",fontFamily:"'Inter',sans-serif",
+      whiteSpace:"nowrap",
+    }}>
+      <span style={{fontSize:"11px",color:"#86efac"}}>🔄 Nova versão disponível</span>
+      <button
+        onClick={() => window.location.reload(true)}
+        style={{fontSize:"10px",fontWeight:"600",padding:"5px 12px",borderRadius:"6px",
+          cursor:"pointer",background:"#22C55E",border:"none",color:"#0a1a0a",
+          fontFamily:"'Inter',sans-serif"}}>
+        Atualizar
+      </button>
+      <button
+        onClick={() => setShow(false)}
+        style={{fontSize:"11px",background:"transparent",border:"none",
+          color:"#4ade80",cursor:"pointer",padding:"2px 4px"}}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab]           = useState("portfolio");
-  const [screenerDeleted, setScreenerDeleted] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("screener_deleted") || "[]"); } catch { return []; }
-  });
   const [sel, setSel]           = useState(null);
   const [mobPanel, setMobPanel] = useState(null); // null | "overview"
   const [mobDetail, setMobDetail] = useState(false); // mobile: detail panel open
@@ -2487,6 +2124,7 @@ function App() {
   return (
     <div style={{background:"#131722",height:"100vh",display:"flex",flexDirection:"column",
       fontFamily:"'Inter',sans-serif",color:"#c8ccd4",fontSize:"11px",overflow:"hidden"}}>
+      <UpdateBanner/>
 
       {/* ── Header ── */}
       <div style={{background:"#1a1f2e",borderBottom:"1px solid #2a3042",padding:"0 16px",
@@ -2504,7 +2142,7 @@ function App() {
         <div className="no-print" style={{display:"flex",gap:"2px",marginRight:"4px"}}>
           {[
             ["portfolio", "Portfolio"],
-            ["screener",  (() => { const all = Object.keys(SCREENER_DATA); if (!all.length) return "Screener"; const n = all.filter(t => !screenerDeleted.includes(t)).length; return `Screener${n > 0 ? ` (${n})` : ""}`; })()],
+            ["screener",  "Screener" + (Object.keys(SCREENER_DATA).length > 0 ? ` (${Object.keys(SCREENER_DATA).length})` : "")],
           ].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
               fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
@@ -2515,15 +2153,9 @@ function App() {
               transition:"all 0.12s",
             }}>{l}</button>
           ))}
-          {/* Dashboard de qualidade de entrada — página própria */}
-          <a href="entry_dashboard.html" style={{
-            fontSize:"9px",padding:"4px 12px",borderRadius:"5px",cursor:"pointer",
-            border:"1px solid transparent",background:"transparent",color:"#6b7280",
-            fontFamily:"'Inter',sans-serif",textDecoration:"none",transition:"all 0.12s",
-          }}>🎯 Entrada</a>
         </div>
         <FreshnessIndicator/>
-        <DeployCountdown/>
+        <div className="hdr-deploy"><DeployButton/></div>
         {/* Botão "Visão Geral" — só visível no mobile via CSS */}
         <button className="mob-overview-btn cb" style={{display:"none",
           fontSize:"9px",color:"#787b86",background:"#1e2438",
@@ -2544,7 +2176,7 @@ function App() {
       {tab === "portfolio" && <Summary positions={positions} className="summary-bar"/>}
 
       {/* ── Screener view ── */}
-      {tab === "screener" && <ScreenerView screenerDeleted={screenerDeleted} setScreenerDeleted={setScreenerDeleted}/>}
+      {tab === "screener" && <ScreenerView/>}
 
       {/* ── Main area: left column (chart + list) | right column (detail, full height) ── */}
       {tab === "portfolio" && <div className="main-grid" style={{display:"flex",flex:1,minHeight:0}}>
@@ -2608,10 +2240,6 @@ function App() {
                 <button key={k} className="cb" style={pillStyle(sort===k)}
                   onClick={() => setSort(k)}>{l}</button>
               ))}
-              <button className="mob-overview-sort cb" style={{...pillStyle(false),display:"none",marginLeft:"4px"}}
-                onClick={() => { setSel(null); setMobPanel("overview"); }}>
-                ≡ Overview
-              </button>
             </div>
           </div>
 
@@ -2623,7 +2251,6 @@ function App() {
             <div className="col-price-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PREÇO</div>
             <div className="col-invested-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>INVESTIDO</div>
             <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>VALOR</div>
-            <div className="col-weight-hdr" style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>PESO</div>
             <div style={{fontSize:"9px",color:"#6b7280",letterSpacing:"0.5px",textAlign:"right"}}>RETORNO</div>
           </div>
 

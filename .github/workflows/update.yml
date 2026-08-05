@@ -83,39 +83,6 @@ jobs:
           github.event.schedule == '0 10 * * 6'
         run: python fetch_fundamentals.py
 
-      - name: Fetch news (yfinance)
-        id: news
-        continue-on-error: true
-        run: python fetch_news.py
-
-      - name: Refresh screener watchlist
-        id: screener
-        continue-on-error: true
-        # Re-fetches all tickers already in screener.json so data stays fresh.
-        # Same schedule as fundamentals (not needed at 09:00 morning run).
-        if: >-
-          github.event_name == 'workflow_dispatch' ||
-          github.event.schedule == '30 21 * * 1-5' ||
-          github.event.schedule == '0 10 * * 6'
-        env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-        run: |
-          TICKERS=$(python - <<'EOF'
-          import json, os
-          path = "data/screener.json"
-          if os.path.exists(path):
-              with open(path) as f:
-                  tickers = list(json.load(f).keys())
-              print(",".join(tickers))
-          EOF
-          )
-          if [ -n "$TICKERS" ]; then
-            echo "Refreshing screener tickers: $TICKERS"
-            TICKERS="$TICKERS" MODE=replace python fetch_screener.py
-          else
-            echo "Screener watchlist is empty — nothing to refresh."
-          fi
-
       - name: Log fetch results
         run: |
           echo "discover=${{ steps.discover.outcome }}"
@@ -134,9 +101,6 @@ jobs:
       - name: Build HTML
         run: python build_html.py
 
-      - name: Build entry dashboard
-        run: python build_entry_dashboard.py
-
       - name: Generate weekly report
         # Corre ao sábado (após fetch completo) e em execuções manuais
         if: >-
@@ -150,15 +114,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html entry_dashboard.html data/*.json metadata.json weekly_report.html
+          git add index.html data/*.json metadata.json weekly_report.html
           # Só commita se houver mudanças
           if git diff --staged --quiet; then
             echo "Sem alteracoes, nada a commitar."
             exit 0
           fi
           git commit -m "chore: update portfolio data $(date -u +'%Y-%m-%d %H:%M UTC') [skip ci]"
-          # Rebase sobre origin/main; em conflito no index.html (sempre gerado),
-          # usa a versão deste commit (-X theirs)
-          git fetch origin main
-          git rebase -X theirs origin/main
+          # Pull rebase para incorporar eventuais commits remotos antes de push
+          git pull --rebase origin main
           git push origin main

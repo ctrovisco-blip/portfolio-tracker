@@ -41,12 +41,6 @@ if os.path.exists("data/screener.json"):
 else:
     print("  Screener data: not found, using {}")
 
-news_data = {}
-if os.path.exists("data/news.json"):
-    with open("data/news.json", encoding="utf-8") as f:
-        news_data = json.load(f)
-    print(f"  News data: OK ({len(news_data)} tickers)")
-
 # ── Timestamps por fonte ───────────────────────────────────────────────────────
 
 def file_mtime(path):
@@ -70,10 +64,16 @@ chart_data_js   = json.dumps(chart_data,   separators=(',',':'))
 fundamentals_js = json.dumps(fundamentals, separators=(',',':'))
 fx_js           = json.dumps(fx_rates,     separators=(',',':'))
 screener_js     = json.dumps(screener_data, separators=(',',':'), ensure_ascii=False)
-news_js         = json.dumps(news_data,    separators=(',',':'), ensure_ascii=False)
 timestamps_js   = json.dumps(timestamps,   separators=(',',':'))
 
 updated = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+build_ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+
+# ── Escrever data/version.json (usado pelo tracker para detetar nova versão) ──
+os.makedirs("data", exist_ok=True)
+with open("data/version.json", "w", encoding="utf-8") as f:
+    json.dump({"ts": build_ts, "updated": updated}, f)
+print(f"  version.json: {build_ts}")
 
 # ── Substituir placeholders ───────────────────────────────────────────────────
 
@@ -82,8 +82,8 @@ html = html.replace("/*__CHART_DATA__*/",   chart_data_js)
 html = html.replace("/*__FUNDAMENTALS__*/", fundamentals_js)
 html = html.replace("/*__FX_RATES__*/",     fx_js)
 html = html.replace("/*__SCREENER_DATA__*/", screener_js)
-html = html.replace("/*__NEWS_DATA__*/",    news_js)
 html = html.replace("/*__TIMESTAMPS__*/",   timestamps_js)
+html = html.replace("/*__BUILD_TS__*/",     f'"{build_ts}"')
 html = html.replace("__UPDATED__",          updated)
 
 # ── Escrever index.html ───────────────────────────────────────────────────────

@@ -60,23 +60,12 @@ def normalize(prices):
     if not base or base <= 0: return {}
     return {d: round((v / base - 1) * 100, 4) for d, v in items}
 
-# ── Watchlist: tickers do screener que não são posições ───────────────────
-# Entram nas séries de preço para o entry_dashboard os avaliar,
-# mas nunca no cálculo do portfolio (weights só cobre posições).
-watchlist = []
-if os.path.exists("data/screener.json"):
-    with open("data/screener.json", encoding="utf-8") as f:
-        screener = json.load(f)
-    pos_set = {p["ticker"] for p in positions}
-    watchlist = [t for t in screener if t not in pos_set]
-
 # ── Fetch raw prices for every ticker × range ─────────────────────────────
-print(f"Fetching {len(positions)} tickers + {len(watchlist)} watchlist × {len(RANGES)} ranges...")
+print(f"Fetching {len(positions)} tickers × {len(RANGES)} ranges...")
 raw = {}   # ticker → range_key → {date: price}
-fetch_list = [(p["ticker"], METADATA.get(p["ticker"], {}).get("yf")) for p in positions]
-# Screener usa símbolos US compatíveis com o Yahoo; metadata.json pode sobrepor
-fetch_list += [(t, METADATA.get(t, {}).get("yf", t)) for t in watchlist]
-for ticker, yf_sym in fetch_list:
+for p in positions:
+    ticker = p["ticker"]
+    yf_sym = METADATA.get(ticker, {}).get("yf")
     if not yf_sym:
         print(f"  SKIP {ticker}")
         raw[ticker] = {rk: {} for rk, _, _ in RANGES}

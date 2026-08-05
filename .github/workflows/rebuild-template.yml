@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'portfolio-template.html'
-      - 'entry_template.html'
 
 concurrency:
   group: update-portfolio
@@ -38,11 +37,10 @@ jobs:
           # Pull first so we build on top of any concurrent index.html commits
           git pull --rebase origin $(git rev-parse --abbrev-ref HEAD)
           python build_html.py
-          python build_entry_dashboard.py
-          git add index.html entry_dashboard.html
+          git add index.html
           if git diff --staged --quiet; then
-            echo "Sem alteracoes nos HTML gerados."
+            echo "Sem alteracoes no index.html."
             exit 0
           fi
-          git commit -m "chore: rebuild HTML from templates [skip ci]"
+          git commit -m "chore: rebuild index.html from template [skip ci]"
           git push origin HEAD
