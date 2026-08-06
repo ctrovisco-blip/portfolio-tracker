@@ -5,10 +5,10 @@
     "sector": "ETF / ETC",
     "flag": "🇩🇪",
     "exchange": "Xetra",
-    "qty": 8.675779,
-    "avgPrice": 105.6389,
-    "curPrice": 120.77,
-    "ppl": 131.27,
+    "qty": 8.787208,
+    "avgPrice": 108.6113,
+    "curPrice": 118.92,
+    "ppl": 90.58,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -25,6 +25,7 @@
       "2025-02-11",
       "2025-02-20",
       "2025-02-26",
+      "2025-03-07",
       "2025-03-12",
       "2025-06-02",
       "2025-06-06",
@@ -32,7 +33,8 @@
       "2025-08-06",
       "2026-03-27",
       "2026-05-01",
-      "2026-06-08"
+      "2026-06-08",
+      "2026-07-07"
     ]
   },
   {
@@ -41,29 +43,18 @@
     "sector": "Energia",
     "flag": "🇨🇦",
     "exchange": "Xetra",
-    "qty": 4.387522,
-    "avgPrice": 48.1912,
-    "curPrice": 48.631,
-    "ppl": 1.93,
+    "qty": 25.963005,
+    "avgPrice": 47.7603,
+    "curPrice": 45.343,
+    "ppl": -62.76,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
-      "2026-06-04"
-    ]
-  },
-  {
-    "ticker": "PLTR",
-    "name": "Palantir",
-    "sector": "Tech & AI",
-    "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "qty": 0.883581,
-    "avgPrice": 124.98,
-    "curPrice": 118.14,
-    "ppl": -6.04,
-    "cur": "€",
-    "buyDates": [
-      "2026-06-04"
+      "2026-06-04",
+      "2026-06-15",
+      "2026-07-02",
+      "2026-07-06",
+      "2026-07-31"
     ]
   },
   {
@@ -72,15 +63,17 @@
     "sector": "Tech & AI",
     "flag": "🇺🇸",
     "exchange": "Xetra",
-    "qty": 3.638778,
-    "avgPrice": 173.8111,
-    "curPrice": 179.86,
-    "ppl": 22.01,
+    "qty": 5.822572,
+    "avgPrice": 172.0855,
+    "curPrice": 190.01,
+    "ppl": 104.37,
     "cur": "€",
     "buyDates": [
       "2025-12-23",
       "2026-05-01",
-      "2026-06-04"
+      "2026-06-04",
+      "2026-06-29",
+      "2026-08-03"
     ]
   },
   {
@@ -89,85 +82,15 @@
     "sector": "Consumer Staples",
     "flag": "🇺🇸",
     "exchange": "Xetra",
-    "qty": 3.45839,
-    "avgPrice": 61.1383,
-    "curPrice": 62.12,
-    "ppl": 3.4,
+    "qty": 12.45839,
+    "avgPrice": 60.2437,
+    "curPrice": 59.65,
+    "ppl": -7.4,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
-      "2026-06-04"
-    ]
-  },
-  {
-    "ticker": "RHM",
-    "name": "Rheinmetall",
-    "sector": "Defesa & Aeroespacial",
-    "flag": "🇩🇪",
-    "exchange": "Xetra",
-    "qty": 0.450148,
-    "avgPrice": 1359.9298,
-    "curPrice": 1199.8,
-    "ppl": -72.08,
-    "cur": "€",
-    "buyDates": [
-      "2025-12-22",
-      "2026-01-05",
-      "2026-01-06",
-      "2026-04-01",
-      "2026-05-01",
-      "2026-06-03",
       "2026-06-04",
-      "2026-06-08"
-    ]
-  },
-  {
-    "ticker": "OKLO",
-    "name": "Oklo",
-    "sector": "Tech & AI",
-    "flag": "🇺🇸",
-    "exchange": "NYSE",
-    "qty": 5.4337,
-    "avgPrice": 61.4498,
-    "curPrice": 59.44,
-    "ppl": -8.53,
-    "cur": "$",
-    "buyDates": [
-      "2026-06-04",
-      "2026-06-08"
-    ]
-  },
-  {
-    "ticker": "PEP",
-    "name": "PepsiCo",
-    "sector": "Consumer Staples",
-    "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "qty": 1.684673,
-    "avgPrice": 124.9144,
-    "curPrice": 121.94,
-    "ppl": -5.01,
-    "cur": "€",
-    "buyDates": [
-      "2026-05-28",
-      "2026-06-04"
-    ]
-  },
-  {
-    "ticker": "EGL",
-    "name": "Mota-Engil",
-    "sector": "Portuguesa",
-    "flag": "🇵🇹",
-    "exchange": "Euronext Lisboa",
-    "qty": 61.558282,
-    "avgPrice": 4.4748,
-    "curPrice": 4.486,
-    "ppl": 0.69,
-    "cur": "€",
-    "buyDates": [
-      "2026-05-01",
-      "2026-05-04",
-      "2026-06-08"
+      "2026-06-16"
     ]
   },
   {
@@ -176,69 +99,14 @@
     "sector": "REIT",
     "flag": "🇺🇸",
     "exchange": "NYSE",
-    "qty": 3.841807,
-    "avgPrice": 60.4898,
-    "curPrice": 60.03,
-    "ppl": 0.15,
+    "qty": 7.537921,
+    "avgPrice": 61.4161,
+    "curPrice": 63.69,
+    "ppl": 16.47,
     "cur": "$",
     "buyDates": [
-      "2026-06-04"
-    ]
-  },
-  {
-    "ticker": "SRP",
-    "name": "Serco Group",
-    "sector": "Defesa & Aeroespacial",
-    "flag": "🇬🇧",
-    "exchange": "LSE",
-    "qty": 84.865522,
-    "avgPrice": 290.0198,
-    "curPrice": 253.6,
-    "ppl": -33.46,
-    "cur": "p",
-    "buyDates": [
-      "2025-12-22",
-      "2026-01-05",
-      "2026-02-20",
-      "2026-04-01",
-      "2026-05-01",
-      "2026-06-03"
-    ]
-  },
-  {
-    "ticker": "NOS",
-    "name": "NOS",
-    "sector": "Portuguesa",
-    "flag": "🇵🇹",
-    "exchange": "Euronext Lisboa",
-    "qty": 54.648698,
-    "avgPrice": 5.0523,
-    "curPrice": 4.972,
-    "ppl": -4.39,
-    "cur": "€",
-    "buyDates": [
-      "2026-05-01",
-      "2026-05-04",
-      "2026-06-08"
-    ]
-  },
-  {
-    "ticker": "CSG",
-    "name": "Czechoslovak Group",
-    "sector": "Defesa & Aeroespacial",
-    "flag": "🇳🇱",
-    "exchange": "Euronext AMS",
-    "qty": 29.507682,
-    "avgPrice": 18.7334,
-    "curPrice": 14.634,
-    "ppl": -120.96,
-    "cur": "€",
-    "buyDates": [
-      "2026-01-23",
-      "2026-04-01",
-      "2026-06-03",
       "2026-06-04",
-      "2026-06-08"
+      "2026-08-05"
     ]
   },
   {
@@ -249,8 +117,8 @@
     "exchange": "NYSE",
     "qty": 4.095877,
     "avgPrice": 141.3812,
-    "curPrice": 145.84,
-    "ppl": 18.38,
+    "curPrice": 147.5,
+    "ppl": 24.08,
     "cur": "$",
     "buyDates": [
       "2026-06-03"
@@ -262,14 +130,15 @@
     "sector": "Healthcare",
     "flag": "🇺🇸",
     "exchange": "Xetra",
-    "qty": 1.077792,
-    "avgPrice": 195.2511,
-    "curPrice": 201.35,
-    "ppl": 6.57,
+    "qty": 1.894118,
+    "avgPrice": 206.1329,
+    "curPrice": 224.92,
+    "ppl": 35.59,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
-      "2026-06-04"
+      "2026-06-04",
+      "2026-07-15"
     ]
   },
   {
@@ -280,8 +149,8 @@
     "exchange": "Euronext AMS",
     "qty": 26.644852,
     "avgPrice": 104.8075,
-    "curPrice": 124.33,
-    "ppl": 520.17,
+    "curPrice": 129.35,
+    "ppl": 653.93,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -315,10 +184,10 @@
     "sector": "Defesa & Aeroespacial",
     "flag": "🇬🇧",
     "exchange": "LSE",
-    "qty": 161.635955,
-    "avgPrice": 918.7609,
-    "curPrice": 1259.0,
-    "ppl": 621.77,
+    "qty": 88.132205,
+    "avgPrice": 1021.8486,
+    "curPrice": 1553.1,
+    "ppl": 547.63,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -329,23 +198,8 @@
       "2025-04-10",
       "2025-06-26",
       "2025-09-08",
-      "2026-05-01"
-    ]
-  },
-  {
-    "ticker": "VZ",
-    "name": "Verizon",
-    "sector": "Telecomunicações",
-    "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "qty": 5.184359,
-    "avgPrice": 40.5913,
-    "curPrice": 39.605,
-    "ppl": -5.11,
-    "cur": "€",
-    "buyDates": [
-      "2026-05-28",
-      "2026-06-04"
+      "2026-05-01",
+      "2026-06-25"
     ]
   },
   {
@@ -356,8 +210,8 @@
     "exchange": "Xetra",
     "qty": 1.154478,
     "avgPrice": 415.7725,
-    "curPrice": 422.2,
-    "ppl": 7.42,
+    "curPrice": 496.6,
+    "ppl": 93.31,
     "cur": "€",
     "buyDates": [
       "2026-06-02",
@@ -365,34 +219,69 @@
     ]
   },
   {
-    "ticker": "LMT",
-    "name": "Lockheed Martin",
-    "sector": "Defesa & Aeroespacial",
+    "ticker": "VICI",
+    "name": "VICI Properties Inc.",
+    "sector": "REIT",
     "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "qty": 0.47357,
-    "avgPrice": 448.6766,
-    "curPrice": 449.8,
-    "ppl": 0.53,
-    "cur": "€",
+    "exchange": "",
+    "qty": 34.084,
+    "avgPrice": 26.8123,
+    "curPrice": 26.48,
+    "ppl": -16.98,
+    "cur": "$",
     "buyDates": [
-      "2026-05-28",
-      "2026-06-05"
+      "2026-06-24",
+      "2026-06-25",
+      "2026-07-08",
+      "2026-08-05"
     ]
   },
   {
-    "ticker": "NKE",
-    "name": "NIKE, Inc.",
+    "ticker": "META",
+    "name": "Meta Platforms, Inc.",
+    "sector": "Tech & AI",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "qty": 3.146776,
+    "avgPrice": 567.7684,
+    "curPrice": 591.99,
+    "ppl": 62.5,
+    "cur": "$",
+    "buyDates": [
+      "2026-06-10",
+      "2026-06-12",
+      "2026-06-23"
+    ]
+  },
+  {
+    "ticker": "GLW",
+    "name": "Corning Incorporated",
+    "sector": "Tech & AI",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "qty": 3.145131,
+    "avgPrice": 158.9759,
+    "curPrice": 135.01,
+    "ppl": -75.38,
+    "cur": "€",
+    "buyDates": [
+      "2026-07-08"
+    ]
+  },
+  {
+    "ticker": "MSF",
+    "name": "Microsoft",
     "sector": "Outro",
     "flag": "🇺🇸",
     "exchange": "",
-    "qty": 13.397286,
-    "avgPrice": 37.321,
-    "curPrice": 37.66,
-    "ppl": 4.54,
+    "qty": 3.846108,
+    "avgPrice": 329.2939,
+    "curPrice": 419.28,
+    "ppl": 346.1,
     "cur": "€",
     "buyDates": [
-      "2026-06-08"
+      "2026-06-12",
+      "2026-06-25"
     ]
   }
 ]

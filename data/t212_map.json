@@ -27,5 +27,9 @@
   "LOMd_EQ": "LMT",
   "CHVd_EQ": "CVX",
   "KMYd_EQ": "KMB",
-  "NKEd_EQ": "NKE"
+  "NKEd_EQ": "NKE",
+  "VICI_US_EQ": "VICI",
+  "FB_US_EQ": "META",
+  "GLWd_EQ": "GLW",
+  "MSFd_EQ": "MSF"
 }
