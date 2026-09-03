@@ -7,8 +7,8 @@
     "exchange": "Xetra",
     "qty": 8.787208,
     "avgPrice": 108.6113,
-    "curPrice": 124.17,
-    "ppl": 136.72,
+    "curPrice": 124.56,
+    "ppl": 140.14,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 25.963005,
     "avgPrice": 47.7603,
-    "curPrice": 43.613,
-    "ppl": -107.68,
+    "curPrice": 43.505,
+    "ppl": -110.48,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -65,8 +65,8 @@
     "exchange": "Xetra",
     "qty": 5.887689,
     "avgPrice": 172.2713,
-    "curPrice": 194.54,
-    "ppl": 131.11,
+    "curPrice": 195.8,
+    "ppl": 138.53,
     "cur": "€",
     "buyDates": [
       "2025-12-23",
@@ -91,8 +91,8 @@
     "exchange": "Xetra",
     "qty": 16.73562,
     "avgPrice": 59.7528,
-    "curPrice": 60.03,
-    "ppl": 4.64,
+    "curPrice": 60.16,
+    "ppl": 6.81,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -110,8 +110,8 @@
     "exchange": "NYSE",
     "qty": 7.56443,
     "avgPrice": 61.4217,
-    "curPrice": 61.6,
-    "ppl": 0.06,
+    "curPrice": 61.76,
+    "ppl": 1.03,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -127,8 +127,8 @@
     "exchange": "NYSE",
     "qty": 4.095877,
     "avgPrice": 141.3812,
-    "curPrice": 147.55,
-    "ppl": 20.71,
+    "curPrice": 147.17,
+    "ppl": 19.27,
     "cur": "$",
     "buyDates": [
       "2026-06-03"
@@ -142,8 +142,8 @@
     "exchange": "Xetra",
     "qty": 1.894118,
     "avgPrice": 206.1329,
-    "curPrice": 238.28,
-    "ppl": 60.89,
+    "curPrice": 239.45,
+    "ppl": 63.11,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -159,8 +159,8 @@
     "exchange": "Euronext AMS",
     "qty": 26.644852,
     "avgPrice": 104.8075,
-    "curPrice": 127.89,
-    "ppl": 615.03,
+    "curPrice": 128.85,
+    "ppl": 640.61,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -196,8 +196,8 @@
     "exchange": "LSE",
     "qty": 88.132205,
     "avgPrice": 1021.8486,
-    "curPrice": 1482.1,
-    "ppl": 469.67,
+    "curPrice": 1480.2,
+    "ppl": 468.92,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -220,8 +220,8 @@
     "exchange": "Xetra",
     "qty": 1.154478,
     "avgPrice": 415.7725,
-    "curPrice": 508.5,
-    "ppl": 107.05,
+    "curPrice": 504.6,
+    "ppl": 102.55,
     "cur": "€",
     "buyDates": [
       "2026-06-02",
@@ -236,8 +236,8 @@
     "exchange": "",
     "qty": 44.996234,
     "avgPrice": 26.6489,
-    "curPrice": 25.75,
-    "ppl": -47.96,
+    "curPrice": 25.74,
+    "ppl": -48.53,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -256,8 +256,8 @@
     "exchange": "",
     "qty": 3.146776,
     "avgPrice": 567.7684,
-    "curPrice": 603.1,
-    "ppl": 81.63,
+    "curPrice": 613.21,
+    "ppl": 108.69,
     "cur": "$",
     "buyDates": [
       "2026-06-10",
@@ -273,8 +273,8 @@
     "exchange": "",
     "qty": 3.145131,
     "avgPrice": 158.9759,
-    "curPrice": 122.97,
-    "ppl": -113.24,
+    "curPrice": 125.04,
+    "ppl": -106.73,
     "cur": "€",
     "buyDates": [
       "2026-07-08"
@@ -288,8 +288,8 @@
     "exchange": "",
     "qty": 3.846108,
     "avgPrice": 329.2939,
-    "curPrice": 430.84,
-    "ppl": 390.56,
+    "curPrice": 441.3,
+    "ppl": 430.79,
     "cur": "€",
     "buyDates": [
       "2026-06-12",
