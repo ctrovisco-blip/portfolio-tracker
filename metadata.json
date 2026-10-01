@@ -262,5 +262,13 @@
     "exchange": "",
     "cur": "€",
     "yf": "MSF"
+  },
+  "MDO": {
+    "name": "McDonald's",
+    "sector": "Outro",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "€",
+    "yf": "MDO"
   }
 }
