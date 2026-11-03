@@ -270,5 +270,21 @@
     "exchange": "",
     "cur": "€",
     "yf": "MDO"
+  },
+  "CRDO": {
+    "name": "Credo Technology Group Holding Ltd",
+    "sector": "Tech & AI",
+    "flag": "🌍",
+    "exchange": "",
+    "cur": "$",
+    "yf": "CRDO"
+  },
+  "MRVL": {
+    "name": "Marvell Technology, Inc.",
+    "sector": "Tech & AI",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "MRVL"
   }
 }

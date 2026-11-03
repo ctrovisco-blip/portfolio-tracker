@@ -32,5 +32,7 @@
   "FB_US_EQ": "META",
   "GLWd_EQ": "GLW",
   "MSFd_EQ": "MSF",
-  "MDOd_EQ": "MDO"
+  "MDOd_EQ": "MDO",
+  "CRDO_US_EQ": "CRDO",
+  "MRVL_US_EQ": "MRVL"
 }
