@@ -7,8 +7,8 @@
     "exchange": "Xetra",
     "qty": 8.787208,
     "avgPrice": 108.6113,
-    "curPrice": 116.0,
-    "ppl": 64.93,
+    "curPrice": 117.92,
+    "ppl": 81.8,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 29.963005,
     "avgPrice": 46.8972,
-    "curPrice": 43.4,
-    "ppl": -104.79,
+    "curPrice": 43.031,
+    "ppl": -115.84,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -59,36 +59,6 @@
     ]
   },
   {
-    "ticker": "NVDA",
-    "name": "Nvidia",
-    "sector": "Tech & AI",
-    "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "qty": 5.915049,
-    "avgPrice": 172.4026,
-    "curPrice": 180.56,
-    "ppl": 48.25,
-    "cur": "€",
-    "buyDates": [
-      "2025-12-23",
-      "2026-05-01",
-      "2026-06-04",
-      "2026-06-29",
-      "2026-08-03",
-      "2026-08-20",
-      "2026-08-23",
-      "2026-08-29",
-      "2026-08-31",
-      "2026-09-01",
-      "2026-09-02",
-      "2026-09-03",
-      "2026-09-04",
-      "2026-09-05",
-      "2026-09-08",
-      "2026-10-01"
-    ]
-  },
-  {
     "ticker": "MO",
     "name": "Altria Group",
     "sector": "Consumer Staples",
@@ -96,8 +66,8 @@
     "exchange": "Xetra",
     "qty": 16.73562,
     "avgPrice": 59.7528,
-    "curPrice": 69.88,
-    "ppl": 169.49,
+    "curPrice": 69.66,
+    "ppl": 165.8,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -115,8 +85,8 @@
     "exchange": "NYSE",
     "qty": 19.675681,
     "avgPrice": 61.2289,
-    "curPrice": 59.21,
-    "ppl": -2.02,
+    "curPrice": 59.43,
+    "ppl": 3.2,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -135,8 +105,8 @@
     "exchange": "NYSE",
     "qty": 4.201663,
     "avgPrice": 141.544,
-    "curPrice": 168.54,
-    "ppl": 116.51,
+    "curPrice": 167.64,
+    "ppl": 113.98,
     "cur": "$",
     "buyDates": [
       "2026-06-03",
@@ -159,8 +129,8 @@
     "exchange": "Xetra",
     "qty": 1.894118,
     "avgPrice": 206.1329,
-    "curPrice": 242.5,
-    "ppl": 68.88,
+    "curPrice": 245.75,
+    "ppl": 75.04,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -176,8 +146,8 @@
     "exchange": "Euronext AMS",
     "qty": 26.644852,
     "avgPrice": 104.8075,
-    "curPrice": 132.45,
-    "ppl": 736.53,
+    "curPrice": 128.84,
+    "ppl": 640.34,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -213,8 +183,8 @@
     "exchange": "LSE",
     "qty": 88.132205,
     "avgPrice": 1021.8486,
-    "curPrice": 1262.8,
-    "ppl": 285.16,
+    "curPrice": 1239.6,
+    "ppl": 262.08,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -237,8 +207,8 @@
     "exchange": "Xetra",
     "qty": 1.154478,
     "avgPrice": 415.7725,
-    "curPrice": 597.2,
-    "ppl": 209.45,
+    "curPrice": 592.2,
+    "ppl": 203.68,
     "cur": "€",
     "buyDates": [
       "2026-06-02",
@@ -253,8 +223,8 @@
     "exchange": "",
     "qty": 45.770627,
     "avgPrice": 26.5819,
-    "curPrice": 25.43,
-    "ppl": -25.77,
+    "curPrice": 25.15,
+    "ppl": -35.82,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -274,8 +244,8 @@
     "exchange": "",
     "qty": 3.146776,
     "avgPrice": 567.7684,
-    "curPrice": 625.07,
-    "ppl": 197.44,
+    "curPrice": 605.0,
+    "ppl": 143.53,
     "cur": "$",
     "buyDates": [
       "2026-06-10",
@@ -291,8 +261,8 @@
     "exchange": "",
     "qty": 3.145131,
     "avgPrice": 158.9759,
-    "curPrice": 103.38,
-    "ppl": -174.86,
+    "curPrice": 95.24,
+    "ppl": -200.46,
     "cur": "€",
     "buyDates": [
       "2026-07-08"
@@ -306,8 +276,8 @@
     "exchange": "",
     "qty": 3.846108,
     "avgPrice": 329.2939,
-    "curPrice": 494.1,
-    "ppl": 633.86,
+    "curPrice": 485.0,
+    "ppl": 598.86,
     "cur": "€",
     "buyDates": [
       "2026-06-12",
@@ -322,42 +292,11 @@
     "exchange": "",
     "qty": 3.0,
     "avgPrice": 204.5,
-    "curPrice": 246.3,
-    "ppl": 125.4,
+    "curPrice": 246.5,
+    "ppl": 126.0,
     "cur": "€",
     "buyDates": [
       "2026-10-01"
-    ]
-  },
-  {
-    "ticker": "CRDO",
-    "name": "Credo Technology Group Holding Ltd",
-    "sector": "Tech & AI",
-    "flag": "🌍",
-    "exchange": "",
-    "qty": 2.0,
-    "avgPrice": 139.93,
-    "curPrice": 133.47,
-    "ppl": -12.79,
-    "cur": "$",
-    "buyDates": [
-      "2026-11-02",
-      "2026-11-03"
-    ]
-  },
-  {
-    "ticker": "MRVL",
-    "name": "Marvell Technology, Inc.",
-    "sector": "Tech & AI",
-    "flag": "🇺🇸",
-    "exchange": "",
-    "qty": 4.0,
-    "avgPrice": 172.445,
-    "curPrice": 156.3,
-    "ppl": -60.83,
-    "cur": "$",
-    "buyDates": [
-      "2026-11-03"
     ]
   }
 ]
