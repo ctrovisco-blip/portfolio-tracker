@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 29.963005,
     "avgPrice": 46.8972,
-    "curPrice": 43.031,
-    "ppl": -115.84,
+    "curPrice": 42.915,
+    "ppl": -119.32,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -85,8 +85,8 @@
     "exchange": "NYSE",
     "qty": 19.675681,
     "avgPrice": 61.2289,
-    "curPrice": 59.43,
-    "ppl": 3.2,
+    "curPrice": 58.85,
+    "ppl": -5.44,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -103,10 +103,10 @@
     "sector": "Consumer Staples",
     "flag": "🇺🇸",
     "exchange": "NYSE",
-    "qty": 4.201663,
-    "avgPrice": 141.544,
-    "curPrice": 167.64,
-    "ppl": 113.98,
+    "qty": 4.210928,
+    "avgPrice": 141.6006,
+    "curPrice": 166.0,
+    "ppl": 108.75,
     "cur": "$",
     "buyDates": [
       "2026-06-03",
@@ -118,7 +118,8 @@
       "2026-10-02",
       "2026-10-03",
       "2026-10-06",
-      "2026-10-24"
+      "2026-10-24",
+      "2026-11-05"
     ]
   },
   {
@@ -184,7 +185,7 @@
     "qty": 88.132205,
     "avgPrice": 1021.8486,
     "curPrice": 1239.6,
-    "ppl": 262.08,
+    "ppl": 260.92,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -223,8 +224,8 @@
     "exchange": "",
     "qty": 45.770627,
     "avgPrice": 26.5819,
-    "curPrice": 25.15,
-    "ppl": -35.82,
+    "curPrice": 25.16,
+    "ppl": -33.9,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -244,8 +245,8 @@
     "exchange": "",
     "qty": 3.146776,
     "avgPrice": 567.7684,
-    "curPrice": 605.0,
-    "ppl": 143.53,
+    "curPrice": 604.05,
+    "ppl": 143.35,
     "cur": "$",
     "buyDates": [
       "2026-06-10",
@@ -297,6 +298,24 @@
     "cur": "€",
     "buyDates": [
       "2026-10-01"
+    ]
+  },
+  {
+    "ticker": "JPM",
+    "name": "JPMorgan Chase & Co.",
+    "sector": "Outro",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "qty": 4.0,
+    "avgPrice": 337.36,
+    "curPrice": 336.42,
+    "ppl": -3.62,
+    "cur": "$",
+    "buyDates": [
+      "2025-11-18",
+      "2025-12-15",
+      "2026-11-05",
+      "2026-11-06"
     ]
   }
 ]

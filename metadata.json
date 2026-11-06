@@ -286,5 +286,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "MRVL"
+  },
+  "JPM": {
+    "name": "JPMorgan Chase & Co.",
+    "sector": "Outro",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "JPM"
   }
 }
