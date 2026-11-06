@@ -294,5 +294,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "JPM"
+  },
+  "DCI": {
+    "name": "Donaldson Company, Inc.",
+    "sector": "Defesa & Aeroespacial",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "DCI"
   }
 }

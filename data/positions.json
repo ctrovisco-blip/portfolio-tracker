@@ -7,8 +7,8 @@
     "exchange": "Xetra",
     "qty": 8.787208,
     "avgPrice": 108.6113,
-    "curPrice": 117.92,
-    "ppl": 81.8,
+    "curPrice": 117.22,
+    "ppl": 75.65,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 29.963005,
     "avgPrice": 46.8972,
-    "curPrice": 42.915,
-    "ppl": -119.32,
+    "curPrice": 42.192,
+    "ppl": -140.98,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -66,8 +66,8 @@
     "exchange": "Xetra",
     "qty": 16.73562,
     "avgPrice": 59.7528,
-    "curPrice": 69.66,
-    "ppl": 165.8,
+    "curPrice": 68.67,
+    "ppl": 149.24,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -85,8 +85,8 @@
     "exchange": "NYSE",
     "qty": 19.675681,
     "avgPrice": 61.2289,
-    "curPrice": 58.85,
-    "ppl": -5.44,
+    "curPrice": 59.15,
+    "ppl": 6.2,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -105,8 +105,8 @@
     "exchange": "NYSE",
     "qty": 4.210928,
     "avgPrice": 141.6006,
-    "curPrice": 166.0,
-    "ppl": 108.75,
+    "curPrice": 165.99,
+    "ppl": 112.54,
     "cur": "$",
     "buyDates": [
       "2026-06-03",
@@ -128,15 +128,16 @@
     "sector": "Healthcare",
     "flag": "🇺🇸",
     "exchange": "Xetra",
-    "qty": 1.894118,
-    "avgPrice": 206.1329,
-    "curPrice": 245.75,
-    "ppl": 75.04,
+    "qty": 3.894118,
+    "avgPrice": 223.4755,
+    "curPrice": 244.87,
+    "ppl": 83.31,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
       "2026-06-04",
-      "2026-07-15"
+      "2026-07-15",
+      "2026-11-06"
     ]
   },
   {
@@ -147,8 +148,8 @@
     "exchange": "Euronext AMS",
     "qty": 26.644852,
     "avgPrice": 104.8075,
-    "curPrice": 128.84,
-    "ppl": 640.34,
+    "curPrice": 128.9,
+    "ppl": 641.94,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -184,8 +185,8 @@
     "exchange": "LSE",
     "qty": 88.132205,
     "avgPrice": 1021.8486,
-    "curPrice": 1239.6,
-    "ppl": 260.92,
+    "curPrice": 1257.3,
+    "ppl": 279.64,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -208,8 +209,8 @@
     "exchange": "Xetra",
     "qty": 1.154478,
     "avgPrice": 415.7725,
-    "curPrice": 592.2,
-    "ppl": 203.68,
+    "curPrice": 588.2,
+    "ppl": 199.06,
     "cur": "€",
     "buyDates": [
       "2026-06-02",
@@ -224,8 +225,8 @@
     "exchange": "",
     "qty": 45.770627,
     "avgPrice": 26.5819,
-    "curPrice": 25.16,
-    "ppl": -33.9,
+    "curPrice": 24.82,
+    "ppl": -41.54,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -238,23 +239,6 @@
     ]
   },
   {
-    "ticker": "META",
-    "name": "Meta Platforms, Inc.",
-    "sector": "Tech & AI",
-    "flag": "🇺🇸",
-    "exchange": "",
-    "qty": 3.146776,
-    "avgPrice": 567.7684,
-    "curPrice": 604.05,
-    "ppl": 143.35,
-    "cur": "$",
-    "buyDates": [
-      "2026-06-10",
-      "2026-06-12",
-      "2026-06-23"
-    ]
-  },
-  {
     "ticker": "GLW",
     "name": "Corning Incorporated",
     "sector": "Tech & AI",
@@ -262,27 +246,11 @@
     "exchange": "",
     "qty": 3.145131,
     "avgPrice": 158.9759,
-    "curPrice": 95.24,
-    "ppl": -200.46,
+    "curPrice": 94.34,
+    "ppl": -203.29,
     "cur": "€",
     "buyDates": [
       "2026-07-08"
-    ]
-  },
-  {
-    "ticker": "MSF",
-    "name": "Microsoft",
-    "sector": "Outro",
-    "flag": "🇺🇸",
-    "exchange": "",
-    "qty": 3.846108,
-    "avgPrice": 329.2939,
-    "curPrice": 485.0,
-    "ppl": 598.86,
-    "cur": "€",
-    "buyDates": [
-      "2026-06-12",
-      "2026-06-25"
     ]
   },
   {
@@ -291,13 +259,14 @@
     "sector": "Outro",
     "flag": "🇺🇸",
     "exchange": "",
-    "qty": 3.0,
-    "avgPrice": 204.5,
-    "curPrice": 246.5,
-    "ppl": 126.0,
+    "qty": 5.0,
+    "avgPrice": 220.58,
+    "curPrice": 248.5,
+    "ppl": 139.6,
     "cur": "€",
     "buyDates": [
-      "2026-10-01"
+      "2026-10-01",
+      "2026-11-06"
     ]
   },
   {
@@ -308,13 +277,28 @@
     "exchange": "",
     "qty": 4.0,
     "avgPrice": 337.36,
-    "curPrice": 336.42,
-    "ppl": -3.62,
+    "curPrice": 337.91,
+    "ppl": 9.1,
     "cur": "$",
     "buyDates": [
       "2025-11-18",
       "2025-12-15",
       "2026-11-05",
+      "2026-11-06"
+    ]
+  },
+  {
+    "ticker": "DCI",
+    "name": "Donaldson Company, Inc.",
+    "sector": "Defesa & Aeroespacial",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "qty": 13.0,
+    "avgPrice": 84.3354,
+    "curPrice": 83.89,
+    "ppl": -5.97,
+    "cur": "$",
+    "buyDates": [
       "2026-11-06"
     ]
   }

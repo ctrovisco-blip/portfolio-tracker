@@ -35,5 +35,6 @@
   "MDOd_EQ": "MDO",
   "CRDO_US_EQ": "CRDO",
   "MRVL_US_EQ": "MRVL",
-  "JPM_US_EQ": "JPM"
+  "JPM_US_EQ": "JPM",
+  "DCI_US_EQ": "DCI"
 }
