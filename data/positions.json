@@ -277,8 +277,8 @@
     "exchange": "",
     "qty": 4.0,
     "avgPrice": 337.36,
-    "curPrice": 335.28,
-    "ppl": -0.25,
+    "curPrice": 335.52,
+    "ppl": 0.62,
     "cur": "$",
     "buyDates": [
       "2025-11-18",
