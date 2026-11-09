@@ -115,7 +115,7 @@ a{color:var(--accent)}
       <div class="pxinfo" id="fcfinfo" hidden></div>
       <div class="field"><label for="debt">Dívida total, excl. leasing</label><input id="debt" type="number" value="123102"/></div>
       <div class="field"><label for="cash">Caixa e investimentos CP</label><input id="cash" type="number" value="265098"/></div>
-      <div class="field"><label for="shares">Ações em circulação</label><input id="shares" type="number" value="12368"/></div>
+      <div class="field"><label for="shares">Ações em circulação (diluídas)</label><input id="shares" type="number" value="12368"/></div>
 
       <div class="sect">Pressupostos (%)</div>
       <div class="field"><label for="r">Taxa de desconto</label><input id="r" type="number" step="0.01" value="6.88"/></div>
@@ -290,7 +290,10 @@ function apply(o){
 
 // ---- Live market price ----
 // Browsers block direct calls to Yahoo Finance (CORS), so we go through public
-// CORS proxies in turn. If the user stores a free Finnhub key, Finnhub is tried first.
+// CORS proxies in turn. A Finnhub key stored in the browser is a last-resort fallback.
+// Primary source: our own Supabase Edge Function (supabase/functions/dcf-data),
+// which calls Yahoo server-side. Public CORS proxies are only a fallback.
+const API = 'https://osucqrtdbvpcpfqmjykx.supabase.co/functions/v1/dcf-data';
 const PROXIES = [
   u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
   u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
@@ -315,9 +318,11 @@ async function fromFinnhub(tk){
 async function fromYahoo(tk){
   const u = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?range=1d&interval=1d`;
   let last;
-  for(const px of PROXIES){
+  const srcs = [()=>getJSON(`${API}?only=price&ticker=${encodeURIComponent(tk)}`, 15000).then(j=>j.chart),
+                ...PROXIES.map(px=>()=>getJSON(px(u)))];
+  for(const src of srcs){
     try{
-      const j = await getJSON(px(u));
+      const j = await src();
       const meta = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
       if(meta && meta.regularMarketPrice > 0){
         let price = meta.regularMarketPrice, cur = meta.currency || '';
@@ -338,7 +343,7 @@ async function fetchPrice(){
   const id = ++pxReq, info = $('pxinfo'), btn = $('pxbtn');
   info.className = 'pxinfo'; info.textContent = `A obter cotação de ${tk}…`; btn.classList.add('spin');
   let res, err;
-  for(const fn of [fromFinnhub, fromYahoo]){
+  for(const fn of [fromYahoo, fromFinnhub]){
     try{ res = await fn(tk); break; }catch(e){ err = e; if(e.nf) break; }
   }
   if(id !== pxReq) return; // a newer request superseded this one
@@ -369,7 +374,7 @@ const FD_TYPES = {
   ltd:   ['quarterlyLongTermDebt','annualLongTermDebt'],
   cd:    ['quarterlyCurrentDebt','annualCurrentDebt'],
   cash:  ['quarterlyCashCashEquivalentsAndShortTermInvestments','annualCashCashEquivalentsAndShortTermInvestments'],
-  shares:['quarterlyOrdinarySharesNumber','annualOrdinarySharesNumber','quarterlyDilutedAverageShares'],
+  shares:['quarterlyDilutedAverageShares','quarterlyOrdinarySharesNumber','annualDilutedAverageShares','annualOrdinarySharesNumber'],
 };
 // latest non-null value of a series: {v, date, cur}
 function latest(series){
@@ -380,12 +385,14 @@ function latest(series){
 }
 async function fromYahooFundamentals(tk){
   const types = [...new Set(Object.values(FD_TYPES).flat())].join(',');
-  const now = Math.floor(Date.now()/1000), from = now - 6*365*86400;
+  const now = Math.floor(Date.now()/1000), from = now - 7*365*86400;
   const u = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(tk)}?symbol=${encodeURIComponent(tk)}&type=${types}&period1=${from}&period2=${now}`;
   let last;
-  for(const px of PROXIES){
+  const srcs = [()=>getJSON(`${API}?only=fundamentals&ticker=${encodeURIComponent(tk)}`, 20000).then(j=>j.timeseries),
+                ...PROXIES.map(px=>()=>getJSON(px(u), 10000))];
+  for(const src of srcs){
     try{
-      const j = await getJSON(px(u), 10000);
+      const j = await src();
       const res = j && j.timeseries && j.timeseries.result;
       if(!res){ last = new Error('sem dados'); continue; }
       const by = {};
