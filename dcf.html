@@ -350,7 +350,7 @@ async function fetchPrice(){
   btn.classList.remove('spin');
   if(res){
     $('price').value = +res.price.toFixed(4);
-    cur.px = res.currency || ''; curWarn();
+    cur.px = res.currency || ''; syncFx();
     const t = new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
     info.textContent = [res.name, res.currency, `${res.src} · ${t}`].filter(Boolean).join(' · ');
     render();
@@ -439,13 +439,13 @@ async function fetchFundamentals(){
     info.textContent = 'Não foi possível obter os dados financeiros — preenche manualmente.';
     return;
   }
-  fcfData = d;
+  fcfData = d; fx = {rate:1, from:'', to:''};
   const filled = [], missing = [];
   const names = {fcf:'FCF', debt:'dívida', cash:'caixa', shares:'ações'};
   ['fcf','debt','cash','shares'].forEach(k=>{
     // missing → clear the field so the previous company's value is not reused by mistake
     if(k === 'fcf'){ if(applyFcf()) filled.push(k); else missing.push(names[k]); return; }
-    if(d[k]){ $(k).value = Math.round(d[k].v/1e6); filled.push(k); } else { $(k).value = ''; missing.push(names[k]); }
+    if(d[k]){ $(k).value = Math.round(d[k].v/1e6 * (k==='shares' ? 1 : fx.rate)); filled.push(k); } else { $(k).value = ''; missing.push(names[k]); }
   });
   const fcur = (d.fcf||d.cash||{}).cur, date = (d.cash||d.shares||d.debt||{}).date;
   const fmtD = date ? new Date(date).toLocaleDateString('pt-PT',{month:'short',year:'numeric'}) : '';
@@ -453,7 +453,7 @@ async function fetchFundamentals(){
   if(missing.length) msg += ` · sem ${missing.join(', ')} — preenche manualmente (vazio conta como 0)`;
   info.className = 'pxinfo' + (missing.length ? ' err' : '');
   info.textContent = msg;
-  cur.fd = fcur || ''; curWarn();
+  cur.fd = fcur || ''; syncFx();
   render();
 }
 
@@ -489,21 +489,57 @@ function applyFcf(){
   }
   info.hidden = false; info.className = 'pxinfo' + (v==null ? ' err' : '');
   if(v == null){ $('fcf').value = ''; info.textContent = 'Sem dados de FCF — preenche manualmente.'; return false; }
-  $('fcf').value = Math.round(v/1e6); info.textContent = msg;
+  if(fx.rate !== 1) msg += ` · valores em ${fx.from}, convertidos para ${fx.to}`;
+  $('fcf').value = Math.round(v/1e6 * fx.rate); info.textContent = msg;
   return true;
 }
 
-// Warn when statements are in a different currency than the quote (e.g. ADRs)
+// Statements in a different currency than the quote (e.g. ASML on NASDAQ: EUR accounts,
+// USD price) → convert FCF, debt and cash to the quote currency at Yahoo's current FX rate.
 const cur = {px:'', fd:''};
-function curWarn(){
+let fx = {rate:1, from:'', to:''}, fxReq = 0;
+function fxNote(text, err){
   let w = $('curwarn');
-  const bad = cur.px && cur.fd && cur.px !== cur.fd;
-  if(!bad){ if(w) w.remove(); return; }
-  if(!w){ w = document.createElement('div'); w.id = 'curwarn'; w.className = 'pxinfo err'; $('fdinfo').after(w); }
-  w.textContent = `Atenção: dados financeiros em ${cur.fd} mas preço em ${cur.px} — converte antes de comparar.`;
+  if(!text){ if(w) w.remove(); return; }
+  if(!w){ w = document.createElement('div'); w.id = 'curwarn'; $('fdinfo').after(w); }
+  w.className = 'pxinfo' + (err ? ' err' : ''); w.textContent = text;
+}
+function refillMoney(){
+  const d = fcfData; if(!d) return;
+  ['debt','cash'].forEach(k=>{ if(d[k]) $(k).value = Math.round(d[k].v/1e6 * fx.rate); });
+  applyFcf(); render();
+}
+async function syncFx(){
+  const from = cur.fd, to = cur.px, id = ++fxReq;
+  if(!from || !to || from === to){
+    if(fx.rate !== 1){ fx = {rate:1, from:'', to:''}; refillMoney(); }
+    fxNote(''); return;
+  }
+  if(fx.from === from && fx.to === to) return;
+  fxNote(`A converter ${from} → ${to}…`);
+  let rate = null;
+  const pair = encodeURIComponent(`${from}${to}=X`);
+  const srcs = [()=>getJSON(`${API}?only=price&ticker=${pair}`, 15000).then(j=>j.chart),
+                ...PROXIES.map(px=>()=>getJSON(px(`https://query1.finance.yahoo.com/v8/finance/chart/${pair}?range=1d&interval=1d`)))];
+  for(const src of srcs){
+    try{
+      const j = await src();
+      const r = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta.regularMarketPrice;
+      if(r > 0){ rate = r; break; }
+    }catch(e){}
+  }
+  if(id !== fxReq) return;
+  if(!rate){
+    fx = {rate:1, from:'', to:''}; refillMoney();
+    fxNote(`Atenção: dados financeiros em ${from} mas preço em ${to} — não foi possível obter o câmbio, converte manualmente.`, true);
+    return;
+  }
+  fx = {rate, from, to}; refillMoney();
+  const rf = new Intl.NumberFormat('pt-PT',{maximumFractionDigits:4}).format(rate);
+  fxNote(`FCF, dívida e caixa convertidos de ${from} para ${to} (1 ${from} = ${rf} ${to}). Em ADRs confirma o rácio ação/ADR.`);
 }
 
-function onTicker(){ fetchPrice(); fetchFundamentals(); }
+function onTicker(){ cur.px = ''; cur.fd = ''; fxReq++; fxNote(''); fetchPrice(); fetchFundamentals(); }
 $('ticker').addEventListener('input', ()=>{ clearTimeout(pxTimer); pxTimer = setTimeout(onTicker, 900); });
 $('ticker').addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(pxTimer); onTicker(); } });
 $('fdbtn').onclick = fetchFundamentals;
