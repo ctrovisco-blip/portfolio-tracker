@@ -11,6 +11,8 @@ const CORS = {
 };
 const TYPES = [
   "trailingFreeCashFlow", "annualFreeCashFlow",
+  "trailingOperatingCashFlow", "annualOperatingCashFlow",
+  "trailingCapitalExpenditure", "annualCapitalExpenditure",
   "quarterlyTotalDebt", "annualTotalDebt",
   "quarterlyCapitalLeaseObligations", "annualCapitalLeaseObligations",
   "quarterlyLongTermDebt", "annualLongTermDebt",

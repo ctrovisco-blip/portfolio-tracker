@@ -110,7 +110,7 @@ a{color:var(--accent)}
 
       <div class="sect pxwrap" style="justify-content:space-between">Dados financeiros (M)<button class="ico" id="fdbtn" title="Atualizar dados financeiros" aria-label="Atualizar dados financeiros">↻</button></div>
       <div class="pxinfo" id="fdinfo">Preenchidos automaticamente ao mudar o ticker (FCF dos últimos 12 meses, balanço mais recente).</div>
-      <div class="field"><label>Base do FCF</label><div class="toggle" data-k="fcfNorm"><button data-v="1" class="on">Média 5 anos</button><button data-v="0">Últ. 12M</button></div></div>
+      <div class="field"><label>Base do FCF</label><div class="toggle" data-k="fcfNorm"><button data-v="1" class="on">Normalizado</button><button data-v="0">Atualizado</button></div></div>
       <div class="field"><label for="fcf">Free Cash Flow</label><input id="fcf" type="number" value="117651"/></div>
       <div class="pxinfo" id="fcfinfo" hidden></div>
       <div class="field"><label for="debt">Dívida total, excl. leasing</label><input id="debt" type="number" value="123102"/></div>
@@ -369,6 +369,8 @@ async function fetchPrice(){
 // ---- Fundamentals (FCF, debt, cash, shares) from Yahoo's fundamentals-timeseries ----
 const FD_TYPES = {
   fcf:   ['trailingFreeCashFlow','annualFreeCashFlow'],
+  ocf:   ['trailingOperatingCashFlow','annualOperatingCashFlow'],
+  capex: ['trailingCapitalExpenditure','annualCapitalExpenditure'],
   debt:  ['quarterlyTotalDebt','annualTotalDebt'],
   lease: ['quarterlyCapitalLeaseObligations','annualCapitalLeaseObligations'],
   ltd:   ['quarterlyLongTermDebt','annualLongTermDebt'],
@@ -396,18 +398,21 @@ async function fromYahooFundamentals(tk){
       const res = j && j.timeseries && j.timeseries.result;
       if(!res){ last = new Error('sem dados'); continue; }
       const by = {};
-      let annual = [];
+      let capexHist = [];
       res.forEach(r=>{
         const t = r.meta && r.meta.type && r.meta.type[0];
         if(!t || !r[t]) return;
         by[t] = latest(r[t]);
-        if(t === 'annualFreeCashFlow') annual = r[t].filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw))
-          .sort((a,b)=>a.asOfDate<b.asOfDate?1:-1).slice(0,5)
-          .map(x=>({year:x.asOfDate.slice(0,4), v:x.reportedValue.raw})).reverse();
+        // last 4 fiscal years of CapEx (Yahoo reports it as a negative number)
+        if(t === 'annualCapitalExpenditure') capexHist = r[t].filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw))
+          .sort((a,b)=>a.asOfDate<b.asOfDate?1:-1).slice(0,4)
+          .map(x=>({year:x.asOfDate.slice(0,4), v:Math.abs(x.reportedValue.raw)})).reverse();
       });
       const pick = k => { for(const t of FD_TYPES[k]) if(by[t]) return by[t]; return null; };
       const out = {fcf:pick('fcf'), cash:pick('cash'), shares:pick('shares'),
-                   fcfTTM:by.trailingFreeCashFlow||null, fcfAnnual:annual};
+                   fcfTTM:by.trailingFreeCashFlow||null, fcfAnnual:by.annualFreeCashFlow||null,
+                   ocfTTM:by.trailingOperatingCashFlow||null, ocfAnnual:by.annualOperatingCashFlow||null,
+                   capexTTM:by.trailingCapitalExpenditure||null, capexHist};
       // Debt excluding leases: total debt − lease obligations, else long-term + current debt
       const td = pick('debt'), ls = pick('lease'), ltd = pick('ltd'), cd = pick('cd');
       if(td) out.debt = {...td, v: td.v - (ls ? ls.v : 0)};
@@ -434,7 +439,7 @@ async function fetchFundamentals(){
     info.textContent = 'Não foi possível obter os dados financeiros — preenche manualmente.';
     return;
   }
-  fcfData = {ttm:d.fcfTTM, annual:d.fcfAnnual||[], fallback:d.fcf};
+  fcfData = d;
   const filled = [], missing = [];
   const names = {fcf:'FCF', debt:'dívida', cash:'caixa', shares:'ações'};
   ['fcf','debt','cash','shares'].forEach(k=>{
@@ -452,27 +457,35 @@ async function fetchFundamentals(){
   render();
 }
 
-// ---- FCF base: normalized (average of up to 5 fiscal years) or trailing 12 months ----
+// ---- FCF base ----
+// Normalizado = último Operating Cash Flow (últ. 12M) − CapEx médio dos últimos 4 anos fiscais
+// Atualizado  = FCF dos últimos 12 meses (OCF − CapEx, últ. 12M)
 let fcfData = null;
 const fmtM = v => nf0.format(Math.round(v/1e6));
+const fmtMY = d => new Date(d).toLocaleDateString('pt-PT',{month:'short',year:'numeric'});
 function applyFcf(){
   const info = $('fcfinfo');
   if(!fcfData){ info.hidden = true; return false; }
-  const {ttm, annual} = fcfData;
+  const d = fcfData;
   let v = null, msg = '';
-  if(opts.fcfNorm && annual.length){
-    v = annual.reduce((a,x)=>a+x.v,0) / annual.length;
-    const span = annual.length > 1 ? `${annual[0].year}–${annual[annual.length-1].year}` : annual[0].year;
-    msg = `Média ${span} (${annual.length} ano${annual.length>1?'s':''}): ` + annual.map(x=>`${x.year} ${fmtM(x.v)}`).join(' · ');
-    if(annual.length < 5) msg += ` — a Yahoo só tem ${annual.length} anos disponíveis`;
-    if(ttm) msg += ` · últ. 12M ${fmtM(ttm.v)}`;
-  }else if(ttm){
-    v = ttm.v;
-    msg = `Últimos 12 meses até ${new Date(ttm.date).toLocaleDateString('pt-PT',{month:'short',year:'numeric'})}`;
-    if(opts.fcfNorm) msg += ' — sem histórico anual, usado o FCF dos últimos 12 meses';
-  }else if(annual.length){
-    const a = annual[annual.length-1]; v = a.v;
-    msg = `Último ano fiscal (${a.year}) — sem dados dos últimos 12 meses`;
+  if(opts.fcfNorm){
+    const ocf = d.ocfTTM || d.ocfAnnual, cx = d.capexHist || [];
+    if(ocf && cx.length){
+      const avg = cx.reduce((a,x)=>a+x.v,0) / cx.length;
+      v = ocf.v - avg;
+      const span = cx.length > 1 ? `${cx[0].year}–${cx[cx.length-1].year}` : cx[0].year;
+      msg = `OCF ${d.ocfTTM ? 'últ. 12M até '+fmtMY(ocf.date) : 'de '+ocf.date.slice(0,4)} ${fmtM(ocf.v)}`
+          + ` − CapEx médio ${span} ${fmtM(avg)} (${cx.map(x=>fmtM(x.v)).join(' · ')})`;
+      if(cx.length < 4) msg += ` — só ${cx.length} ano${cx.length>1?'s':''} de CapEx disponíve${cx.length>1?'is':'l'}`;
+    }else{
+      msg = 'Sem dados de OCF/CapEx para normalizar — usado o FCF atualizado. ';
+    }
+  }
+  if(v == null){
+    if(d.fcfTTM){ v = d.fcfTTM.v; msg += `FCF dos últimos 12 meses até ${fmtMY(d.fcfTTM.date)}`; }
+    else if(d.ocfTTM && d.capexTTM){ v = d.ocfTTM.v - Math.abs(d.capexTTM.v); msg += `OCF − CapEx dos últimos 12 meses até ${fmtMY(d.ocfTTM.date)}`; }
+    else if(d.fcfAnnual){ v = d.fcfAnnual.v; msg += `FCF do último ano fiscal (${d.fcfAnnual.date.slice(0,4)}) — sem dados dos últimos 12 meses`; }
+    if(d.ocfTTM && d.capexTTM && v != null && d.fcfTTM) msg += ` (OCF ${fmtM(d.ocfTTM.v)} − CapEx ${fmtM(Math.abs(d.capexTTM.v))})`;
   }
   info.hidden = false; info.className = 'pxinfo' + (v==null ? ' err' : '');
   if(v == null){ $('fcf').value = ''; info.textContent = 'Sem dados de FCF — preenche manualmente.'; return false; }
