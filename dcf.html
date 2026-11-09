@@ -108,7 +108,8 @@ a{color:var(--accent)}
       <div class="field"><label for="price">Preço de mercado</label><span class="pxwrap"><button class="ico" id="pxbtn" title="Atualizar cotação" aria-label="Atualizar cotação">↻</button><input id="price" type="number" step="0.01" value="294.53"/></span></div>
       <div class="pxinfo" id="pxinfo">Escreve o ticker (ex.: AAPL, ASML.AS, RR.L) e o preço é obtido automaticamente.</div>
 
-      <div class="sect">Dados financeiros (M)</div>
+      <div class="sect pxwrap" style="justify-content:space-between">Dados financeiros (M)<button class="ico" id="fdbtn" title="Atualizar dados financeiros" aria-label="Atualizar dados financeiros">↻</button></div>
+      <div class="pxinfo" id="fdinfo">Preenchidos automaticamente ao mudar o ticker (FCF dos últimos 12 meses, balanço mais recente).</div>
       <div class="field"><label for="fcf">Free Cash Flow</label><input id="fcf" type="number" value="117651"/></div>
       <div class="field"><label for="debt">Dívida total, excl. leasing</label><input id="debt" type="number" value="123102"/></div>
       <div class="field"><label for="cash">Caixa e investimentos CP</label><input id="cash" type="number" value="265098"/></div>
@@ -339,6 +340,7 @@ async function fetchPrice(){
   btn.classList.remove('spin');
   if(res){
     $('price').value = +res.price.toFixed(4);
+    cur.px = res.currency || ''; curWarn();
     const t = new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
     info.textContent = [res.name, res.currency, `${res.src} · ${t}`].filter(Boolean).join(' · ');
     render();
@@ -354,10 +356,96 @@ async function fetchPrice(){
     };
   }
 }
-$('ticker').addEventListener('input', ()=>{ clearTimeout(pxTimer); pxTimer = setTimeout(fetchPrice, 900); });
-$('ticker').addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(pxTimer); fetchPrice(); } });
+// ---- Fundamentals (FCF, debt, cash, shares) from Yahoo's fundamentals-timeseries ----
+const FD_TYPES = {
+  fcf:   ['trailingFreeCashFlow','annualFreeCashFlow'],
+  debt:  ['quarterlyTotalDebt','annualTotalDebt'],
+  lease: ['quarterlyCapitalLeaseObligations','annualCapitalLeaseObligations'],
+  ltd:   ['quarterlyLongTermDebt','annualLongTermDebt'],
+  cd:    ['quarterlyCurrentDebt','annualCurrentDebt'],
+  cash:  ['quarterlyCashCashEquivalentsAndShortTermInvestments','annualCashCashEquivalentsAndShortTermInvestments'],
+  shares:['quarterlyOrdinarySharesNumber','annualOrdinarySharesNumber','quarterlyDilutedAverageShares'],
+};
+// latest non-null value of a series: {v, date, cur}
+function latest(series){
+  const pts = (series||[]).filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw));
+  if(!pts.length) return null;
+  pts.sort((a,b)=>a.asOfDate<b.asOfDate?1:-1);
+  return {v:pts[0].reportedValue.raw, date:pts[0].asOfDate, cur:pts[0].currencyCode||''};
+}
+async function fromYahooFundamentals(tk){
+  const types = [...new Set(Object.values(FD_TYPES).flat())].join(',');
+  const now = Math.floor(Date.now()/1000), from = now - 3*365*86400;
+  const u = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(tk)}?symbol=${encodeURIComponent(tk)}&type=${types}&period1=${from}&period2=${now}`;
+  let last;
+  for(const px of PROXIES){
+    try{
+      const j = await getJSON(px(u), 10000);
+      const res = j && j.timeseries && j.timeseries.result;
+      if(!res){ last = new Error('sem dados'); continue; }
+      const by = {};
+      res.forEach(r=>{ const t = r.meta && r.meta.type && r.meta.type[0]; if(t && r[t]) by[t] = latest(r[t]); });
+      const pick = k => { for(const t of FD_TYPES[k]) if(by[t]) return by[t]; return null; };
+      const out = {fcf:pick('fcf'), cash:pick('cash'), shares:pick('shares')};
+      // Debt excluding leases: total debt − lease obligations, else long-term + current debt
+      const td = pick('debt'), ls = pick('lease'), ltd = pick('ltd'), cd = pick('cd');
+      if(td) out.debt = {...td, v: td.v - (ls ? ls.v : 0)};
+      else if(ltd || cd) out.debt = {v:(ltd?ltd.v:0)+(cd?cd.v:0), date:(ltd||cd).date, cur:(ltd||cd).cur};
+      if(!out.fcf && !out.cash && !out.shares){ last = new Error('sem dados'); continue; }
+      return out;
+    }catch(e){ last = e; }
+  }
+  throw last || new Error('falhou');
+}
+
+let fdReq = 0;
+async function fetchFundamentals(){
+  const tk = $('ticker').value.trim().toUpperCase();
+  if(!tk) return;
+  const id = ++fdReq, info = $('fdinfo'), btn = $('fdbtn');
+  info.className = 'pxinfo'; info.textContent = `A obter dados financeiros de ${tk}…`; btn.classList.add('spin');
+  let d, err;
+  try{ d = await fromYahooFundamentals(tk); }catch(e){ err = e; }
+  if(id !== fdReq) return;
+  btn.classList.remove('spin');
+  if(!d){
+    info.className = 'pxinfo err';
+    info.textContent = 'Não foi possível obter os dados financeiros — preenche manualmente.';
+    return;
+  }
+  const filled = [], missing = [];
+  const names = {fcf:'FCF', debt:'dívida', cash:'caixa', shares:'ações'};
+  ['fcf','debt','cash','shares'].forEach(k=>{
+    // missing → clear the field so the previous company's value is not reused by mistake
+    if(d[k]){ $(k).value = Math.round(d[k].v/1e6); filled.push(k); } else { $(k).value = ''; missing.push(names[k]); }
+  });
+  const fcur = (d.fcf||d.cash||{}).cur, date = (d.cash||d.shares||d.debt||{}).date;
+  const fmtD = date ? new Date(date).toLocaleDateString('pt-PT',{month:'short',year:'numeric'}) : '';
+  let msg = `Yahoo Finance${fcur?' · '+fcur:''}${fmtD?' · balanço de '+fmtD:''}`;
+  if(missing.length) msg += ` · sem ${missing.join(', ')} — preenche manualmente (vazio conta como 0)`;
+  info.className = 'pxinfo' + (missing.length ? ' err' : '');
+  info.textContent = msg;
+  cur.fd = fcur || ''; curWarn();
+  render();
+}
+
+// Warn when statements are in a different currency than the quote (e.g. ADRs)
+const cur = {px:'', fd:''};
+function curWarn(){
+  let w = $('curwarn');
+  const bad = cur.px && cur.fd && cur.px !== cur.fd;
+  if(!bad){ if(w) w.remove(); return; }
+  if(!w){ w = document.createElement('div'); w.id = 'curwarn'; w.className = 'pxinfo err'; $('fdinfo').after(w); }
+  w.textContent = `Atenção: dados financeiros em ${cur.fd} mas preço em ${cur.px} — converte antes de comparar.`;
+}
+
+function onTicker(){ fetchPrice(); fetchFundamentals(); }
+$('ticker').addEventListener('input', ()=>{ clearTimeout(pxTimer); pxTimer = setTimeout(onTicker, 900); });
+$('ticker').addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(pxTimer); onTicker(); } });
+$('fdbtn').onclick = fetchFundamentals;
+['fcf','debt','cash','shares'].forEach(k=>$(k).addEventListener('input', ()=>{ fdReq++; $('fdbtn').classList.remove('spin'); }));
 $('pxbtn').onclick = fetchPrice;
-$('price').addEventListener('input', ()=>{ pxReq++; $('pxbtn').classList.remove('spin'); $('pxinfo').className='pxinfo'; $('pxinfo').textContent='Preço inserido manualmente.'; });
+$('price').addEventListener('input', ()=>{ pxReq++; cur.px=''; $('pxbtn').classList.remove('spin'); $('pxinfo').className='pxinfo'; $('pxinfo').textContent='Preço inserido manualmente.'; });
 $('save').onclick = ()=>{
   const p = read(); if(!p.ticker){ alert('Indica um ticker.'); return; }
   const s = loadStore(); s[p.ticker] = p; saveStore(s); refreshSaved(p.ticker);
