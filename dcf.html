@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Valor Intrínseco DCF</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23060A12'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='%233FB950' font-family='Arial' font-weight='700'>$</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f7fa;--card:#ffffff;--border:#e3e7ee;--text:#111827;--muted:#6b7280;
+  --accent:#2563eb;--input:#1d4ed8;--good:#16a34a;--bad:#dc2626;--bar:#93c5fd;--bar2:#2563eb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131722;--card:#1a1f2e;--border:#2a3142;--text:#e5e7eb;--muted:#9ca3af;
+    --accent:#60a5fa;--input:#93c5fd;--good:#3fb950;--bad:#f87171;--bar:#1e3a8a;--bar2:#60a5fa;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131722;--card:#1a1f2e;--border:#2a3142;--text:#e5e7eb;--muted:#9ca3af;
+  --accent:#60a5fa;--input:#93c5fd;--good:#3fb950;--bad:#f87171;--bar:#1e3a8a;--bar2:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:20px;font-weight:700}
+h2{font-size:14px;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.sub{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.field{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.field:last-child{border-bottom:none}
+.field label{font-size:13px;color:var(--text);flex:1}
+.field input,.field select{width:130px;background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:var(--input);font:600 14px 'Inter',sans-serif;text-align:right}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.field input[type=text]{text-transform:uppercase}
+.sect{font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.sect:first-of-type{margin-top:0}
+.toggle{display:flex;gap:4px}
+.toggle button{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;padding:6px 10px;font:600 12px 'Inter';cursor:pointer}
+.toggle button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:22px;font-weight:700;margin-top:4px;overflow-wrap:anywhere}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.good{color:var(--good)!important}.bad{color:var(--bad)!important}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:600;font-size:12px}
+.badge.good{background:color-mix(in srgb,var(--good) 15%,transparent)}
+.badge.bad{background:color-mix(in srgb,var(--bad) 15%,transparent)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600}
+th:first-child,td:first-child{text-align:left}
+.res td:last-child{font-weight:600}
+.res tr.tot td{font-weight:700;border-top:2px solid var(--border)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart{display:flex;align-items:flex-end;gap:3px;height:150px;padding-top:8px}
+.chart .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.chart .b i{display:block;background:var(--bar);border-radius:3px 3px 0 0}
+.chart .b i.d{background:var(--bar2);position:absolute;bottom:0;left:0;right:0}
+.chart .b:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);font-size:11px;padding:4px 6px;border-radius:6px;white-space:nowrap;z-index:2}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--bar)}
+.legend span.d::before{background:var(--bar2)}
+.sens td.cur{outline:2px solid var(--accent);outline-offset:-2px;font-weight:700}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:8px;padding:7px 12px;font:600 13px 'Inter';cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font:500 13px 'Inter';max-width:200px}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Valor intrínseco por DCF</h1>
+      <div class="sub">Modelo de 3 fases a 20 anos · valores monetários em milhões</div>
+    </div>
+    <div class="bar">
+      <select id="saved" aria-label="Avaliações guardadas"><option value="">Avaliações guardadas…</option></select>
+      <button class="btn" id="del" title="Apagar avaliação selecionada">Apagar</button>
+      <button class="btn pri" id="save">Guardar</button>
+      <button class="btn" id="theme" title="Alternar tema">◐</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Inputs</h2>
+      <div class="sect">Empresa</div>
+      <div class="field"><label for="ticker">Ticker</label><input id="ticker" type="text" value="GOOGL"/></div>
+      <div class="field"><label for="price">Preço de mercado</label><input id="price" type="number" step="0.01" value="294.53"/></div>
+
+      <div class="sect">Dados financeiros (M)</div>
+      <div class="field"><label for="fcf">Free Cash Flow</label><input id="fcf" type="number" value="117651"/></div>
+      <div class="field"><label for="debt">Dívida total, excl. leasing</label><input id="debt" type="number" value="123102"/></div>
+      <div class="field"><label for="cash">Caixa e investimentos CP</label><input id="cash" type="number" value="265098"/></div>
+      <div class="field"><label for="shares">Ações em circulação</label><input id="shares" type="number" value="12368"/></div>
+
+      <div class="sect">Pressupostos (%)</div>
+      <div class="field"><label for="r">Taxa de desconto</label><input id="r" type="number" step="0.01" value="6.88"/></div>
+      <div class="field"><label for="g1">Crescimento fase 1</label><input id="g1" type="number" step="0.01" value="18.13"/></div>
+      <div class="field"><label for="g2">Crescimento fase 2</label><input id="g2" type="number" step="0.01" value="15"/></div>
+      <div class="field"><label for="g3">Crescimento fase 3</label><input id="g3" type="number" step="0.01" value="4"/></div>
+      <div class="field"><label for="y1">Último ano da fase 1</label><input id="y1" type="number" min="1" max="20" value="5"/></div>
+      <div class="field"><label for="y2">Último ano da fase 2</label><input id="y2" type="number" min="1" max="20" value="10"/></div>
+
+      <div class="sect">Opções</div>
+      <div class="field"><label>Deduzir dívida</label><div class="toggle" data-k="useDebt"><button data-v="1" class="on">Sim</button><button data-v="0">Não</button></div></div>
+      <div class="field"><label>Somar caixa</label><div class="toggle" data-k="useCash"><button data-v="1" class="on">Sim</button><button data-v="0">Não</button></div></div>
+      <div class="field"><label>Incluir valor terminal</label><div class="toggle" data-k="useTV"><button data-v="1">Sim</button><button data-v="0" class="on">Não</button></div></div>
+      <div class="field"><label for="gt">Crescimento perpétuo (VT)</label><input id="gt" type="number" step="0.01" value="2.5"/></div>
+      <div class="note">Texto azul = inputs editáveis. Tudo é recalculado ao escrever.</div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="stack">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Valor intrínseco / ação</div><div class="v" id="k_iv">–</div><div class="s" id="k_tk"></div></div>
+        <div class="kpi"><div class="l">Preço de mercado</div><div class="v" id="k_px">–</div><div class="s" id="k_eval"></div></div>
+        <div class="kpi"><div class="l">Margem de segurança</div><div class="v" id="k_mos">–</div><div class="s">(VI − preço) / VI</div></div>
+        <div class="kpi"><div class="l">Desconto / prémio</div><div class="v" id="k_dp">–</div><div class="s">preço / VI − 1</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Resultados</h2>
+        <table class="res"><tbody id="res"></tbody></table>
+      </div>
+
+      <div class="card">
+        <h2>Projeção do FCF</h2>
+        <div class="chart" id="chart"></div>
+        <div class="legend"><span>FCF projetado</span><span class="d">FCF descontado</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Sensibilidade — valor por ação</h2>
+        <div class="sub" style="margin-bottom:8px">Linhas: taxa de desconto · Colunas: crescimento da fase 1</div>
+        <div class="scroll"><table class="sens" id="sens"></table></div>
+      </div>
+
+      <div class="card">
+        <h2>Tabela anual</h2>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Ano</th><th>Crescimento</th><th>FCF projetado</th><th>Fator desc.</th><th>FCF descontado</th></tr></thead>
+            <tbody id="proj"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const NUM = ['price','fcf','debt','cash','shares','r','g1','g2','g3','y1','y2','gt'];
+const opts = {useDebt:1, useCash:1, useTV:0};
+const STORE = 'dcf_saved_v1';
+
+const nf0 = new Intl.NumberFormat('pt-PT',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nf4 = new Intl.NumberFormat('pt-PT',{minimumFractionDigits:4,maximumFractionDigits:4});
+const pct = v => isFinite(v) ? nf2.format(v*100)+'%' : '–';
+const m = v => !isFinite(v) ? '–' : v<0 ? '('+nf0.format(-v)+')' : nf0.format(v);
+
+function read(){
+  const o = {ticker:$('ticker').value.trim().toUpperCase()};
+  NUM.forEach(k => o[k] = parseFloat($(k).value));
+  return Object.assign(o, opts);
+}
+
+// Mirrors the Google Sheet formulas exactly
+function dcf(p){
+  const r=p.r/100, g=[p.g1/100,p.g2/100,p.g3/100], gt=p.gt/100;
+  const rows=[]; let f=p.fcf||0, sum=0;
+  for(let y=1;y<=20;y++){
+    const gr = y<=p.y1 ? g[0] : y<=p.y2 ? g[1] : g[2];
+    f = f*(1+gr);
+    const df = 1/Math.pow(1+r,y);
+    rows.push({y,gr,f,df,d:f*df}); sum += f*df;
+  }
+  const last = rows[19];
+  const tv = p.useTV ? last.f*(1+gt)/(r-gt)*last.df : 0;
+  const ev = sum + tv;
+  const debt = -(p.debt||0)*p.useDebt, cash = (p.cash||0)*p.useCash;
+  const eq = ev + debt + cash;
+  const iv = eq / p.shares;
+  return {rows,sum,tv,ev,debt,cash,eq,iv};
+}
+
+function render(){
+  const p = read(), R = dcf(p);
+  const px = p.price, iv = R.iv;
+  const hasPx = px > 0 && isFinite(px);
+  $('k_iv').textContent = isFinite(iv) ? nf2.format(iv) : '–';
+  $('k_tk').textContent = p.ticker || '';
+  $('k_px').textContent = hasPx ? nf2.format(px) : '–';
+  const dp = hasPx && iv ? px/iv - 1 : NaN;
+  const mos = hasPx && iv ? (iv-px)/iv : NaN;
+  const under = dp < 0;
+  $('k_eval').innerHTML = isFinite(dp) ? `<span class="badge ${under?'good':'bad'}">${under?'Subavaliada':'Sobreavaliada'}</span>` : '';
+  $('k_mos').textContent = pct(mos); $('k_mos').className = 'v '+(mos>=0?'good':'bad');
+  $('k_dp').textContent = isFinite(dp) ? (dp>0?'+':'')+pct(dp) : '–'; $('k_dp').className = 'v '+(dp<=0?'good':'bad');
+
+  const tvWarn = p.useTV && p.r <= p.gt ? ' <span class="bad">(taxa ≤ g)</span>' : '';
+  $('res').innerHTML = [
+    ['Soma dos FCF descontados', m(R.sum)],
+    ['Valor terminal descontado'+tvWarn, p.useTV ? m(R.tv) : '–'],
+    ['Valor da empresa', m(R.ev)],
+    ['(−) Dívida total', m(R.debt)],
+    ['(+) Caixa e investimentos', m(R.cash)],
+    ['Valor do capital próprio', m(R.eq)],
+  ].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('') +
+  `<tr class="tot"><td>Valor intrínseco por ação</td><td>${isFinite(iv)?nf2.format(iv):'–'}</td></tr>`;
+
+  $('proj').innerHTML = R.rows.map(x=>`<tr><td>${x.y}</td><td>${pct(x.gr)}</td><td>${m(x.f)}</td><td>${nf4.format(x.df)}</td><td>${m(x.d)}</td></tr>`).join('');
+
+  const max = Math.max(...R.rows.map(x=>x.f), 1);
+  $('chart').innerHTML = R.rows.map(x=>`<div class="b" data-t="Ano ${x.y}: ${m(x.f)} / ${m(x.d)}"><i style="height:${Math.max(0,x.f/max*100)}%"></i><i class="d" style="height:${Math.max(0,x.d/max*100)}%"></i></div>`).join('');
+
+  // Sensitivity grid
+  const rs = [-2,-1,0,1,2].map(d=>+(p.r+d).toFixed(2));
+  const gs = [-6,-3,0,3,6].map(d=>+(p.g1+d).toFixed(2));
+  let h = '<thead><tr><th>Desc. \\ g1</th>'+gs.map(g=>`<th>${nf2.format(g)}%</th>`).join('')+'</tr></thead><tbody>';
+  rs.forEach(r=>{
+    h += `<tr><td><b>${nf2.format(r)}%</b></td>`;
+    gs.forEach(g=>{
+      const v = dcf({...p, r, g1:g}).iv;
+      const c = hasPx ? (v>=px?'good':'bad') : '';
+      const cur = r===+p.r.toFixed(2) && g===+p.g1.toFixed(2) ? ' cur' : '';
+      h += `<td class="${c}${cur}">${isFinite(v)?nf2.format(v):'–'}</td>`;
+    });
+    h += '</tr>';
+  });
+  $('sens').innerHTML = h + '</tbody>';
+}
+
+// toggles
+document.querySelectorAll('.toggle').forEach(t=>{
+  t.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    setToggle(t.dataset.k, +b.dataset.v); render();
+  });
+});
+function setToggle(k,v){
+  opts[k]=v;
+  document.querySelectorAll(`.toggle[data-k="${k}"] button`).forEach(b=>b.classList.toggle('on', +b.dataset.v===v));
+}
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input', render));
+
+// saved valuations (per-browser)
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE))||{} }catch(e){ return {} } }
+function saveStore(s){ try{ localStorage.setItem(STORE, JSON.stringify(s)) }catch(e){} }
+function refreshSaved(sel){
+  const s = loadStore();
+  $('saved').innerHTML = '<option value="">Avaliações guardadas…</option>' +
+    Object.keys(s).sort().map(k=>`<option ${k===sel?'selected':''}>${k}</option>`).join('');
+}
+function apply(o){
+  $('ticker').value = o.ticker||'';
+  NUM.forEach(k=>{ if(o[k]!=null) $(k).value = o[k] });
+  ['useDebt','useCash','useTV'].forEach(k=>{ if(o[k]!=null) setToggle(k, +o[k]) });
+  render();
+}
+$('save').onclick = ()=>{
+  const p = read(); if(!p.ticker){ alert('Indica um ticker.'); return; }
+  const s = loadStore(); s[p.ticker] = p; saveStore(s); refreshSaved(p.ticker);
+};
+$('saved').onchange = e=>{ const s = loadStore()[e.target.value]; if(s) apply(s); };
+$('del').onclick = ()=>{
+  const k = $('saved').value; if(!k) return;
+  const s = loadStore(); delete s[k]; saveStore(s); refreshSaved();
+};
+$('theme').onclick = ()=>{
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+  try{ localStorage.setItem('dcf_theme', r.dataset.theme) }catch(e){}
+};
+try{ const t = localStorage.getItem('dcf_theme'); if(t) document.documentElement.dataset.theme = t }catch(e){}
+
+refreshSaved(); render();
+</script>
+</body>
+</html>
