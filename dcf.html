@@ -75,6 +75,13 @@ th:first-child,td:first-child{text-align:left}
 .bar select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font:500 13px 'Inter';max-width:200px}
 .note{font-size:12px;color:var(--muted);margin-top:10px}
 a{color:var(--accent)}
+.pxwrap{display:flex;gap:6px;align-items:center}
+.ico{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;flex:none}
+.ico.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pxinfo{font-size:12px;color:var(--muted);padding:4px 0 6px;border-bottom:1px dashed var(--border)}
+.pxinfo.err{color:var(--bad)}
+.pxinfo button{background:none;border:none;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
 </style>
 </head>
 <body>
@@ -98,7 +105,8 @@ a{color:var(--accent)}
       <h2>Inputs</h2>
       <div class="sect">Empresa</div>
       <div class="field"><label for="ticker">Ticker</label><input id="ticker" type="text" value="GOOGL"/></div>
-      <div class="field"><label for="price">Preço de mercado</label><input id="price" type="number" step="0.01" value="294.53"/></div>
+      <div class="field"><label for="price">Preço de mercado</label><span class="pxwrap"><button class="ico" id="pxbtn" title="Atualizar cotação" aria-label="Atualizar cotação">↻</button><input id="price" type="number" step="0.01" value="294.53"/></span></div>
+      <div class="pxinfo" id="pxinfo">Escreve o ticker (ex.: AAPL, ASML.AS, RR.L) e o preço é obtido automaticamente.</div>
 
       <div class="sect">Dados financeiros (M)</div>
       <div class="field"><label for="fcf">Free Cash Flow</label><input id="fcf" type="number" value="117651"/></div>
@@ -271,7 +279,85 @@ function apply(o){
   NUM.forEach(k=>{ if(o[k]!=null) $(k).value = o[k] });
   ['useDebt','useCash','useTV'].forEach(k=>{ if(o[k]!=null) setToggle(k, +o[k]) });
   render();
+  fetchPrice();
 }
+
+// ---- Live market price ----
+// Browsers block direct calls to Yahoo Finance (CORS), so we go through public
+// CORS proxies in turn. If the user stores a free Finnhub key, Finnhub is tried first.
+const PROXIES = [
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+];
+function getKey(){ try{ return localStorage.getItem('dcf_finnhub')||'' }catch(e){ return '' } }
+
+async function getJSON(url, ms=8000){
+  const c = new AbortController(); const t = setTimeout(()=>c.abort(), ms);
+  try{
+    const r = await fetch(url, {signal:c.signal, cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+async function fromFinnhub(tk){
+  const key = getKey(); if(!key) throw new Error('sem chave');
+  const j = await getJSON(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(tk)}&token=${encodeURIComponent(key)}`);
+  if(!(j.c > 0)) throw new Error('sem dados');
+  return {price:j.c, src:'Finnhub', currency:'', name:''};
+}
+async function fromYahoo(tk){
+  const u = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tk)}?range=1d&interval=1d`;
+  let last;
+  for(const px of PROXIES){
+    try{
+      const j = await getJSON(px(u));
+      const meta = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+      if(meta && meta.regularMarketPrice > 0){
+        let price = meta.regularMarketPrice, cur = meta.currency || '';
+        if(cur === 'GBp' || cur === 'GBX'){ price /= 100; cur = 'GBP'; } // London quotes in pence
+        return {price, src:'Yahoo Finance', currency:cur, name:meta.longName||meta.shortName||''};
+      }
+      if(j && j.chart && j.chart.error) throw Object.assign(new Error('notfound'), {nf:true});
+      last = new Error('sem dados');
+    }catch(e){ if(e.nf) throw e; last = e; }
+  }
+  throw last || new Error('falhou');
+}
+
+let pxReq = 0, pxTimer;
+async function fetchPrice(){
+  const tk = $('ticker').value.trim().toUpperCase();
+  if(!tk) return;
+  const id = ++pxReq, info = $('pxinfo'), btn = $('pxbtn');
+  info.className = 'pxinfo'; info.textContent = `A obter cotação de ${tk}…`; btn.classList.add('spin');
+  let res, err;
+  for(const fn of [fromFinnhub, fromYahoo]){
+    try{ res = await fn(tk); break; }catch(e){ err = e; if(e.nf) break; }
+  }
+  if(id !== pxReq) return; // a newer request superseded this one
+  btn.classList.remove('spin');
+  if(res){
+    $('price').value = +res.price.toFixed(4);
+    const t = new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+    info.textContent = [res.name, res.currency, `${res.src} · ${t}`].filter(Boolean).join(' · ');
+    render();
+  }else{
+    info.className = 'pxinfo err';
+    info.innerHTML = (err && err.nf)
+      ? `Ticker "${tk}" não encontrado. Para bolsas fora dos EUA usa o sufixo (ex.: ASML.AS, RR.L, SAP.DE).`
+      : `Não foi possível obter a cotação — escreve o preço manualmente. <button id="fhk">Usar chave Finnhub</button>`;
+    const b = document.getElementById('fhk');
+    if(b) b.onclick = ()=>{
+      const k = prompt('Chave gratuita da Finnhub (finnhub.io → Get free API key). Fica guardada só neste browser:', getKey());
+      if(k !== null){ try{ localStorage.setItem('dcf_finnhub', k.trim()) }catch(e){} fetchPrice(); }
+    };
+  }
+}
+$('ticker').addEventListener('input', ()=>{ clearTimeout(pxTimer); pxTimer = setTimeout(fetchPrice, 900); });
+$('ticker').addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(pxTimer); fetchPrice(); } });
+$('pxbtn').onclick = fetchPrice;
+$('price').addEventListener('input', ()=>{ pxReq++; $('pxbtn').classList.remove('spin'); $('pxinfo').className='pxinfo'; $('pxinfo').textContent='Preço inserido manualmente.'; });
 $('save').onclick = ()=>{
   const p = read(); if(!p.ticker){ alert('Indica um ticker.'); return; }
   const s = loadStore(); s[p.ticker] = p; saveStore(s); refreshSaved(p.ticker);
@@ -289,7 +375,7 @@ $('theme').onclick = ()=>{
 };
 try{ const t = localStorage.getItem('dcf_theme'); if(t) document.documentElement.dataset.theme = t }catch(e){}
 
-refreshSaved(); render();
+refreshSaved(); render(); fetchPrice();
 </script>
 </body>
 </html>
