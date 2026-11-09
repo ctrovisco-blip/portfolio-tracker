@@ -398,7 +398,7 @@ async function fromYahooFundamentals(tk){
       const res = j && j.timeseries && j.timeseries.result;
       if(!res){ last = new Error('sem dados'); continue; }
       const by = {};
-      let capexHist = [];
+      let capexHist = [], capexDates = [];
       res.forEach(r=>{
         const t = r.meta && r.meta.type && r.meta.type[0];
         if(!t || !r[t]) return;
@@ -407,12 +407,14 @@ async function fromYahooFundamentals(tk){
         if(t === 'annualCapitalExpenditure') capexHist = r[t].filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw))
           .sort((a,b)=>a.asOfDate<b.asOfDate?1:-1).slice(0,4)
           .map(x=>({year:x.asOfDate.slice(0,4), v:Math.abs(x.reportedValue.raw)})).reverse();
+        if(t === 'annualCapitalExpenditure') capexDates = r[t].filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw))
+          .map(x=>x.asOfDate).sort().slice(-4);
       });
       const pick = k => { for(const t of FD_TYPES[k]) if(by[t]) return by[t]; return null; };
       const out = {fcf:pick('fcf'), cash:pick('cash'), shares:pick('shares'),
                    fcfTTM:by.trailingFreeCashFlow||null, fcfAnnual:by.annualFreeCashFlow||null,
                    ocfTTM:by.trailingOperatingCashFlow||null, ocfAnnual:by.annualOperatingCashFlow||null,
-                   capexTTM:by.trailingCapitalExpenditure||null, capexHist};
+                   capexTTM:by.trailingCapitalExpenditure||null, capexHist, capexHistDates:capexDates};
       // Debt excluding leases: total debt − lease obligations, else long-term + current debt
       const td = pick('debt'), ls = pick('lease'), ltd = pick('ltd'), cd = pick('cd');
       if(td) out.debt = {...td, v: td.v - (ls ? ls.v : 0)};
@@ -458,7 +460,7 @@ async function fetchFundamentals(){
 }
 
 // ---- FCF base ----
-// Normalizado = último Operating Cash Flow (últ. 12M) − CapEx médio dos últimos 4 anos fiscais
+// Normalizado = último Operating Cash Flow (últ. 12M) − CapEx médio (últimos 4 anos fiscais + últ. 12M) ÷ 5
 // Atualizado  = FCF dos últimos 12 meses (OCF − CapEx, últ. 12M)
 let fcfData = null;
 const fmtM = v => nf0.format(Math.round(v/1e6));
@@ -469,14 +471,21 @@ function applyFcf(){
   const d = fcfData;
   let v = null, msg = '';
   if(opts.fcfNorm){
-    const ocf = d.ocfTTM || d.ocfAnnual, cx = d.capexHist || [];
+    const ocf = d.ocfTTM || d.ocfAnnual, hist = d.capexHist || [];
+    // CapEx average = last 4 fiscal years + TTM, divided by 5.
+    // TTM is skipped only if it is the same period as the last fiscal year (avoids double counting).
+    const cx = hist.map(x=>({label:x.year, v:x.v}));
+    const lastFY = hist.length ? d.capexHistDates[hist.length-1] : '';
+    if(d.capexTTM && d.capexTTM.date !== lastFY) cx.push({label:'12M', v:Math.abs(d.capexTTM.v)});
     if(ocf && cx.length){
       const avg = cx.reduce((a,x)=>a+x.v,0) / cx.length;
       v = ocf.v - avg;
-      const span = cx.length > 1 ? `${cx[0].year}–${cx[cx.length-1].year}` : cx[0].year;
+      const yrs = cx.filter(x=>x.label !== '12M');
+      const span = (yrs.length > 1 ? `${yrs[0].label}–${yrs[yrs.length-1].label}` : (yrs[0]||{}).label || '')
+                 + (cx.length > yrs.length ? (yrs.length ? ' + 12M' : 'últ. 12M') : '');
       msg = `OCF ${d.ocfTTM ? 'últ. 12M até '+fmtMY(ocf.date) : 'de '+ocf.date.slice(0,4)} ${fmtM(ocf.v)}`
-          + ` − CapEx médio ${span} ${fmtM(avg)} (${cx.map(x=>fmtM(x.v)).join(' · ')})`;
-      if(cx.length < 4) msg += ` — só ${cx.length} ano${cx.length>1?'s':''} de CapEx disponíve${cx.length>1?'is':'l'}`;
+          + ` − CapEx médio ${span} ${fmtM(avg)} = (${cx.map(x=>fmtM(x.v)).join(' + ')}) ÷ ${cx.length}`;
+      if(cx.length < 5) msg += ` — só ${cx.length} período${cx.length>1?'s':''} de CapEx disponíve${cx.length>1?'is':'l'}`;
     }else{
       msg = 'Sem dados de OCF/CapEx para normalizar — usado o FCF atualizado. ';
     }
