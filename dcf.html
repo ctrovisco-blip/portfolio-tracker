@@ -110,7 +110,9 @@ a{color:var(--accent)}
 
       <div class="sect pxwrap" style="justify-content:space-between">Dados financeiros (M)<button class="ico" id="fdbtn" title="Atualizar dados financeiros" aria-label="Atualizar dados financeiros">↻</button></div>
       <div class="pxinfo" id="fdinfo">Preenchidos automaticamente ao mudar o ticker (FCF dos últimos 12 meses, balanço mais recente).</div>
+      <div class="field"><label>Base do FCF</label><div class="toggle" data-k="fcfNorm"><button data-v="1" class="on">Média 5 anos</button><button data-v="0">Últ. 12M</button></div></div>
       <div class="field"><label for="fcf">Free Cash Flow</label><input id="fcf" type="number" value="117651"/></div>
+      <div class="pxinfo" id="fcfinfo" hidden></div>
       <div class="field"><label for="debt">Dívida total, excl. leasing</label><input id="debt" type="number" value="123102"/></div>
       <div class="field"><label for="cash">Caixa e investimentos CP</label><input id="cash" type="number" value="265098"/></div>
       <div class="field"><label for="shares">Ações em circulação</label><input id="shares" type="number" value="12368"/></div>
@@ -173,7 +175,7 @@ a{color:var(--accent)}
 <script>
 const $ = id => document.getElementById(id);
 const NUM = ['price','fcf','debt','cash','shares','r','g1','g2','g3','y1','y2','gt'];
-const opts = {useDebt:1, useCash:1, useTV:0};
+const opts = {useDebt:1, useCash:1, useTV:0, fcfNorm:1};
 const STORE = 'dcf_saved_v1';
 
 const nf0 = new Intl.NumberFormat('pt-PT',{maximumFractionDigits:0});
@@ -258,7 +260,9 @@ function render(){
 document.querySelectorAll('.toggle').forEach(t=>{
   t.addEventListener('click', e=>{
     const b = e.target.closest('button'); if(!b) return;
-    setToggle(t.dataset.k, +b.dataset.v); render();
+    setToggle(t.dataset.k, +b.dataset.v);
+    if(t.dataset.k === 'fcfNorm') applyFcf();
+    render();
   });
 });
 function setToggle(k,v){
@@ -278,7 +282,8 @@ function refreshSaved(sel){
 function apply(o){
   $('ticker').value = o.ticker||'';
   NUM.forEach(k=>{ if(o[k]!=null) $(k).value = o[k] });
-  ['useDebt','useCash','useTV'].forEach(k=>{ if(o[k]!=null) setToggle(k, +o[k]) });
+  ['useDebt','useCash','useTV','fcfNorm'].forEach(k=>{ if(o[k]!=null) setToggle(k, +o[k]) });
+  fcfData = null; $('fcfinfo').hidden = true;
   render();
   fetchPrice();
 }
@@ -375,7 +380,7 @@ function latest(series){
 }
 async function fromYahooFundamentals(tk){
   const types = [...new Set(Object.values(FD_TYPES).flat())].join(',');
-  const now = Math.floor(Date.now()/1000), from = now - 3*365*86400;
+  const now = Math.floor(Date.now()/1000), from = now - 6*365*86400;
   const u = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(tk)}?symbol=${encodeURIComponent(tk)}&type=${types}&period1=${from}&period2=${now}`;
   let last;
   for(const px of PROXIES){
@@ -384,9 +389,18 @@ async function fromYahooFundamentals(tk){
       const res = j && j.timeseries && j.timeseries.result;
       if(!res){ last = new Error('sem dados'); continue; }
       const by = {};
-      res.forEach(r=>{ const t = r.meta && r.meta.type && r.meta.type[0]; if(t && r[t]) by[t] = latest(r[t]); });
+      let annual = [];
+      res.forEach(r=>{
+        const t = r.meta && r.meta.type && r.meta.type[0];
+        if(!t || !r[t]) return;
+        by[t] = latest(r[t]);
+        if(t === 'annualFreeCashFlow') annual = r[t].filter(x=>x && x.reportedValue && isFinite(x.reportedValue.raw))
+          .sort((a,b)=>a.asOfDate<b.asOfDate?1:-1).slice(0,5)
+          .map(x=>({year:x.asOfDate.slice(0,4), v:x.reportedValue.raw})).reverse();
+      });
       const pick = k => { for(const t of FD_TYPES[k]) if(by[t]) return by[t]; return null; };
-      const out = {fcf:pick('fcf'), cash:pick('cash'), shares:pick('shares')};
+      const out = {fcf:pick('fcf'), cash:pick('cash'), shares:pick('shares'),
+                   fcfTTM:by.trailingFreeCashFlow||null, fcfAnnual:annual};
       // Debt excluding leases: total debt − lease obligations, else long-term + current debt
       const td = pick('debt'), ls = pick('lease'), ltd = pick('ltd'), cd = pick('cd');
       if(td) out.debt = {...td, v: td.v - (ls ? ls.v : 0)};
@@ -413,10 +427,12 @@ async function fetchFundamentals(){
     info.textContent = 'Não foi possível obter os dados financeiros — preenche manualmente.';
     return;
   }
+  fcfData = {ttm:d.fcfTTM, annual:d.fcfAnnual||[], fallback:d.fcf};
   const filled = [], missing = [];
   const names = {fcf:'FCF', debt:'dívida', cash:'caixa', shares:'ações'};
   ['fcf','debt','cash','shares'].forEach(k=>{
     // missing → clear the field so the previous company's value is not reused by mistake
+    if(k === 'fcf'){ if(applyFcf()) filled.push(k); else missing.push(names[k]); return; }
     if(d[k]){ $(k).value = Math.round(d[k].v/1e6); filled.push(k); } else { $(k).value = ''; missing.push(names[k]); }
   });
   const fcur = (d.fcf||d.cash||{}).cur, date = (d.cash||d.shares||d.debt||{}).date;
@@ -427,6 +443,34 @@ async function fetchFundamentals(){
   info.textContent = msg;
   cur.fd = fcur || ''; curWarn();
   render();
+}
+
+// ---- FCF base: normalized (average of up to 5 fiscal years) or trailing 12 months ----
+let fcfData = null;
+const fmtM = v => nf0.format(Math.round(v/1e6));
+function applyFcf(){
+  const info = $('fcfinfo');
+  if(!fcfData){ info.hidden = true; return false; }
+  const {ttm, annual} = fcfData;
+  let v = null, msg = '';
+  if(opts.fcfNorm && annual.length){
+    v = annual.reduce((a,x)=>a+x.v,0) / annual.length;
+    const span = annual.length > 1 ? `${annual[0].year}–${annual[annual.length-1].year}` : annual[0].year;
+    msg = `Média ${span} (${annual.length} ano${annual.length>1?'s':''}): ` + annual.map(x=>`${x.year} ${fmtM(x.v)}`).join(' · ');
+    if(annual.length < 5) msg += ` — a Yahoo só tem ${annual.length} anos disponíveis`;
+    if(ttm) msg += ` · últ. 12M ${fmtM(ttm.v)}`;
+  }else if(ttm){
+    v = ttm.v;
+    msg = `Últimos 12 meses até ${new Date(ttm.date).toLocaleDateString('pt-PT',{month:'short',year:'numeric'})}`;
+    if(opts.fcfNorm) msg += ' — sem histórico anual, usado o FCF dos últimos 12 meses';
+  }else if(annual.length){
+    const a = annual[annual.length-1]; v = a.v;
+    msg = `Último ano fiscal (${a.year}) — sem dados dos últimos 12 meses`;
+  }
+  info.hidden = false; info.className = 'pxinfo' + (v==null ? ' err' : '');
+  if(v == null){ $('fcf').value = ''; info.textContent = 'Sem dados de FCF — preenche manualmente.'; return false; }
+  $('fcf').value = Math.round(v/1e6); info.textContent = msg;
+  return true;
 }
 
 // Warn when statements are in a different currency than the quote (e.g. ADRs)
@@ -444,6 +488,7 @@ $('ticker').addEventListener('input', ()=>{ clearTimeout(pxTimer); pxTimer = set
 $('ticker').addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(pxTimer); onTicker(); } });
 $('fdbtn').onclick = fetchFundamentals;
 ['fcf','debt','cash','shares'].forEach(k=>$(k).addEventListener('input', ()=>{ fdReq++; $('fdbtn').classList.remove('spin'); }));
+$('fcf').addEventListener('input', ()=>{ fcfData = null; const i = $('fcfinfo'); i.hidden = false; i.className = 'pxinfo'; i.textContent = 'FCF inserido manualmente.'; });
 $('pxbtn').onclick = fetchPrice;
 $('price').addEventListener('input', ()=>{ pxReq++; cur.px=''; $('pxbtn').classList.remove('spin'); $('pxinfo').className='pxinfo'; $('pxinfo').textContent='Preço inserido manualmente.'; });
 $('save').onclick = ()=>{
