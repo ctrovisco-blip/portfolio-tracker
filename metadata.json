@@ -302,5 +302,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "DCI"
+  },
+  "SEC0": {
+    "name": "iShares MSCI Global Semiconductors (Acc)",
+    "sector": "ETF / ETC",
+    "flag": "🇮🇪",
+    "exchange": "",
+    "cur": "€",
+    "yf": "SEC0"
   }
 }
