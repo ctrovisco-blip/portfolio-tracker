@@ -7,8 +7,8 @@
     "exchange": "Xetra",
     "qty": 8.787208,
     "avgPrice": 108.6113,
-    "curPrice": 115.99,
-    "ppl": 64.84,
+    "curPrice": 112.48,
+    "ppl": 34.0,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 29.963005,
     "avgPrice": 46.8972,
-    "curPrice": 43.285,
-    "ppl": -108.23,
+    "curPrice": 43.768,
+    "ppl": -93.76,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -59,6 +59,38 @@
     ]
   },
   {
+    "ticker": "NVDA",
+    "name": "Nvidia",
+    "sector": "Tech & AI",
+    "flag": "🇺🇸",
+    "exchange": "Xetra",
+    "qty": 3.0,
+    "avgPrice": 157.95,
+    "curPrice": 164.49,
+    "ppl": 18.67,
+    "cur": "€",
+    "buyDates": [
+      "2025-12-23",
+      "2026-05-01",
+      "2026-06-04",
+      "2026-06-29",
+      "2026-08-03",
+      "2026-08-20",
+      "2026-08-23",
+      "2026-08-29",
+      "2026-08-31",
+      "2026-09-01",
+      "2026-09-02",
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-05",
+      "2026-09-08",
+      "2026-10-01",
+      "2026-11-09",
+      "2026-11-12"
+    ]
+  },
+  {
     "ticker": "MO",
     "name": "Altria Group",
     "sector": "Consumer Staples",
@@ -66,8 +98,8 @@
     "exchange": "Xetra",
     "qty": 16.73562,
     "avgPrice": 59.7528,
-    "curPrice": 69.12,
-    "ppl": 156.77,
+    "curPrice": 70.76,
+    "ppl": 184.21,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -85,8 +117,8 @@
     "exchange": "NYSE",
     "qty": 19.675681,
     "avgPrice": 61.2289,
-    "curPrice": 59.47,
-    "ppl": 17.58,
+    "curPrice": 59.55,
+    "ppl": 21.88,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -105,8 +137,8 @@
     "exchange": "NYSE",
     "qty": 4.210928,
     "avgPrice": 141.6006,
-    "curPrice": 168.16,
-    "ppl": 124.21,
+    "curPrice": 169.01,
+    "ppl": 129.19,
     "cur": "$",
     "buyDates": [
       "2026-06-03",
@@ -130,8 +162,8 @@
     "exchange": "Xetra",
     "qty": 3.894118,
     "avgPrice": 223.4755,
-    "curPrice": 250.35,
-    "ppl": 104.65,
+    "curPrice": 256.6,
+    "ppl": 128.99,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -148,8 +180,8 @@
     "exchange": "Euronext AMS",
     "qty": 34.644852,
     "avgPrice": 110.2207,
-    "curPrice": 132.79,
-    "ppl": 781.91,
+    "curPrice": 133.62,
+    "ppl": 810.67,
     "cur": "€",
     "buyDates": [
       "2024-10-13",
@@ -186,8 +218,8 @@
     "exchange": "LSE",
     "qty": 88.132205,
     "avgPrice": 1021.8486,
-    "curPrice": 1342.6,
-    "ppl": 367.02,
+    "curPrice": 1369.6,
+    "ppl": 395.87,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -210,8 +242,8 @@
     "exchange": "Xetra",
     "qty": 1.154478,
     "avgPrice": 415.7725,
-    "curPrice": 589.4,
-    "ppl": 200.45,
+    "curPrice": 597.2,
+    "ppl": 209.45,
     "cur": "€",
     "buyDates": [
       "2026-06-02",
@@ -226,8 +258,8 @@
     "exchange": "",
     "qty": 45.770627,
     "avgPrice": 26.5819,
-    "curPrice": 25.03,
-    "ppl": -27.31,
+    "curPrice": 25.02,
+    "ppl": -24.91,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -247,8 +279,8 @@
     "exchange": "",
     "qty": 3.145131,
     "avgPrice": 158.9759,
-    "curPrice": 109.44,
-    "ppl": -155.8,
+    "curPrice": 107.3,
+    "ppl": -162.53,
     "cur": "€",
     "buyDates": [
       "2026-07-08"
@@ -262,8 +294,8 @@
     "exchange": "",
     "qty": 5.0,
     "avgPrice": 220.58,
-    "curPrice": 247.8,
-    "ppl": 136.1,
+    "curPrice": 248.3,
+    "ppl": 138.6,
     "cur": "€",
     "buyDates": [
       "2026-10-01",
@@ -278,8 +310,8 @@
     "exchange": "",
     "qty": 4.0,
     "avgPrice": 337.36,
-    "curPrice": 343.9,
-    "ppl": 37.33,
+    "curPrice": 344.65,
+    "ppl": 43.43,
     "cur": "$",
     "buyDates": [
       "2025-11-18",
@@ -296,26 +328,11 @@
     "exchange": "",
     "qty": 13.0,
     "avgPrice": 84.3354,
-    "curPrice": 87.85,
-    "ppl": 45.8,
+    "curPrice": 87.6,
+    "ppl": 45.67,
     "cur": "$",
     "buyDates": [
       "2026-11-06"
-    ]
-  },
-  {
-    "ticker": "SEC0",
-    "name": "iShares MSCI Global Semiconductors (Acc)",
-    "sector": "ETF / ETC",
-    "flag": "🇮🇪",
-    "exchange": "",
-    "qty": 35.0,
-    "avgPrice": 15.646,
-    "curPrice": 15.978,
-    "ppl": 11.62,
-    "cur": "€",
-    "buyDates": [
-      "2026-11-11"
     ]
   },
   {
@@ -326,8 +343,8 @@
     "exchange": "",
     "qty": 6.0,
     "avgPrice": 157.0,
-    "curPrice": 154.0,
-    "ppl": -16.13,
+    "curPrice": 127.53,
+    "ppl": -157.48,
     "cur": "$",
     "buyDates": [
       "2026-11-11"
