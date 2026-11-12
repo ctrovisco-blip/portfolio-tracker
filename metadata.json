@@ -310,5 +310,13 @@
     "exchange": "",
     "cur": "€",
     "yf": "SEC0"
+  },
+  "NBIS": {
+    "name": "Nebius Group N.V.",
+    "sector": "Tech & AI",
+    "flag": "🇳🇱",
+    "exchange": "",
+    "cur": "$",
+    "yf": "NBIS"
   }
 }

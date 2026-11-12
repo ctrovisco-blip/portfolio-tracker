@@ -37,5 +37,6 @@
   "MRVL_US_EQ": "MRVL",
   "JPM_US_EQ": "JPM",
   "DCI_US_EQ": "DCI",
-  "SEC0d_EQ": "SEC0"
+  "SEC0d_EQ": "SEC0",
+  "YNDX_US_EQ": "NBIS"
 }
