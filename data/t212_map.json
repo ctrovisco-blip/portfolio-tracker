@@ -39,5 +39,6 @@
   "DCI_US_EQ": "DCI",
   "SEC0d_EQ": "SEC0",
   "YNDX_US_EQ": "NBIS",
-  "NVDA_US_EQ": "NVDA"
+  "NVDA_US_EQ": "NVDA",
+  "CLS_US_EQ": "CLS"
 }

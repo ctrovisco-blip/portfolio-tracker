@@ -318,5 +318,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "NBIS"
+  },
+  "CLS": {
+    "name": "Celestica Inc.",
+    "sector": "Tech & AI",
+    "flag": "🇨🇦",
+    "exchange": "",
+    "cur": "$",
+    "yf": "CLS"
   }
 }
