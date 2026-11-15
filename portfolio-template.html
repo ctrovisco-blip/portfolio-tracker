@@ -121,6 +121,10 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
   /* Botão Visão Geral — só mobile */
   .mob-overview-btn{display:flex!important;}
 
+  /* Separadores: dropdown em vez de botões a deslizar */
+  .tab-nav{display:none!important;}
+  .tab-select-wrap{display:block!important;}
+
   /* Esconder botão Portfolio do header no mobile */
   .hdr-back{display:none!important;}
 }
@@ -2099,6 +2103,14 @@ function App() {
   }
   // ──────────────────────────────────────────────────────────────────
 
+  const tabs = [
+    ["portfolio", "Portfolio"],
+    ["screener",  "Screener" + (Object.keys(SCREENER_DATA).length > 0 ? ` (${Object.keys(SCREENER_DATA).length})` : "")],
+    ["desempenho","Desempenho"],
+    ["fiscal",    "Fiscal"],
+    ["dividendos","Dividendos"],
+  ];
+
   const sectors = useMemo(() => [...new Set(positions.map(p => p.sector))].sort(), []);
 
   const filtered = useMemo(() => {
@@ -2145,14 +2157,9 @@ function App() {
         </span>
         <div style={{flex:1}}/>
         {/* Tab navigation */}
+        {/* Separadores — botões em linha no desktop; no mobile um seletor (dropdown nativo) */}
         <div className="no-print tab-nav" style={{display:"flex",gap:"2px",marginRight:"4px",overflowX:"auto",minWidth:0,flexShrink:1,scrollbarWidth:"none"}}>
-          {[
-            ["portfolio", "Portfolio"],
-            ["screener",  "Screener" + (Object.keys(SCREENER_DATA).length > 0 ? ` (${Object.keys(SCREENER_DATA).length})` : "")],
-            ["desempenho","Desempenho"],
-            ["fiscal",    "Fiscal"],
-            ["dividendos","Dividendos"],
-          ].map(([k, l]) => (
+          {tabs.map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
               fontSize:"9px",padding:"4px 12px",flexShrink:0,whiteSpace:"nowrap",borderRadius:"5px",cursor:"pointer",
               border:      tab===k ? "1px solid #2962ff"    : "1px solid transparent",
@@ -2168,6 +2175,21 @@ function App() {
             border:"1px solid transparent",background:"transparent",color:"#6b7280",
             fontFamily:"'Inter',sans-serif",textDecoration:"none",transition:"all 0.12s",
           }}>🎯 Entrada</a>
+        </div>
+        <div className="no-print tab-select-wrap" style={{display:"none",position:"relative",flexShrink:0}}>
+          <select className="tab-select" aria-label="Escolher separador" value={tab}
+            onChange={e => {
+              if (e.target.value === "__entrada") { window.location.href = "entry_dashboard.html"; return; }
+              setTab(e.target.value); setSel(null); setMobPanel(null); setMobDetail(false);
+            }}
+            style={{fontSize:"12px",fontWeight:"600",color:"#5b8af5",background:"#2962ff22",
+              border:"1px solid #2962ff",borderRadius:"6px",padding:"6px 28px 6px 12px",
+              fontFamily:"'Inter',sans-serif",minHeight:"32px",maxWidth:"150px"}}>
+            {tabs.map(([k, l]) => <option key={k} value={k} style={{background:"#1a1f2e",color:"#c8ccd4"}}>{l}</option>)}
+            <option value="__entrada" style={{background:"#1a1f2e",color:"#c8ccd4"}}>🎯 Entrada</option>
+          </select>
+          <span aria-hidden="true" style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",
+            pointerEvents:"none",color:"#5b8af5",fontSize:"10px"}}>▾</span>
         </div>
         <FreshnessIndicator/>
         <div className="hdr-deploy"><DeployButton/></div>
