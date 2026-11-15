@@ -41,6 +41,17 @@ if os.path.exists("data/screener.json"):
 else:
     print("  Screener data: not found, using {}")
 
+analytics_data = {"available": False, "motivo": "data/analytics.json ainda não foi gerado (build_analytics.py)."}
+if os.path.exists("data/analytics.json"):
+    with open("data/analytics.json", encoding="utf-8") as f:
+        analytics_data = json.load(f)
+    print(f"  Analytics: OK ({os.path.getsize('data/analytics.json')//1024}KB)")
+else:
+    print("  Analytics: not found, tabs show empty state")
+
+with open("analytics_views.jsx", encoding="utf-8") as f:
+    analytics_views = f.read()
+
 # ── Timestamps por fonte ───────────────────────────────────────────────────────
 
 def file_mtime(path):
@@ -65,6 +76,8 @@ fundamentals_js = json.dumps(fundamentals, separators=(',',':'))
 fx_js           = json.dumps(fx_rates,     separators=(',',':'))
 screener_js     = json.dumps(screener_data, separators=(',',':'), ensure_ascii=False)
 timestamps_js   = json.dumps(timestamps,   separators=(',',':'))
+# </script> dentro de strings JSON fecharia o bloco <script>
+analytics_js    = json.dumps(analytics_data, separators=(',',':'), ensure_ascii=False).replace("</", "<\\/")
 
 updated = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 build_ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
@@ -83,6 +96,8 @@ html = html.replace("/*__FUNDAMENTALS__*/", fundamentals_js)
 html = html.replace("/*__FX_RATES__*/",     fx_js)
 html = html.replace("/*__SCREENER_DATA__*/", screener_js)
 html = html.replace("/*__TIMESTAMPS__*/",   timestamps_js)
+html = html.replace("/*__ANALYTICS__*/",   analytics_js)
+html = html.replace("/*__ANALYTICS_VIEWS__*/", analytics_views)
 html = html.replace("/*__BUILD_TS__*/",     f'"{build_ts}"')
 html = html.replace("__UPDATED__",          updated)
 

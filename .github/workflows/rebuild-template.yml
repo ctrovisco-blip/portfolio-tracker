@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'portfolio-template.html'
+      - 'analytics_views.jsx'
 
 concurrency:
   group: update-portfolio
