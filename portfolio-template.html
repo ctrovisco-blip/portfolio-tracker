@@ -52,7 +52,10 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;}
 
   /* Header: esconder texto secundário e compactar */
   .hdr-sep,.hdr-name,.hdr-live{display:none!important;}
-  .hdr-deploy{display:none!important;}
+  /* Deploy compacto: só o ícone (o texto e o × de remover o token escondem-se) */
+  .hdr-deploy{flex-shrink:0;}
+  .deploy-text,.deploy-clear{display:none!important;}
+  .deploy-btn{border-radius:5px!important;min-width:32px;min-height:28px;padding:4px 8px!important;font-size:12px!important;}
   .hdr-freshness-text{display:none!important;}
 
   /* Painel direito: slide-in full-screen */
@@ -1034,20 +1037,20 @@ function DeployButton() {
   const btnColor = status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#787b86";
   const btnBg    = status==="ok" ? "#14532D22" : status==="err" ? "#7F1D1D22" : "#1e2438";
   const btnBorder= status==="ok" ? "#22C55E" : status==="err" ? "#ef5350" : "#5a6478";
-  const btnLabel = status==="running" ? "⏳" : status==="ok" ? "✓ A correr" : status==="err" ? "✗ Erro" : "↻ Deploy";
+  const [btnIcon, btnText] = status==="running" ? ["⏳",""] : status==="ok" ? ["✓"," A correr"] : status==="err" ? ["✗"," Erro"] : ["↻"," Deploy"];
 
   return (
     <div ref={ref} style={{position:"relative"}}>
       <div style={{display:"flex",alignItems:"center",gap:"2px"}}>
-        <button className="cb" onClick={handleClick}
+        <button className="cb deploy-btn" onClick={handleClick} title="Atualizar dados (corre o workflow)" aria-label="Deploy"
           style={{fontSize:"9px",color:btnColor,background:btnBg,
             border:`1px solid ${btnBorder}`,borderRadius:token?"5px 0 0 5px":"5px",
             padding:"4px 10px",fontFamily:"'Inter',sans-serif",
             animation: status==="running" ? "spin 1s linear infinite" : "none"}}>
-          {btnLabel}
+          {btnIcon}{btnText && <span className="deploy-text">{btnText}</span>}
         </button>
         {token && status==="idle" && (
-          <button className="cb" onClick={handleClear} title="Remover token"
+          <button className="cb deploy-clear" onClick={handleClear} title="Remover token"
             style={{fontSize:"9px",color:"#6b7280",background:"#1a1f2e",
               border:"1px solid #2a3042",borderRadius:"0 5px 5px 0",borderLeft:"none",
               padding:"4px 6px",fontFamily:"'Inter',sans-serif"}}>
@@ -1060,7 +1063,7 @@ function DeployButton() {
       {status === "asking" && (
         <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,
           background:"#1e2438",border:"1px solid #2a3042",borderRadius:"10px",
-          padding:"14px",width:"260px",boxShadow:"0 8px 32px #00000099"}}>
+          padding:"14px",width:"260px",maxWidth:"calc(100vw - 24px)",boxShadow:"0 8px 32px #00000099"}}>
           <div style={{fontSize:"9px",fontWeight:"600",color:"#c8ccd4",marginBottom:"4px"}}>
             GitHub Personal Access Token
           </div>
