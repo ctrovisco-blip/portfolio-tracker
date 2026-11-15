@@ -147,3 +147,37 @@ def load_price_history(path="data/price_history.json"):
         return None
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+_FX_FIELDS = ("totalEur", "feesEur", "grossEur", "withholdingEur")
+
+
+def convert_foreign_totals(events, history):
+    """
+    Converte para EUR os eventos liquidados noutra moeda (marcados com
+    `fxPending` pelo parser do CSV), ao câmbio EUR→moeda do dia do evento.
+    Devolve (eventos, avisos). Os eventos originais não são alterados.
+    """
+    book = PriceBook(history, [])
+    out, warnings = [], []
+    for e in events:
+        ccy = e.get("fxPending")
+        if not ccy and e.get("source") in ("t212-csv", "manual-csv") and e.get("totalCcy") not in (None, "", "EUR"):
+            ccy = e["totalCcy"]  # eventos gravados antes de existir a marca fxPending
+        if not ccy:
+            out.append(e)
+            continue
+        rate = book.fx_rate(ccy, to_date(e["date"]))
+        if not rate:
+            warnings.append(f"{e.get('ticker') or e['type']} em {e['date']}: sem câmbio EUR/{ccy}, valor em {ccy} usado como EUR")
+            out.append(e)
+            continue
+        c = dict(e)
+        for f in _FX_FIELDS:
+            if c.get(f) is not None:
+                c[f] = c[f] / rate
+        c["nativeTotal"] = e.get("totalEur")
+        c["nativeTotalCcy"] = ccy
+        c.pop("fxPending", None)
+        out.append(c)
+    return out, warnings

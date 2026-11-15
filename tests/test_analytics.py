@@ -99,6 +99,28 @@ class TestLedgerCsv(unittest.TestCase):
         self.assertAlmostEqual(q["GB0000000002"], 100)
 
 
+class TestForeignCurrency(unittest.TestCase):
+    def test_usd_settled_trade_converted(self):
+        from analytics.prices import convert_foreign_totals
+        row = ("Market sell,2026-11-05 15:00:00,US0000000001,AAA,Alpha Inc,,S9,2,124.85,USD,1.00,,,249.70,USD,,,,,,\n")
+        evs = ledger.parse_t212_csv(CSV + row)
+        sell = evs[-1]
+        self.assertEqual(sell["fxPending"], "USD")
+        hist = {"fx": {"USD": {"2026-11-05": 1.10}}}
+        conv, warns = convert_foreign_totals(evs, hist)
+        self.assertAlmostEqual(conv[-1]["totalEur"], 249.70 / 1.10, places=4)
+        self.assertEqual(conv[-1]["nativeTotal"], 249.70)
+        self.assertNotIn("fxPending", conv[-1])
+        self.assertEqual(conv[1]["totalEur"], evs[1]["totalEur"])  # EUR fica igual
+        self.assertFalse(warns)
+
+    def test_missing_rate_warns(self):
+        from analytics.prices import convert_foreign_totals
+        e = {"id": "x", "date": "2026-11-05", "type": "INTEREST", "totalEur": 1.0, "fxPending": "USD"}
+        conv, warns = convert_foreign_totals([e], {"fx": {}})
+        self.assertTrue(warns)
+
+
 class TestFiscal(unittest.TestCase):
     def test_tiers(self):
         r = fiscal_pt.TaxRules(CFG)
@@ -192,6 +214,16 @@ class TestPerformance(unittest.TestCase):
         rep = p["seInvestidoNoIndice"]["spy"]
         expected = 1000 * ((100 + (date(2024, 7, 1) - start).days * 0.1) / (100 + 1 * 0.1)) - 1000
         self.assertAlmostEqual(rep["eur"], expected, places=0)
+
+    def test_weekly_beta(self):
+        import math
+        start = date(2024, 1, 1)
+        days = [start + timedelta(days=i) for i in range(400)]
+        bench = lambda d: 100 * math.exp(0.02 * math.sin((d - start).days / 9.0) + 0.0003 * (d - start).days)
+        price = lambda d: 100 * (bench(d) / 100) ** 2  # retorno ≈ 2× o do índice
+        evs = [ev("DEPOSIT", "2024-01-02", None, total=1000.0), ev("BUY", "2024-01-02", "A", 10, 1000.0)]
+        p = performance.compute(evs, PriceBook(flat_history(days, {"A": price}, bench=bench), evs), date(2025, 1, 31))
+        self.assertAlmostEqual(p["risco"]["beta"], 2.0, delta=0.1)
 
     def test_drawdown(self):
         start = date(2024, 1, 1)

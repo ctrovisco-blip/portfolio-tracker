@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from analytics import dividends, fiscal_pt, ledger, performance  # noqa: E402
-from analytics.prices import PriceBook, load_price_history  # noqa: E402
+from analytics.prices import PriceBook, convert_foreign_totals, load_price_history  # noqa: E402
 from analytics.util import r2  # noqa: E402
 
 OUT = "data/analytics.json"
@@ -51,6 +51,7 @@ def build(today=None, write=True):
         return res
 
     history = load_price_history()
+    events, fx_warnings = convert_foreign_totals(events, history)
     book = PriceBook(history, events)
     meta = jload("metadata.json", {})
     fx_now = jload("data/fx.json", {"€": 1.0})
@@ -74,8 +75,12 @@ def build(today=None, write=True):
     open_cost = fiscal.pop("_openCost")
     fiscal.pop("_simulate")
 
+    # Caixa = total da conta − investido − resultado não realizado. Inclui o
+    # saldo noutras moedas (ex.: USD), que free/blocked não incluem.
     live_cash = None
-    if account and account.get("free") is not None:
+    if account and account.get("total") is not None and account.get("invested") is not None:
+        live_cash = account["total"] - account["invested"] - (account.get("ppl") or 0)
+    elif account and account.get("free") is not None:
         live_cash = sum(account.get(k) or 0 for k in ("free", "blocked", "pieCash"))
     perf = performance.compute(events, book, today, live_cash)
     by_pos = performance.by_position(events, book, today, open_cost)
@@ -114,7 +119,8 @@ def build(today=None, write=True):
         "fontes": sorted({e.get("source") for e in events}),
         "semCotacaoYahoo": sorted(insts.get(k, {}).get("ticker") or k for k in book.fallback_used),
         "quantidadesDiferentes": mismatches,
-        "avisos": fiscal.get("avisos", []),
+        "avisos": fiscal.get("avisos", []) + fx_warnings,
+        "eventosNoutraMoeda": sum(1 for e in events if e.get("nativeTotalCcy")),
         "temPrecosHistoricos": bool(history),
         "dividendosBrutoEstimado": divs["recebido"]["brutoEstimado"],
     }

@@ -198,17 +198,18 @@ def compute(events, book, today: date, live_cash_eur=None):
     sortino = (cagr - RF) / dd_dev if cagr is not None and dd_dev else None
     calmar = cagr / abs(mdd) if cagr is not None and mdd < 0 else None
 
+    # Beta com retornos SEMANAIS (fecho de sexta): com retornos diários, as
+    # bolsas europeias (que fecham antes de Wall Street) só refletem o movimento
+    # americano no dia seguinte, o que subestima a correlação e o beta.
     beta = None
     spy = dict(bench_idx.get("spy", []))
-    pairs = []
-    prev_b = None
-    for d, r_ in daily_r:
-        b = spy.get(d)
-        if b is not None and prev_b is not None and d > first_inv["d"]:
-            pairs.append((r_, b / prev_b - 1))
-        if b is not None:
-            prev_b = b
-    if len(pairs) > 20:
+    week_end = {}
+    for d, v in idx_series:
+        if d in spy:
+            week_end[d.isocalendar()[:2]] = (v, spy[d])
+    wk = [week_end[k] for k in sorted(week_end)]
+    pairs = [(b[0] / a[0] - 1, b[1] / a[1] - 1) for a, b in zip(wk, wk[1:])]
+    if len(pairs) > 12:
         mp = statistics.mean(p for p, _ in pairs)
         mb = statistics.mean(b for _, b in pairs)
         cov = sum((p - mp) * (b - mb) for p, b in pairs) / len(pairs)
