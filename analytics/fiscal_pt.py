@@ -212,7 +212,83 @@ def _enrich_piece(p, rules, info, sectors):
     return p
 
 
-def compute(events, book, today: date, cfg=None, sectors=None):
+def _months_later(d: date, months: int) -> date:
+    y, m = divmod(d.month - 1 + months, 12)
+    y += d.year
+    day = min(d.day, [31, 29 if y % 4 == 0 and (y % 100 or y % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m])
+    return date(y, m + 1, day)
+
+
+def withholding_recovery(events, cfg, today: date, estados=None):
+    """
+    Retenção na fonte paga a mais no estrangeiro (acima do limite da convenção),
+    por país e por ano — o que se pode pedir de volta ao fisco desse país.
+    Calculado por pagamento: retido − limite × bruto, só nos pagamentos com
+    retenção (as partes isentas, ex.: reembolso de reservas, não contam).
+    """
+    rc = (cfg or {}).get("recuperacaoRetencao") or {}
+    if not rc:
+        return None
+    excluir = rc.get("excluir") or {}
+    paises = rc.get("paises") or {}
+    padrao = rc.get("padrao") or {"limitePct": 15, "prazo": {"fimDoAnoMais": 3}}
+    estados = estados or {}
+    grupos = defaultdict(lambda: {"empresas": set(), "brutoEur": 0.0, "retidoEur": 0.0,
+                                  "limiteEur": 0.0, "recuperarEur": 0.0, "primeiroPagamento": None})
+    for e in events:
+        if e["type"] != "DIVIDEND":
+            continue
+        c = isin_country(e.get("isin"))
+        if not c or c in excluir:
+            continue
+        g, w = e.get("grossEur") or 0.0, e.get("withholdingEur") or 0.0
+        if g <= 0 or w <= 0:
+            continue
+        p = paises.get(c, padrao)
+        limite = g * p.get("limitePct", 15) / 100
+        d = to_date(e["date"])
+        k = (c, d.year)
+        gr = grupos[k]
+        gr["empresas"].add(e.get("isin") or e.get("ticker"))
+        gr["brutoEur"] += g
+        gr["retidoEur"] += w
+        gr["limiteEur"] += min(limite, w)
+        gr["recuperarEur"] += max(w - limite, 0.0)
+        gr["primeiroPagamento"] = min(gr["primeiroPagamento"] or d, d)
+
+    linhas = []
+    for (c, y), gr in sorted(grupos.items()):
+        if gr["recuperarEur"] < rc.get("minimoEur", 0.01):
+            continue
+        p = paises.get(c, padrao)
+        prazo_cfg = p.get("prazo") or {}
+        if "mesesAposPagamento" in prazo_cfg:
+            prazo = _months_later(gr["primeiroPagamento"], prazo_cfg["mesesAposPagamento"])
+        else:
+            prazo = date(y + prazo_cfg.get("fimDoAnoMais", 3), 12, 31)
+        lid = f"{c}-{y}"
+        est = estados.get(lid) or {}
+        linhas.append({
+            "id": lid, "pais": c, "paisNome": COUNTRY_NAME_PT.get(c, c), "ano": y,
+            "empresas": len(gr["empresas"]),
+            "brutoEur": r2(gr["brutoEur"]), "retidoEur": r2(gr["retidoEur"]),
+            "limitePct": p.get("limitePct", 15), "limiteEur": r2(gr["limiteEur"]),
+            "recuperarEur": r2(gr["recuperarEur"]),
+            "prazo": prazo.isoformat(), "prazoPassado": prazo < today,
+            "diasAtePrazo": (prazo - today).days,
+            "formulario": p.get("formulario"), "url": p.get("url"),
+            "estado": est.get("estado", "por_reclamar"), "estadoAtualizado": est.get("atualizado"),
+        })
+    linhas.sort(key=lambda l: (-l["ano"], -(l["recuperarEur"] or 0)))
+    return {
+        "linhas": linhas,
+        "requisito": rc.get("requisito"),
+        "excluidos": excluir,
+        "nota": rc.get("_nota"),
+    }
+
+
+def compute(events, book, today: date, cfg=None, sectors=None, estados_recuperacao=None):
     rules = TaxRules(cfg or load_config())
     sectors = sectors or {}
     open_lots, pieces, warnings, info = run_fifo(events)
@@ -425,6 +501,7 @@ def compute(events, book, today: date, cfg=None, sectors=None):
         "taxLossHarvest": tlh,
         "declaracaoRascunho": {str(y): rows for y, rows in decl.items()},
         "dividendosPorPais": {str(y): rows for y, rows in div_decl.items()},
+        "retencaoARecuperar": withholding_recovery(events, cfg or load_config(), today, estados_recuperacao),
         "avisos": warnings,
         "anexos": (cfg or load_config()).get("anexos"),
         "basesLegais": [

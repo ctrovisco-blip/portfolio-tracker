@@ -8,10 +8,26 @@
     "_base": "Art. 43.º n.º 5 CIRS (Lei 31/2024) — exclusão parcial do ganho por tempo de detenção, vendas desde a data abaixo",
     "aplicaDesde": "2024-06-29",
     "escalas": [
-      {"label": "< 2 anos", "anosMin": 0, "exclusaoPct": 0},
-      {"label": "2–5 anos", "anosMin": 2, "exclusaoPct": 10},
-      {"label": "5–8 anos", "anosMin": 5, "exclusaoPct": 20},
-      {"label": "≥ 8 anos", "anosMin": 8, "exclusaoPct": 30}
+      {
+        "label": "< 2 anos",
+        "anosMin": 0,
+        "exclusaoPct": 0
+      },
+      {
+        "label": "2–5 anos",
+        "anosMin": 2,
+        "exclusaoPct": 10
+      },
+      {
+        "label": "5–8 anos",
+        "anosMin": 5,
+        "exclusaoPct": 20
+      },
+      {
+        "label": "≥ 8 anos",
+        "anosMin": 8,
+        "exclusaoPct": 30
+      }
     ]
   },
   "correcaoMonetaria": {
@@ -22,9 +38,28 @@
   "dividendos": {
     "_base": "Crédito por dupla tributação internacional (art. 81.º CIRS): o imposto retido lá fora abate aos 28%, até ao limite da convenção. Taxas de convenção a verificar.",
     "taxaConvencaoPct": {
-      "US": 15, "CA": 15, "DE": 15, "FR": 15, "NL": 10, "ES": 15, "IT": 15,
-      "CH": 15, "IE": 15, "GB": 10, "DK": 10, "SE": 10, "NO": 15, "FI": 15,
-      "BE": 15, "AT": 15, "LU": 15, "JP": 10, "CN": 10, "HK": 10, "KR": 15, "BR": 15
+      "US": 15,
+      "CA": 15,
+      "DE": 15,
+      "FR": 15,
+      "NL": 10,
+      "ES": 15,
+      "IT": 15,
+      "CH": 15,
+      "IE": 15,
+      "GB": 10,
+      "DK": 10,
+      "SE": 10,
+      "NO": 15,
+      "FI": 15,
+      "BE": 15,
+      "AT": 15,
+      "LU": 15,
+      "JP": 10,
+      "CN": 10,
+      "HK": 10,
+      "KR": 15,
+      "BR": 15
     },
     "semConvencaoLimitePct": 28,
     "retencaoPortugalLiberatoria": true
@@ -35,5 +70,137 @@
     "dividendosEstrangeiro": "Anexo J · Quadro 8A (código E11)",
     "juros": "Anexo J · Quadro 8A (código E21)",
     "contaEstrangeiro": "Anexo J · Quadro 11 (IBAN/número da conta na corretora estrangeira)"
+  },
+  "recuperacaoRetencao": {
+    "_nota": "Retenção na fonte paga a mais lá fora (acima do limite da convenção com Portugal), que se pede de volta à autoridade fiscal do país da empresa. Prazos e formulários a confirmar no site oficial de cada país; as ligações abrem a página principal da autoridade fiscal.",
+    "excluir": {
+      "PT": "a retenção portuguesa acerta-se na declaração de IRS",
+      "US": "o reembolso exige declaração americana (1040-NR); com o W-8BEN a retenção já fica nos 15%",
+      "GB": "o Reino Unido não retém imposto sobre dividendos"
+    },
+    "minimoEur": 0.01,
+    "requisito": "Precisas do certificado de residência fiscal português, que se pede gratuitamente no Portal das Finanças (Cidadãos › Serviços › Certidões).",
+    "paises": {
+      "CA": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 2
+        },
+        "formulario": "Form NR7-R (Canada Revenue Agency)",
+        "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/nr7-r.html"
+      },
+      "DE": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 4
+        },
+        "formulario": "Pedido de reembolso ao Bundeszentralamt für Steuern (BZSt)",
+        "url": "https://www.bzst.de"
+      },
+      "CH": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 3
+        },
+        "formulario": "Formulário 86 (Administração Fiscal Federal, ESTV)",
+        "url": "https://www.estv.admin.ch"
+      },
+      "IT": {
+        "limitePct": 15,
+        "prazo": {
+          "mesesAposPagamento": 48
+        },
+        "formulario": "Pedido de reembolso à Agenzia delle Entrate",
+        "url": "https://www.agenziaentrate.gov.it"
+      },
+      "ES": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 4
+        },
+        "formulario": "Modelo 210 (Agencia Tributaria)",
+        "url": "https://sede.agenciatributaria.gob.es"
+      },
+      "FR": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 2
+        },
+        "formulario": "Formulários 5000 e 5001 (DGFiP)",
+        "url": "https://www.impots.gouv.fr"
+      },
+      "IE": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 4
+        },
+        "formulario": "Formulário V2 (Revenue)",
+        "url": "https://www.revenue.ie"
+      },
+      "NL": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 3
+        },
+        "formulario": "Pedido de teruggaaf dividendbelasting (Belastingdienst)",
+        "url": "https://www.belastingdienst.nl"
+      },
+      "BE": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 5
+        },
+        "formulario": "Formulário 276 Div (SPF Finances)",
+        "url": "https://finances.belgium.be"
+      },
+      "AT": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 5
+        },
+        "formulario": "Formulário ZS-RD1 (BMF)",
+        "url": "https://www.bmf.gv.at"
+      },
+      "DK": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 3
+        },
+        "formulario": "Pedido de reembolso à Skattestyrelsen",
+        "url": "https://skat.dk"
+      },
+      "FI": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 3
+        },
+        "formulario": "Formulário 6163e (Vero)",
+        "url": "https://www.vero.fi"
+      },
+      "NO": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 3
+        },
+        "formulario": "Pedido de reembolso à Skatteetaten",
+        "url": "https://www.skatteetaten.no"
+      },
+      "SE": {
+        "limitePct": 15,
+        "prazo": {
+          "fimDoAnoMais": 5
+        },
+        "formulario": "Formulário SKV 3770 (Skatteverket)",
+        "url": "https://www.skatteverket.se"
+      }
+    },
+    "padrao": {
+      "limitePct": 15,
+      "prazo": {
+        "fimDoAnoMais": 3
+      },
+      "formulario": "Pedido de reembolso à autoridade fiscal do país",
+      "url": null
+    }
   }
 }

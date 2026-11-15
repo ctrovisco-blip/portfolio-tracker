@@ -350,6 +350,202 @@ function FiscalView() {
   return (ANALYTICS && ANALYTICS.available) ? <FiscalViewInner/> : <AvEmpty/>;
 }
 
+
+// ═══ RETENÇÃO NA FONTE A RECUPERAR ═════════════════════════════════════════
+// Estados dos pedidos: guardados neste browser e, se houver token do GitHub
+// (o mesmo do botão Deploy), também em data/cdti_status.json no repositório.
+const REC_ESTADOS = [
+  ["por_reclamar", "Por reclamar",                 "#5b8af5"],
+  ["pedido",       "Pedido de reembolso enviado",  "#d9a441"],
+  ["recebido",     "Reembolso recebido",           "#089981"],
+  ["recusado",     "Reembolso recusado",           "#ef5350"],
+  ["dispensado",   "Dispensar (não vou reclamar)", "#6b7280"],
+];
+const REC_CURTO = { por_reclamar:"Por reclamar", pedido:"Pedido", recebido:"Recebido", recusado:"Recusado", dispensado:"Dispensado" };
+const REC_COR = Object.fromEntries(REC_ESTADOS.map(([k,,c]) => [k,c]));
+const REC_LS = "cdti_status";
+const REC_FILE = "data/cdti_status.json";
+
+const flagEmoji = cc => cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "🏳️";
+const b64utf8 = str => btoa(unescape(encodeURIComponent(str)));
+const utf8b64 = b64 => decodeURIComponent(escape(atob(b64.replace(/\n/g, ""))));
+
+function recLoadLocal() {
+  try { return JSON.parse(localStorage.getItem(REC_LS) || "{}"); } catch (e) { return {}; }
+}
+
+async function recSyncRepo(estados) {
+  const pat = (() => { try { return localStorage.getItem("gh_pat"); } catch (e) { return null; } })();
+  if (!pat) return "local";
+  const api = `https://api.github.com/repos/${GH_REPO}/contents/${REC_FILE}`;
+  const h = { "Authorization": `Bearer ${pat}`, "Accept": "application/vnd.github+json" };
+  let sha, atual = {};
+  const g = await fetch(api + "?ref=main", { headers: h });
+  if (g.ok) { const j = await g.json(); sha = j.sha; try { atual = JSON.parse(utf8b64(j.content)).estados || {}; } catch (e) {} }
+  else if (g.status !== 404) throw new Error(`GitHub ${g.status}`);
+  const merged = { ...atual };
+  Object.entries(estados).forEach(([k, v]) => {
+    if (!merged[k] || (v.atualizado || "") >= (merged[k].atualizado || "")) merged[k] = v;
+  });
+  const body = { message: "chore: estado dos pedidos de reembolso de retenção [skip ci]",
+    content: b64utf8(JSON.stringify({ estados: merged }, null, 1) + "\n"), branch: "main", ...(sha ? { sha } : {}) };
+  const p = await fetch(api, { method: "PUT", headers: { ...h, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!p.ok) throw new Error(`GitHub ${p.status}`);
+  return "repo";
+}
+
+function RecoverySection({ data }) {
+  const [local, setLocal] = useState(recLoadLocal);
+  const [filtro, setFiltro] = useState("ativos");     // ativos | tudo
+  const [estadoFiltro, setEstadoFiltro] = useState(null);
+  const [aberto, setAberto] = useState(null);        // linha no modal
+  const [escolha, setEscolha] = useState(null);
+  const [msg, setMsg] = useState("");
+  if (!data || !data.linhas) return null;
+
+  const estadoDe = l => {
+    const lo = local[l.id];
+    if (lo && (lo.atualizado || "") >= (l.estadoAtualizado || "")) return lo.estado;
+    return l.estado || "por_reclamar";
+  };
+  const linhas = data.linhas.map(l => ({ ...l, est: estadoDe(l) }));
+  const soma = ks => linhas.filter(l => ks.includes(l.est)).reduce((s, l) => s + (l.recuperarEur || 0), 0);
+  const conta = k => linhas.filter(l => l.est === k).length;
+  const visiveis = linhas.filter(l => estadoFiltro ? l.est === estadoFiltro
+    : filtro === "tudo" || ["por_reclamar", "pedido"].includes(l.est));
+
+  const guardar = async () => {
+    const novo = { ...local, [aberto.id]: { estado: escolha, atualizado: new Date().toISOString() } };
+    setLocal(novo);
+    try { localStorage.setItem(REC_LS, JSON.stringify(novo)); } catch (e) {}
+    setAberto(null);
+    setMsg("A guardar…");
+    try {
+      const onde = await recSyncRepo({ [aberto.id]: novo[aberto.id] });
+      setMsg(onde === "repo" ? "Guardado neste dispositivo e no repositório." : "Guardado neste dispositivo. Configura o token do Deploy para sincronizar entre dispositivos.");
+    } catch (e) {
+      setMsg(`Guardado neste dispositivo; não foi possível sincronizar com o GitHub (${e.message}).`);
+    }
+    setTimeout(() => setMsg(""), 6000);
+  };
+
+  const Linha = ({ k, label }) => (
+    <button onClick={() => setEstadoFiltro(estadoFiltro === k ? null : k)} style={{display:"flex",alignItems:"center",
+      width:"100%",gap:"8px",padding:"8px 10px",borderRadius:"6px",cursor:"pointer",fontFamily:"'Inter',sans-serif",
+      border:`1px solid ${estadoFiltro === k ? REC_COR[k] : AV.border}`,background:AV.panel2,color:AV.text,fontSize:"10px"}}>
+      <span style={{color:REC_COR[k]}}>●</span><span style={{textTransform:"uppercase",letterSpacing:"0.6px"}}>{label}</span>
+      <span style={{flex:1}}/><b style={{color:REC_COR[k],fontSize:"12px"}}>{avEur(soma([k]))}</b>
+      <span style={{color:AV.muted}}>· {conta(k)} {conta(k) === 1 ? "caso" : "casos"}</span>
+    </button>
+  );
+
+  return (
+    <AvCard title="Retenção na fonte a recuperar" sub="imposto retido lá fora acima do limite da convenção">
+      {!linhas.length
+        ? <div style={{fontSize:"10px",color:AV.muted}}>Não há retenção a recuperar: em nenhum país a retenção passou o limite da convenção.</div>
+        : <>
+        <div style={{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:"9px",color:AV.muted,letterSpacing:"0.8px",textTransform:"uppercase"}}>A recuperar · em aberto</div>
+            <div style={{fontSize:"22px",fontWeight:"700",color:AV.blue}}>{avEur(soma(["por_reclamar","pedido"]))}</div>
+          </div>
+          <div style={{flex:1}}/>
+          <AvPills value={estadoFiltro ? "" : filtro} onChange={v => { setEstadoFiltro(null); setFiltro(v); }}
+            options={[["ativos","Só ativos"],["tudo","Tudo"]]}/>
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",margin:"8px 0"}}>
+          {["por_reclamar","pedido"].map(k => (
+            <button key={k} onClick={() => setEstadoFiltro(estadoFiltro === k ? null : k)} style={{fontSize:"10px",padding:"3px 10px",
+              borderRadius:"20px",cursor:"pointer",fontFamily:"'Inter',sans-serif",background:"transparent",color:AV.text,
+              border:`1px solid ${estadoFiltro === k ? REC_COR[k] : AV.border}`}}>
+              <span style={{color:REC_COR[k]}}>●</span> {REC_CURTO[k]} · {conta(k)}</button>))}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"10px"}}>
+          <Linha k="recebido" label="Recebido"/><Linha k="recusado" label="Recusado"/><Linha k="dispensado" label="Dispensado"/>
+        </div>
+        {estadoFiltro && <div style={{fontSize:"10px",color:AV.muted,marginBottom:"8px"}}>A mostrar {REC_CURTO[estadoFiltro]} ·{" "}
+          <a href="#" onClick={e => { e.preventDefault(); setEstadoFiltro(null); }} style={{color:AV.blue}}>limpar filtro</a></div>}
+        <div style={avGrid(240)}>
+          {visiveis.map(l => (
+            <div key={l.id} style={{background:AV.bg,border:`1px solid ${AV.border}`,borderLeft:`3px solid ${REC_COR[l.est]}`,borderRadius:"8px",padding:"10px 12px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                <span style={{fontSize:"20px"}}>{flagEmoji(l.pais)}</span>
+                <div><div style={{fontSize:"12px",fontWeight:"600",color:AV.strong}}>{l.paisNome}</div>
+                  <div style={{fontSize:"10px",color:AV.muted}}>{l.ano} · {l.empresas} {l.empresas === 1 ? "empresa" : "empresas"}</div></div>
+                <div style={{flex:1}}/>
+                <span style={{fontSize:"10px",color:REC_COR[l.est]}}>● {REC_CURTO[l.est]}</span>
+              </div>
+              <div style={{fontSize:"9px",color:AV.muted,letterSpacing:"0.8px",textTransform:"uppercase",marginTop:"8px"}}>A recuperar</div>
+              <div style={{fontSize:"18px",fontWeight:"700",color:AV.blue}}>{avEur(l.recuperarEur)}</div>
+              <table style={{width:"100%",fontSize:"10.5px",margin:"6px 0",borderCollapse:"collapse"}}><tbody>
+                {[["Dividendos", l.brutoEur], ["Retido", l.retidoEur], [`Limite · ${l.limitePct}%`, l.limiteEur]].map(([k, v]) => (
+                  <tr key={k}><td style={{color:AV.muted,padding:"3px 0",borderBottom:`1px solid ${AV.border}55`}}>{k}</td>
+                    <td style={{textAlign:"right",padding:"3px 0",borderBottom:`1px solid ${AV.border}55`}}>{avEur(v)}</td></tr>))}
+              </tbody></table>
+              <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                <button className="cb" onClick={() => { setAberto(l); setEscolha(l.est); }} style={{fontSize:"11px",fontWeight:"600",
+                  padding:"6px 14px",borderRadius:"6px",border:"1px solid #2962ff",background:"#2962ff22",color:AV.strong,
+                  fontFamily:"'Inter',sans-serif",cursor:"pointer"}}>Reclamar</button>
+                <span style={{fontSize:"10px",color:l.prazoPassado ? AV.red : AV.muted}}>
+                  {l.prazoPassado ? "prazo terminou a " : "até "}{avDate(l.prazo)}</span>
+              </div>
+            </div>))}
+        </div>
+        {!visiveis.length && <div style={{fontSize:"10px",color:AV.muted}}>Nada neste filtro.</div>}
+        {msg && <div style={{fontSize:"10px",color:AV.green,marginTop:"8px"}}>{msg}</div>}
+        <div style={{marginTop:"10px"}}><AvNote>Calculado por pagamento: retido − {"limite da convenção"} × bruto, só nos dividendos com retenção.
+          Ficam de fora {Object.entries(data.excluidos || {}).map(([c, m]) => `${COUNTRY_PT[c] || c} (${m})`).join("; ")}. {data.requisito}
+          Valores estimados ao câmbio da corretora; prazos e formulários a confirmar no site oficial.</AvNote></div>
+      </>}
+
+      {aberto && (
+        <div onClick={() => setAberto(null)} style={{position:"fixed",inset:0,background:"#000a",zIndex:500,display:"flex",
+          alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div onClick={e => e.stopPropagation()} style={{background:AV.panel,border:`1px solid ${AV.border}`,borderRadius:"12px",
+            width:"100%",maxWidth:"420px",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 12px 40px #000c"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",borderBottom:`1px solid ${AV.border}`}}>
+              <span style={{fontSize:"24px"}}>{flagEmoji(aberto.pais)}</span>
+              <div style={{fontSize:"14px",fontWeight:"700",color:AV.strong}}>{aberto.paisNome}<br/>{aberto.ano}</div>
+              <div style={{flex:1}}/>
+              <div style={{textAlign:"right"}}><div style={{fontSize:"9px",color:AV.muted,letterSpacing:"0.8px"}}>A RECUPERAR</div>
+                <div style={{fontSize:"13px",color:AV.text}}>{avEur(aberto.recuperarEur)}</div></div>
+            </div>
+            <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:"8px"}}>
+              <div style={{fontSize:"11px",color:AV.text,marginBottom:"2px"}}>Em que ponto está este pedido?</div>
+              {REC_ESTADOS.map(([k, label, cor], i) => (
+                <React.Fragment key={k}>
+                  {k === "dispensado" && <div style={{borderTop:`1px solid ${AV.border}`,margin:"4px 0"}}/>}
+                  <label style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",borderRadius:"8px",cursor:"pointer",
+                    border:`1px solid ${escolha === k ? "#2962ff" : AV.border}`,background:escolha === k ? "#2962ff1a" : "transparent",
+                    fontSize:"12px",color:AV.strong}}>
+                    <input type="radio" name="rec-estado" checked={escolha === k} onChange={() => setEscolha(k)} style={{accentColor:"#2962ff"}}/>
+                    <span style={{color:cor}}>●</span>{label}
+                  </label>
+                </React.Fragment>))}
+              <div style={{borderTop:`1px solid ${AV.border}`,margin:"6px 0 2px"}}/>
+              <div style={{fontSize:"11px",color:AV.text,lineHeight:1.5}}>
+                O reembolso pede-se à autoridade fiscal do país da empresa
+                {aberto.formulario ? <>: <b>{aberto.formulario}</b>.</> : "."}</div>
+              {data.requisito && <div style={{fontSize:"10px",color:AV.muted,lineHeight:1.5}}>{data.requisito}</div>}
+              {aberto.url && <a href={aberto.url} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",
+                padding:"10px",borderRadius:"8px",background:"#2962ff",color:"#fff",fontWeight:"600",fontSize:"12px",
+                textDecoration:"none"}}>Abrir site oficial ↗</a>}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",gap:"10px",padding:"12px 16px",borderTop:`1px solid ${AV.border}`}}>
+              <button className="cb" onClick={() => setAberto(null)} style={{fontSize:"12px",padding:"8px 16px",borderRadius:"8px",
+                border:`1px solid ${AV.border}`,background:AV.panel2,color:AV.text,fontFamily:"'Inter',sans-serif",cursor:"pointer"}}>Cancelar</button>
+              <button className="cb" onClick={guardar} style={{fontSize:"12px",fontWeight:"600",padding:"8px 18px",borderRadius:"8px",
+                border:"1px solid #2962ff",background:"#2962ff",color:"#fff",fontFamily:"'Inter',sans-serif",cursor:"pointer"}}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AvCard>
+  );
+}
+
+const COUNTRY_PT = { PT:"Portugal", US:"EUA", GB:"Reino Unido" };
+
 function FiscalViewInner() {
   const F = ANALYTICS.fiscal;
   const years = (F.byYear||[]).map(y => y.ano).sort((a,b)=>b-a);
@@ -459,6 +655,8 @@ function FiscalViewInner() {
         <div style={{marginTop:"8px"}}><AvNote>Declara também a conta na corretora estrangeira no {F.anexos?.contaEstrangeiro || "Anexo J · Quadro 11"}.
           Confirma os valores com o extrato oficial antes de submeter: o câmbio oficial pode mudar alguns cêntimos.</AvNote></div>
       </AvCard>
+
+      <RecoverySection data={F.retencaoARecuperar}/>
 
       <AvCard title="Histórico">
         <AvTable rows={F.byYear||[]} cols={[

@@ -165,6 +165,27 @@ class TestFiscal(unittest.TestCase):
         self.assertAlmostEqual(r.dividend_irs(100, 0, "GB")[0], 28.0)
         self.assertAlmostEqual(r.dividend_irs(100, 28, "PT")[0], 0.0)
 
+    def test_withholding_recovery(self):
+        evs = [
+            ev("DIVIDEND", "2026-03-01", "CA0000000001", 10, 11.73, grossEur=15.64, withholdingEur=3.91),
+            # dividendo suíço: parte tributada + parte isenta (não dilui a taxa)
+            ev("DIVIDEND", "2026-04-23", "CH0000000001", 1, 0.45, grossEur=0.652, withholdingEur=0.202),
+            ev("DIVIDEND", "2026-04-23", "CH0000000001", 1, 0.69, grossEur=0.69, withholdingEur=0.0),
+            ev("DIVIDEND", "2026-05-20", "IT0000000001", 1, 1.78, grossEur=2.41, withholdingEur=0.63),
+            ev("DIVIDEND", "2026-06-01", "US0000000001", 1, 8.5, grossEur=10.0, withholdingEur=1.5),   # excluído
+            ev("DIVIDEND", "2026-06-01", "PT0000000001", 1, 0.65, grossEur=1.0, withholdingEur=0.35),  # excluído
+        ]
+        r = fiscal_pt.withholding_recovery(evs, CFG, date(2026, 11, 15),
+                                           {"CA-2026": {"estado": "pedido", "atualizado": "2026-11-15"}})
+        by = {l["id"]: l for l in r["linhas"]}
+        self.assertEqual(set(by), {"CA-2026", "CH-2026", "IT-2026"})
+        self.assertAlmostEqual(by["CA-2026"]["recuperarEur"], 1.56, places=2)
+        self.assertEqual(by["CA-2026"]["prazo"], "2028-12-31")
+        self.assertEqual(by["CA-2026"]["estado"], "pedido")
+        self.assertAlmostEqual(by["CH-2026"]["recuperarEur"], 0.202 - 0.15 * 0.652, places=2)
+        self.assertEqual(by["IT-2026"]["prazo"], "2030-05-20")  # 48 meses após o pagamento
+        self.assertEqual(by["IT-2026"]["estado"], "por_reclamar")
+
     def test_oversell_warning(self):
         evs = [ev("SELL", "2024-09-02", "A", 1, 10.0)]
         f = fiscal_pt.compute(evs, PriceBook({}, evs), date(2024, 12, 31), CFG)
