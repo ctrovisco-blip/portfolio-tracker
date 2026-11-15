@@ -2,6 +2,10 @@ name: Rebuild index.html
 
 on:
   push:
+    # Só no main: em branches de PR, o commit do index.html regenerado
+    # entrava em conflito com as atualizações de dados do main.
+    branches:
+      - main
     paths:
       - 'portfolio-template.html'
       - 'analytics_views.jsx'
