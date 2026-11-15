@@ -88,8 +88,10 @@ def classify_action(action: str) -> str:
         return "INTEREST"
     if "cashback" in a:
         return "CASHBACK"
-    if a.startswith("card debit") or a.startswith("card"):
-        return "WITHDRAWAL"
+    if a.startswith("card credit"):
+        return "DEPOSIT"  # reembolso no cartão: o dinheiro volta à conta
+    if a.startswith("card"):
+        return "WITHDRAWAL"  # gasto com o cartão: sai da conta
     if "currency conversion" in a:
         return "FX"
     if "fee" in a:
@@ -114,7 +116,8 @@ def parse_t212_csv(text: str, source: str = "t212-csv") -> list[dict]:
     for row in rdr:
         action = row.get("Action", "")
         typ = classify_action(action)
-        time_ = (row.get("Time") or "").strip().replace(" ", "T")
+        # A T212 já exportou a coluna como "Time" e como "Time (UTC)"
+        time_ = (row.get("Time (UTC)") or row.get("Time") or "").strip().replace(" ", "T")
         if not time_:
             continue
         qty = _f(row.get("No. of shares"))
@@ -233,7 +236,8 @@ def parse_t212_api(orders=None, dividends=None, transactions=None) -> list[dict]
             "nativeCcy": _norm_ccy(d.get("tickerCurrency") or inst.get("currency")),
             "source": "t212-api",
         })
-    tmap = {"DEPOSIT": "DEPOSIT", "WITHDRAW": "WITHDRAWAL", "FEE": "FEE", "TRANSFER": "OTHER"}
+    tmap = {"DEPOSIT": "DEPOSIT", "WITHDRAW": "WITHDRAWAL", "FEE": "FEE", "TRANSFER": "OTHER",
+            "INTEREST_ON_FREE_CASH": "INTEREST", "LENDING_INTEREST": "INTEREST", "INTEREST": "INTEREST"}
     for t in transactions or []:
         typ = tmap.get((t.get("type") or "").upper(), "OTHER")
         amt = _f(t.get("amount")) or 0

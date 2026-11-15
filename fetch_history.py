@@ -140,10 +140,12 @@ def main():
     print(f"Ledger atual: {len(existing)} eventos · CSV manuais: {len(manual)}")
 
     now = datetime.now(timezone.utc)
-    if existing:
-        last = max(e["time"] for e in existing if e.get("source") != "manual-csv") if any(
-            e.get("source") != "manual-csv" for e in existing) else None
-        since = (datetime.fromisoformat(last[:19]).replace(tzinfo=timezone.utc) - timedelta(days=10)) if last else None
+    # Incremental só quando o ledger já vem do extrato CSV; se veio da API JSON
+    # (fallback), pede-se o histórico completo para o substituir pelo extrato.
+    csv_events = [e for e in existing if e.get("source") == "t212-csv"]
+    if csv_events:
+        last = max(e["time"] for e in csv_events)
+        since = datetime.fromisoformat(last[:19]).replace(tzinfo=timezone.utc) - timedelta(days=10)
     else:
         since = None
     if since is None:
@@ -173,6 +175,15 @@ def main():
             used = "api"
         except Exception as e:
             print(f"  API JSON falhou: {e}")
+
+    if used == "csv" and fetched:
+        # O extrato substitui os eventos da API JSON na janela que cobre
+        # (os IDs das duas fontes são diferentes e duplicariam os eventos).
+        since_d = since.date().isoformat()
+        before = len(existing)
+        existing = [e for e in existing if not (e.get("source") == "t212-api" and e["date"] >= since_d)]
+        if before != len(existing):
+            print(f"  {before - len(existing)} eventos da API substituídos pelo extrato CSV")
 
     merged = ledger.merge_events(existing, fetched, manual)
     ledger.save_transactions(merged, TX_PATH, meta={
