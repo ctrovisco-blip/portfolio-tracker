@@ -246,6 +246,8 @@ def compute(events, book, today: date, cfg=None, sectors=None):
             orders_by_year[y] += 1
         elif e["type"] == "FEE":
             fees_by_year[y] += e.get("totalEur") or 0
+        elif e["type"] == "FX":
+            fees_by_year[y] += e.get("feesEur") or 0  # taxa da conversão de moeda
 
     by_year = []
     for y in years:

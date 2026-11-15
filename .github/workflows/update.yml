@@ -31,6 +31,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          # O main mais recente, não o commit de quando a execução foi lançada:
+          # uma execução que esperou na fila (concurrency) partia de dados velhos
+          # e falhava no push com conflitos nos ficheiros gerados.
+          ref: main
           fetch-depth: 0
 
       - name: Set up Python

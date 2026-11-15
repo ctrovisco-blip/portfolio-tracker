@@ -175,9 +175,11 @@ def parse_t212_csv(text: str, source: str = "t212-csv") -> list[dict]:
             if qty and price:
                 ev["grossNative"] = abs(qty) * price
                 ev["nativeCcy"] = price_ccy
-        if total_ccy != "EUR" and ev["totalEur"] is not None and typ in TRADE_TYPES and fx:
-            # Conta noutra moeda — não deve acontecer numa conta em EUR.
-            ev["warning"] = f"total em {total_ccy}"
+        if total_ccy and total_ccy != "EUR":
+            # Movimento liquidado noutra moeda (ex.: saldo em USD da conta): os
+            # campos *Eur desta linha estão nessa moeda e são convertidos para EUR
+            # ao câmbio do dia por prices.convert_foreign_totals().
+            ev["fxPending"] = total_ccy
         if not ev["id"]:
             ev["id"] = _event_id(action, time_, ev["isin"], qty, total)
         out.append(ev)
