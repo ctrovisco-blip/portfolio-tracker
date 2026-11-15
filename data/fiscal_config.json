@@ -72,7 +72,7 @@
     "contaEstrangeiro": "Anexo J · Quadro 11 (IBAN/número da conta na corretora estrangeira)"
   },
   "recuperacaoRetencao": {
-    "_nota": "Retenção na fonte paga a mais lá fora (acima do limite da convenção com Portugal), que se pede de volta à autoridade fiscal do país da empresa. Prazos e formulários a confirmar no site oficial de cada país; as ligações abrem a página principal da autoridade fiscal.",
+    "_nota": "Retenção na fonte paga a mais lá fora (acima do limite da convenção com Portugal), que se pede de volta à autoridade fiscal do país da empresa. 'url' é o formulário (ou a página onde se faz o pedido) e 'urlInfo' as instruções oficiais; 'verificado': false quando só se conhece a página principal da autoridade fiscal. Ligações confirmadas em 2026-11.",
     "excluir": {
       "PT": "a retenção portuguesa acerta-se na declaração de IRS",
       "US": "o reembolso exige declaração americana (1040-NR); com o W-8BEN a retenção já fica nos 15%",
@@ -86,64 +86,80 @@
         "prazo": {
           "fimDoAnoMais": 2
         },
-        "formulario": "Form NR7-R (Canada Revenue Agency)",
-        "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/nr7-r.html"
+        "formulario": "Form NR7-R, Application for Refund of Part XIII Tax Withheld (Canada Revenue Agency)",
+        "url": "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/nr7-r/nr7-r-fill-18e.pdf",
+        "urlInfo": "https://www.canada.ca/en/revenue-agency/services/forms-publications/forms/nr7-r.html",
+        "verificado": true
       },
       "DE": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 4
         },
-        "formulario": "Pedido de reembolso ao Bundeszentralamt für Steuern (BZSt)",
-        "url": "https://www.bzst.de"
+        "formulario": "Pedido de reembolso da Kapitalertragsteuer (§ 50c EStG) no portal online do BZSt",
+        "url": "https://online.portal.bzst.de/SharedDocs/Leistungsbeschreibung/DE/erstattung_abzugsteuer_kapitalertraege_50c_estg.html",
+        "urlInfo": "https://www.bzst.de/SharedDocs/Downloads/DE/Kapitalertragsteuerentlastung/hinweise_erstattungsantrag_010005.pdf?__blob=publicationFile&v=2",
+        "verificado": true
       },
       "CH": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 3
         },
-        "formulario": "Formulário 86 (Administração Fiscal Federal, ESTV)",
-        "url": "https://www.estv.admin.ch"
+        "formulario": "Formulário 94 – Portugal, reembolso do imposto antecipado suíço (ESTV)",
+        "url": "https://www.estv.admin.ch/fr/portugal-fr",
+        "urlInfo": "https://www.estv.admin.ch/estv/fr/accueil/impot-anticipe/remboursement/remboursement-impot-anticipe-a-etranger.html",
+        "verificado": true
       },
       "IT": {
         "limitePct": 15,
         "prazo": {
           "mesesAposPagamento": 48
         },
-        "formulario": "Pedido de reembolso à Agenzia delle Entrate",
-        "url": "https://www.agenziaentrate.gov.it"
+        "formulario": "Modello A, rimborso su dividendi (Provvedimento de 10/07/2013), enviado ao Centro Operativo di Pescara da Agenzia delle Entrate",
+        "url": "https://www.agenziaentrate.gov.it/portale/documents/20143/345018/Provvedimento+10+luglio+2013+convenzione+modelli_TOTALE_Provvedimento+approvazione+modelli+del+Direttore_allegati_1_10_07_2013.pdf/c0ab2951-aa88-cbb6-9d5f-2d47e6793e9f",
+        "urlInfo": "https://www.agenziaentrate.gov.it/portale/schede/rimborsi/convenzioni-contro-le-doppie-imposizioni/soggetti-non-residenti-in-italia",
+        "verificado": true
       },
       "ES": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 4
         },
-        "formulario": "Modelo 210 (Agencia Tributaria)",
-        "url": "https://sede.agenciatributaria.gob.es"
+        "formulario": "Modelo 210, solicitud de devolución de retenciones (Agencia Tributaria)",
+        "url": "https://sede.agenciatributaria.gob.es/Sede/no-residentes/irnr-sin-establecimiento-permanente/retenciones-irnr-sin-establecimiento-permanente/solicitud-devolucion-retenciones.html",
+        "urlInfo": "https://sede.agenciatributaria.gob.es/Sede/todas-gestiones/impuestos-tasas/impuesto-sobre-renta-no-residentes/modelo-210-irnr______a-no-residentes-permanente_/instrucciones.html",
+        "verificado": true
       },
       "FR": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 2
         },
-        "formulario": "Formulários 5000 e 5001 (DGFiP)",
-        "url": "https://www.impots.gouv.fr"
+        "formulario": "Formulário 5001 (reembolso) com o 5000 (atestado de residência), enviados ao PRRAS da DGFiP",
+        "url": "https://www.impots.gouv.fr/sites/default/files/formulaires/5001-sd/2024/5001-sd_4528.pdf",
+        "urlInfo": "https://www.impots.gouv.fr/formulaire/5000-sd/attestation-de-residence-destinee-ladministration-etrangere",
+        "verificado": true
       },
       "IE": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 4
         },
-        "formulario": "Formulário V2 (Revenue)",
-        "url": "https://www.revenue.ie"
+        "formulario": "Claim for refund of Dividend Withholding Tax (Revenue, DWT Unit)",
+        "url": "https://www.revenue.ie/en/companies-and-charities/documents/dwt/dwt-claim-for-refund.pdf",
+        "urlInfo": "https://www.revenue.ie/en/companies-and-charities/dividend-withholding-tax/exemptions-for-non-residents.aspx",
+        "verificado": true
       },
       "NL": {
         "limitePct": 15,
         "prazo": {
-          "fimDoAnoMais": 3
+          "fimDoAnoMais": 5
         },
-        "formulario": "Pedido de teruggaaf dividendbelasting (Belastingdienst)",
-        "url": "https://www.belastingdienst.nl"
+        "formulario": "Teruggaaf dividendbelasting (Belastingdienst; formulário IB 92 por país)",
+        "url": "https://www.belastingdienst.nl/wps/wcm/connect/bldcontenten/belastingdienst/business/profit/dividend-tax/recipient-of-dividend-outside-the-netherlands-dividend-tax-refund/recipient-of-portfolio-dividend-outside-the-netherlands-dividend-tax-refund/recipient-of-dividend-outside-the-netherlands-dividend-tax-refund-procedure",
+        "urlInfo": "https://download.belastingdienst.nl/belastingdienst/docs/gedeeltelijke_vrijstelling_of_teruggaaf_dividendbelasting_ib09226plnan.pdf",
+        "verificado": true
       },
       "BE": {
         "limitePct": 15,
@@ -151,15 +167,19 @@
           "fimDoAnoMais": 5
         },
         "formulario": "Formulário 276 Div (SPF Finances)",
-        "url": "https://finances.belgium.be"
+        "url": "https://finances.belgium.be",
+        "verificado": false,
+        "urlInfo": null
       },
       "AT": {
         "limitePct": 15,
         "prazo": {
           "fimDoAnoMais": 5
         },
-        "formulario": "Formulário ZS-RD1 (BMF)",
-        "url": "https://www.bmf.gv.at"
+        "formulario": "Pré-aviso eletrónico e pedido de reembolso da KESt (§ 240a BAO); o ZS-RD1 deixou de valer em 2019",
+        "url": "https://www.bmf.gv.at/themen/steuern/internationales-steuerrecht/rueckerstattung/rueckerstattung-oesterreichischer-abzugsteuer.html",
+        "urlInfo": null,
+        "verificado": true
       },
       "DK": {
         "limitePct": 15,
@@ -167,7 +187,9 @@
           "fimDoAnoMais": 3
         },
         "formulario": "Pedido de reembolso à Skattestyrelsen",
-        "url": "https://skat.dk"
+        "url": "https://skat.dk",
+        "verificado": false,
+        "urlInfo": null
       },
       "FI": {
         "limitePct": 15,
@@ -175,7 +197,9 @@
           "fimDoAnoMais": 3
         },
         "formulario": "Formulário 6163e (Vero)",
-        "url": "https://www.vero.fi"
+        "url": "https://www.vero.fi",
+        "verificado": false,
+        "urlInfo": null
       },
       "NO": {
         "limitePct": 15,
@@ -183,7 +207,9 @@
           "fimDoAnoMais": 3
         },
         "formulario": "Pedido de reembolso à Skatteetaten",
-        "url": "https://www.skatteetaten.no"
+        "url": "https://www.skatteetaten.no",
+        "verificado": false,
+        "urlInfo": null
       },
       "SE": {
         "limitePct": 15,
@@ -191,7 +217,9 @@
           "fimDoAnoMais": 5
         },
         "formulario": "Formulário SKV 3770 (Skatteverket)",
-        "url": "https://www.skatteverket.se"
+        "url": "https://www.skatteverket.se",
+        "verificado": false,
+        "urlInfo": null
       }
     },
     "padrao": {
@@ -200,7 +228,9 @@
         "fimDoAnoMais": 3
       },
       "formulario": "Pedido de reembolso à autoridade fiscal do país",
-      "url": null
+      "url": null,
+      "verificado": false,
+      "urlInfo": null
     }
   }
 }

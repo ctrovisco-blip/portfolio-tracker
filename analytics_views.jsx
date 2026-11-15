@@ -529,7 +529,13 @@ function RecoverySection({ data }) {
               {data.requisito && <div style={{fontSize:"10px",color:AV.muted,lineHeight:1.5}}>{data.requisito}</div>}
               {aberto.url && <a href={aberto.url} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",
                 padding:"10px",borderRadius:"8px",background:"#2962ff",color:"#fff",fontWeight:"600",fontSize:"12px",
-                textDecoration:"none"}}>Abrir site oficial ↗</a>}
+                textDecoration:"none"}}>{aberto.linkVerificado ? "Abrir formulário oficial ↗" : "Abrir site da autoridade fiscal ↗"}</a>}
+              {aberto.urlInfo && <a href={aberto.urlInfo} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",
+                padding:"8px",borderRadius:"8px",border:"1px solid #2962ff",color:"#5b8af5",fontWeight:"600",fontSize:"11px",
+                textDecoration:"none"}}>Instruções oficiais ↗</a>}
+              {aberto.url && !aberto.linkVerificado && <div style={{fontSize:"10px",color:AV.amber,lineHeight:1.5}}>
+                Para este país só temos a página principal da autoridade fiscal: procura lá o pedido de reembolso
+                de imposto retido sobre dividendos de não residentes.</div>}
             </div>
             <div style={{display:"flex",justifyContent:"space-between",gap:"10px",padding:"12px 16px",borderTop:`1px solid ${AV.border}`}}>
               <button className="cb" onClick={() => setAberto(null)} style={{fontSize:"12px",padding:"8px 16px",borderRadius:"8px",

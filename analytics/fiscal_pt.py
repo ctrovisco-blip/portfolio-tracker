@@ -276,7 +276,8 @@ def withholding_recovery(events, cfg, today: date, estados=None):
             "recuperarEur": r2(gr["recuperarEur"]),
             "prazo": prazo.isoformat(), "prazoPassado": prazo < today,
             "diasAtePrazo": (prazo - today).days,
-            "formulario": p.get("formulario"), "url": p.get("url"),
+            "formulario": p.get("formulario"), "url": p.get("url"), "urlInfo": p.get("urlInfo"),
+            "linkVerificado": bool(p.get("verificado", False)),
             "estado": est.get("estado", "por_reclamar"), "estadoAtualizado": est.get("atualizado"),
         })
     linhas.sort(key=lambda l: (-l["ano"], -(l["recuperarEur"] or 0)))
