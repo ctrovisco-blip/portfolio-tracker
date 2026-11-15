@@ -71,7 +71,9 @@ def build(today=None, write=True):
     dividends.enrich_gross(events, book)
 
     cfg = fiscal_pt.load_config()
-    fiscal = fiscal_pt.compute(events, book, today, cfg, sectors)
+    # Estados dos pedidos de reembolso de retenção (guardados pelo dashboard)
+    estados = (jload("data/cdti_status.json", {}) or {}).get("estados", {})
+    fiscal = fiscal_pt.compute(events, book, today, cfg, sectors, estados)
     open_cost = fiscal.pop("_openCost")
     fiscal.pop("_simulate")
 
