@@ -63,10 +63,11 @@ def chart(symbol, start: datetime, end: datetime):
 
 
 def search_isin(isin, price_ccy):
+    """Símbolos Yahoo com este ISIN, do mais provável para o menos provável."""
     url = f"https://query2.finance.yahoo.com/v1/finance/search?q={isin}&quotesCount=10&newsCount=0"
     quotes = [q for q in get_json(url).get("quotes", []) if q.get("symbol")]
     if not quotes:
-        return None
+        return []
 
     def score(q):
         s = q["symbol"]
@@ -79,7 +80,7 @@ def search_isin(isin, price_ccy):
         if price_ccy == "CAD":
             return 0 if s.endswith(".TO") else 3
         return 1
-    return sorted(quotes, key=score)[0]["symbol"]
+    return [q["symbol"] for q in sorted(quotes, key=score)]
 
 
 def seed_symbols():
@@ -125,29 +126,49 @@ def main():
 
     for key, inst in sorted(insts.items()):
         isin = inst.get("isin")
-        sym = symmap.get(isin or key)
-        if sym is None and (isin or key) in symmap:
+        mapped = symmap.get(isin or key)
+        if mapped is None and (isin or key) in symmap:
             continue  # ignorado explicitamente
-        if not sym and isin:
+        start = datetime.fromisoformat(inst["firstDate"]).replace(tzinfo=timezone.utc) - timedelta(days=7)
+        div_start = now - timedelta(days=365 * 11) if key in open_keys else start
+        s0 = start.date().isoformat()
+
+        # Candidatos: o símbolo guardado e, se falhar ou vier sem cotações,
+        # as outras cotações do mesmo ISIN que o Yahoo conhece.
+        candidates = [mapped] if mapped else []
+        searched = False
+        sym = ccy = closes = divs = None
+        i = 0
+        while True:
+            if i >= len(candidates):
+                if searched or not isin:
+                    break
+                searched = True
+                try:
+                    candidates += [c for c in search_isin(isin, inst.get("priceCcy")) if c not in candidates]
+                    time.sleep(0.4)
+                except Exception as e:
+                    print(f"  pesquisa {isin}: {e}")
+                continue
+            cand = candidates[i]
+            i += 1
             try:
-                sym = search_isin(isin, inst.get("priceCcy"))
-                time.sleep(0.4)
+                c_ccy, c_closes, _, c_divs = chart(cand, min(start, div_start), now)
             except Exception as e:
-                print(f"  pesquisa {isin}: {e}")
-            if sym:
-                symmap[isin] = sym
+                print(f"  {cand}: {e}")
+                continue
+            c_closes = {d: v for d, v in c_closes.items() if d >= s0}
+            if c_closes and c_ccy:
+                sym, ccy, closes, divs = cand, c_ccy, c_closes, c_divs
+                break
+            print(f"  {cand}: sem cotações — a tentar outro símbolo")
         if not sym:
             print(f"  SEM SÍMBOLO {inst.get('ticker')} {isin} — usa o preço das transações")
             continue
-        start = datetime.fromisoformat(inst["firstDate"]).replace(tzinfo=timezone.utc) - timedelta(days=7)
-        div_start = now - timedelta(days=365 * 11) if key in open_keys else start
-        try:
-            ccy, closes, _, divs = chart(sym, min(start, div_start), now)
-        except Exception as e:
-            print(f"  ERRO {sym}: {e}")
-            continue
-        s0 = start.date().isoformat()
-        closes = {d: v for d, v in closes.items() if d >= s0}
+        if isin and sym != mapped:
+            if mapped:
+                print(f"  {inst.get('ticker')}: {mapped} → {sym}")
+            symmap[isin] = sym
         out["instruments"][key] = {"symbol": sym, "ccy": ccy, "closes": closes, "divs": divs}
         if ccy:
             ccys.add({"GBp": "GBP", "GBX": "GBP", "ILA": "ILS", "ZAc": "ZAR"}.get(ccy, ccy))

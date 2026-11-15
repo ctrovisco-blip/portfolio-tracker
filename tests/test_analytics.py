@@ -76,6 +76,23 @@ class TestLedgerCsv(unittest.TestCase):
         self.assertEqual(len(merged), len(self.evs))
         self.assertTrue(all(e["source"] != "t212-api" for e in merged))
 
+    def test_time_utc_header_and_card_actions(self):
+        csv2 = (CSV.replace("Action,Time,", "Action,Time (UTC),", 1)
+                + "Spending cashback,2024-05-02 10:00:00,,,,,C1,,,,,,,0.09,EUR,,,,,,\n"
+                + "Card debit,2024-05-03 10:00:00,,,,,C2,,,,,,,12.00,EUR,,,,,,\n"
+                + "Card credit,2024-05-04 10:00:00,,,,,C3,,,,,,,5.00,EUR,,,,,,\n"
+                + "Dividend (Dividend manufactured payment),2024-05-05 10:00:00,US0000000001,AAA,Alpha Inc,,,6,0.5,USD,1.08,,,2.36,EUR,0.45,USD,,,,\n")
+        evs = ledger.parse_t212_csv(csv2)
+        types = [e["type"] for e in evs]
+        self.assertEqual(len(evs), len(self.evs) + 4)
+        self.assertEqual(types[-4:], ["CASHBACK", "WITHDRAWAL", "DEPOSIT", "DIVIDEND"])
+
+    def test_api_interest_types(self):
+        evs = ledger.parse_t212_api(transactions=[
+            {"type": "INTEREST_ON_FREE_CASH", "amount": 0.01, "dateTime": "2024-10-14T00:00:00Z", "reference": "r1"},
+            {"type": "LENDING_INTEREST", "amount": 0.2, "dateTime": "2024-10-15T00:00:00Z", "reference": "r2"}])
+        self.assertEqual([e["type"] for e in evs], ["INTEREST", "INTEREST"])
+
     def test_quantities(self):
         q = ledger.quantities_at_end(self.evs)
         self.assertAlmostEqual(q["US0000000001"], 6)
