@@ -15,12 +15,15 @@ O ficheiro é cumulativo: os eventos novos juntam-se aos que já existem
 Env: T212_API_KEY, T212_SECRET_KEY · HISTORY_MODE=auto|csv|api (default auto)
 """
 import base64
+import csv
+import io
 import json
 import os
 import sys
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -97,9 +100,18 @@ def fetch_csv(since: datetime, until: datetime):
         if not link:
             raise RuntimeError(f"export {rid} não ficou pronto a tempo")
         with urllib.request.urlopen(link, timeout=60) as r:
-            text = r.read().decode("utf-8-sig")
+            raw = r.read()
+        text = raw.decode("utf-8-sig", errors="replace")
         evs = ledger.parse_t212_csv(text, source="t212-csv")
-        print(f"    {len(evs)} linhas")
+        # Diagnóstico sem dados pessoais: tamanho, cabeçalho e tipos de linha
+        lines = text.splitlines()
+        actions = Counter(row.get("Action", "?") for row in csv.DictReader(io.StringIO(text)))
+        print(f"    {len(raw)} bytes · {max(len(lines) - 1, 0)} linhas no CSV · {len(evs)} eventos reconhecidos")
+        print(f"    cabeçalho: {lines[0][:300] if lines else '(vazio)'}")
+        if actions:
+            print(f"    ações: {dict(actions)}")
+        if lines and not evs and len(lines) > 1:
+            print("::warning::o CSV tem linhas mas nenhuma foi reconhecida — verificar o formato das colunas")
         events.extend(evs)
         start = end
         if start < until:
@@ -149,6 +161,10 @@ def main():
         try:
             fetched = fetch_csv(since, now)
             used = "csv"
+            if not fetched and not existing:
+                # Um primeiro export sem nenhum evento não é credível: usa a API JSON
+                print("  Export CSV sem eventos — a tentar a API JSON")
+                used = None
         except Exception as e:
             print(f"  Export CSV falhou: {e}")
     if API_KEY and not used and MODE in ("auto", "api"):
@@ -173,7 +189,9 @@ def main():
             print(f"  Caixa: {e}")
 
     if not merged:
-        print("::warning::ledger vazio — sem chaves T212 nem CSVs em data/statements/")
+        motivo = ("as chaves T212 não estão definidas" if not API_KEY
+                  else "o export CSV e a API não devolveram eventos (ver as linhas acima)")
+        print(f"::warning::ledger vazio — {motivo}. Também podes pôr extratos CSV em data/statements/")
 
 
 if __name__ == "__main__":
