@@ -1,0 +1,39 @@
+{
+  "_nota": "Parâmetros do motor fiscal (analytics/fiscal_pt.py). Estimativa informativa, não substitui a liquidação da AT. Revê os valores marcados como 'verificar' antes de os usares na declaração.",
+  "taxaAutonomaPct": 28,
+  "_taxaAutonoma": "Art. 72.º n.º 1 CIRS — al. c) saldo das mais-valias, al. d) rendimentos de capitais sem retenção em Portugal",
+  "regiao": "continente",
+  "_regiao": "Açores: taxas reduzidas em 30% (usar 'acores').",
+  "escaloesDetencao": {
+    "_base": "Art. 43.º n.º 5 CIRS (Lei 31/2024) — exclusão parcial do ganho por tempo de detenção, vendas desde a data abaixo",
+    "aplicaDesde": "2024-06-29",
+    "escalas": [
+      {"label": "< 2 anos", "anosMin": 0, "exclusaoPct": 0},
+      {"label": "2–5 anos", "anosMin": 2, "exclusaoPct": 10},
+      {"label": "5–8 anos", "anosMin": 5, "exclusaoPct": 20},
+      {"label": "≥ 8 anos", "anosMin": 8, "exclusaoPct": 30}
+    ]
+  },
+  "correcaoMonetaria": {
+    "_base": "Art. 50.º CIRS — só ações detidas há mais de 24 meses; coeficientes da portaria anual (ano de aquisição → coeficiente). Sem valor = 1,00. Preencher com a portaria do ano da venda.",
+    "mesesMinimos": 24,
+    "coeficientes": {}
+  },
+  "dividendos": {
+    "_base": "Crédito por dupla tributação internacional (art. 81.º CIRS): o imposto retido lá fora abate aos 28%, até ao limite da convenção. Taxas de convenção a verificar.",
+    "taxaConvencaoPct": {
+      "US": 15, "CA": 15, "DE": 15, "FR": 15, "NL": 10, "ES": 15, "IT": 15,
+      "CH": 15, "IE": 15, "GB": 10, "DK": 10, "SE": 10, "NO": 15, "FI": 15,
+      "BE": 15, "AT": 15, "LU": 15, "JP": 10, "CN": 10, "HK": 10, "KR": 15, "BR": 15
+    },
+    "semConvencaoLimitePct": 28,
+    "retencaoPortugalLiberatoria": true
+  },
+  "anexos": {
+    "maisValiasEstrangeiro": "Anexo J · Quadro 9.2A (código G01)",
+    "maisValiasPortugal": "Anexo G · Quadro 9",
+    "dividendosEstrangeiro": "Anexo J · Quadro 8A (código E11)",
+    "juros": "Anexo J · Quadro 8A (código E21)",
+    "contaEstrangeiro": "Anexo J · Quadro 11 (IBAN/número da conta na corretora estrangeira)"
+  }
+}

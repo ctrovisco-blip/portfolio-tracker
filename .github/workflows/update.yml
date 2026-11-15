@@ -83,6 +83,41 @@ jobs:
           github.event.schedule == '0 10 * * 6'
         run: python fetch_fundamentals.py
 
+      # ── Histórico completo + análises (Desempenho · Fiscal · Dividendos) ──
+      # O export CSV da T212 e os preços históricos são lentos e só mudam
+      # uma vez por dia: correm às 21:30, ao sábado e nas execuções manuais.
+      - name: Fetch transaction history (Trading212 statement)
+        id: history
+        continue-on-error: true
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          github.event.schedule == '30 21 * * 1-5' ||
+          github.event.schedule == '0 10 * * 6'
+        env:
+          T212_API_KEY:    ${{ secrets.T212_API_KEY }}
+          T212_SECRET_KEY: ${{ secrets.T212_SECRET_KEY }}
+        run: python fetch_history.py
+
+      - name: Fetch price history (Yahoo Finance)
+        id: prices
+        continue-on-error: true
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          github.event.schedule == '30 21 * * 1-5' ||
+          github.event.schedule == '0 10 * * 6'
+        run: python fetch_price_history.py
+
+      - name: Test analytics engines
+        id: tests
+        continue-on-error: true
+        run: python -m unittest discover -s tests
+
+      - name: Build analytics (IRR/TWR, fiscal PT, dividendos)
+        id: analytics
+        continue-on-error: true
+        if: steps.tests.outcome == 'success'
+        run: python build_analytics.py
+
       - name: Log fetch results
         run: |
           echo "discover=${{ steps.discover.outcome }}"
@@ -90,6 +125,10 @@ jobs:
           echo "fx=${{ steps.fx.outcome }}"
           echo "charts=${{ steps.charts.outcome }}"
           echo "fundamentals=${{ steps.fundamentals.outcome }}"
+          echo "history=${{ steps.history.outcome }}"
+          echo "prices=${{ steps.prices.outcome }}"
+          echo "tests=${{ steps.tests.outcome }}"
+          echo "analytics=${{ steps.analytics.outcome }}"
           # Falha o workflow se positions falhou — dados desatualizados são perigosos
           if [ "${{ steps.positions.outcome }}" = "failure" ]; then
             echo "::error::fetch_positions.py falhou — dados de posições podem estar desatualizados"
