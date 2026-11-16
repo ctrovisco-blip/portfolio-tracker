@@ -326,5 +326,13 @@
     "exchange": "",
     "cur": "$",
     "yf": "CLS"
+  },
+  "SPCX": {
+    "name": "Space Exploration Technologies Corp.",
+    "sector": "Defesa & Aeroespacial",
+    "flag": "🇺🇸",
+    "exchange": "",
+    "cur": "$",
+    "yf": "SPCX"
   }
 }

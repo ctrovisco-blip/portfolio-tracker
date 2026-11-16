@@ -40,5 +40,6 @@
   "SEC0d_EQ": "SEC0",
   "YNDX_US_EQ": "NBIS",
   "NVDA_US_EQ": "NVDA",
-  "CLS_US_EQ": "CLS"
+  "CLS_US_EQ": "CLS",
+  "SPCX_US_EQ": "SPCX"
 }
