@@ -5,11 +5,16 @@ Deve correr ANTES de fetch_positions.py no workflow.
 Para cada ticker T212 desconhecido:
 1. Chama a API de instrumentos do T212 → nome, moeda, exchange, ISIN
 2. Deriva display ticker (shortName do T212)
-3. Deriva símbolo Yahoo Finance (shortName + sufixo de exchange)
+3. Resolve o símbolo Yahoo Finance pelo ISIN (pesquisa Yahoo); se falhar,
+   usa shortName + sufixo de exchange (deduzido do sufixo do ticker T212)
 4. Valida com yfinance; obtém sector
 5. Actualiza data/t212_map.json e metadata.json
+
+Nota: o shortName da T212 para listagens Xetra (ex.: "MDO" = McDonald's) pode
+coincidir com um símbolo Yahoo de OUTRA empresa — por isso o ISIN tem prioridade
+e o shortName sem sufixo nunca é a primeira tentativa.
 """
-import json, os, time, base64, urllib.request
+import json, os, re, time, base64, urllib.request, urllib.parse
 
 API_KEY    = os.environ.get("T212_API_KEY", "")
 API_SECRET = os.environ.get("T212_SECRET_KEY", "")
@@ -110,7 +115,9 @@ SECTOR_MAP = {
     "Communication Services":   "Tech & AI",
     "Healthcare":               "Healthcare",
     "Consumer Staples":         "Consumer Staples",
+    "Consumer Defensive":       "Consumer Staples",   # nome usado pelo yfinance
     "Consumer Discretionary":   "Luxo & Automóvel",
+    "Consumer Cyclical":        "Luxo & Automóvel",   # nome usado pelo yfinance
     "Energy":                   "Energia",
     "Industrials":              "Defesa & Aeroespacial",
     "Real Estate":              "REIT",
@@ -149,6 +156,51 @@ def get_yf_info(sym):
     except:
         return None, None
 
+def exch_from_t212_ticker(t212_ticker):
+    """Deduz a exchange a partir do sufixo do ticker T212 (ex.: MDOd_EQ → Xetra).
+    A API de instrumentos da T212 deixou de devolver o campo 'exchanges'."""
+    if t212_ticker.endswith("_US_EQ"):
+        return "NYSE"
+    if t212_ticker.endswith("_PT_EQ"):
+        return "LISB"
+    m = re.match(r"^[A-Z0-9]+([a-z])_EQ$", t212_ticker)
+    if m:
+        return {"d": "XETR", "l": "LSE"}.get(m.group(1), "")
+    return ""
+
+def yahoo_search(query):
+    """Pesquisa Yahoo Finance (aceita ISIN). Devolve lista de quotes."""
+    url = ("https://query2.finance.yahoo.com/v1/finance/search?"
+           + urllib.parse.urlencode({"q": query, "quotesCount": 10, "newsCount": 0}))
+    req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"],
+                                               "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read()).get("quotes", [])
+    except Exception as e:
+        print(f"  Pesquisa Yahoo falhou para '{query}': {e}")
+        return []
+
+def pick_yf_symbol(quotes, isin, suffix, is_fund):
+    """Escolhe o símbolo Yahoo entre os resultados da pesquisa por ISIN.
+    - Acções de emitentes US/CA: listagem norte-americana (sem sufixo) — melhor
+      histórico e fundamentais, como nas restantes entradas Xetra da carteira.
+    - Caso contrário: a listagem da exchange detida (sufixo), se existir.
+    - Em último caso: o primeiro resultado."""
+    syms = [q["symbol"] for q in quotes
+            if q.get("symbol") and q.get("quoteType", "EQUITY") in ("EQUITY", "ETF")]
+    if not syms:
+        return None
+    if not is_fund and isin[:2] in ("US", "CA"):
+        for s in syms:
+            if "." not in s:
+                return s
+    if suffix:
+        for s in syms:
+            if s.endswith(suffix):
+                return s
+    return syms[0]
+
 # ── Processar cada ticker desconhecido ────────────────────────────────────────
 added = 0
 for t212_ticker in unknown:
@@ -165,7 +217,10 @@ for t212_ticker in unknown:
     currency_code = inst.get("currencyCode", "USD")
     exchanges     = inst.get("exchanges", [])
     exch_id       = exchanges[0].get("id", "") if exchanges else ""
+    if not exch_id:
+        exch_id = exch_from_t212_ticker(t212_ticker)
     inst_type     = inst.get("type", "STOCK")
+    is_fund       = inst_type in ("ETF", "ETC")
 
     if not short_name:
         short_name = t212_ticker.replace("_EQ", "").replace("_", "")
@@ -184,32 +239,37 @@ for t212_ticker in unknown:
         flag = ISIN_FLAG.get(isin[:2], "🌍")
 
     # ── Símbolo Yahoo Finance ──────────────────────────────────────────────
-    yf_sym = short_name + exch_yf_suffix
+    # 1) Pelo ISIN — identifica a empresa sem ambiguidade
+    yf_sym = None
+    if isin:
+        cand = pick_yf_symbol(yahoo_search(isin), isin, exch_yf_suffix, is_fund)
+        if cand and validate_yf(cand):
+            yf_sym = cand
+            print(f"  ISIN {isin} → Yahoo '{yf_sym}'")
+        elif cand:
+            print(f"  ISIN {isin} → '{cand}', mas sem cotação válida — a tentar fallback")
 
-    # Para acções Xetra (suffixo .DE): Yahoo Finance tem dados limitados;
-    # tentar primeiro sem sufixo (listagem US/principal)
-    if exch_yf_suffix == ".DE":
-        if validate_yf(short_name):
-            yf_sym = short_name
-            print(f"  Xetra: usando símbolo US '{short_name}' (Yahoo Finance tem melhor data)")
-        elif validate_yf(yf_sym):
-            print(f"  Xetra: usando '{yf_sym}'")
+    # 2) Fallback: shortName + sufixo da exchange; só depois o shortName simples.
+    #    (o shortName simples pode ser OUTRA empresa no Yahoo: "MDO" ≠ McDonald's)
+    if not yf_sym:
+        candidates = [short_name + exch_yf_suffix] if exch_yf_suffix else []
+        candidates.append(short_name)
+        for cand in candidates:
+            if validate_yf(cand):
+                yf_sym = cand
+                print(f"  Fallback: usando '{yf_sym}'")
+                break
         else:
-            print(f"  Atenção: não foi possível validar '{yf_sym}' — usando mesmo assim")
-    else:
-        if not validate_yf(yf_sym):
-            # Tentar sem sufixo como fallback
-            if exch_yf_suffix and validate_yf(short_name):
-                yf_sym = short_name
-            else:
-                print(f"  Atenção: não foi possível validar '{yf_sym}' no Yahoo Finance")
+            yf_sym = candidates[0]
+            print(f"  ⚠️  VERIFICAR MANUALMENTE: '{yf_sym}' não validado no Yahoo Finance "
+                  f"— corrigir o campo 'yf' de {display_ticker} em metadata.json")
 
     # ── Sector e nome completo via yfinance ───────────────────────────────
     yf_sector, yf_name = get_yf_info(yf_sym)
     if yf_name and len(yf_name) > len(full_name):
         full_name = yf_name  # usar nome mais completo do Yahoo
 
-    if inst_type in ("ETF", "ETC"):
+    if is_fund:
         sector = "ETF / ETC"
     else:
         sector = SECTOR_MAP.get(yf_sector, "Outro")
