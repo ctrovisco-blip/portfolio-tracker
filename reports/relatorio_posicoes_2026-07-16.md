@@ -1,6 +1,6 @@
 # Relatório de Avaliação do Portfolio — Trading212
 
-**Dados de:** 16 de Julho de 2026, 10:56 UTC · **Posições:** 14 · Valores em EUR
+**Dados de:** 16 de Julho de 2026, 11:56 (hora de Lisboa) · **Posições:** 14 · Valores em EUR
 
 ---
 
@@ -272,7 +272,7 @@ Dividendos anuais estimados: **€224,75** (yield de 1,5% sobre o valor actual).
 
 ## Metodologia e ressalvas
 
-- Fonte: API Trading212 (posições e ordens, actualizadas 16/07/2026 10:56 UTC), Yahoo/StockAnalysis para fundamentais e séries de preços (pipeline do repositório).
+- Fonte: API Trading212 (posições e ordens, actualizadas 16/07/2026 11:56 (hora de Lisboa)), Yahoo/StockAnalysis para fundamentais e séries de preços (pipeline do repositório).
 - **Custo-base** = valor actual − P/L da T212 (inclui efeito cambial); o valor bruto de compras por ordens está incompleto em ordens antigas e não foi usado.
 - **Dividendos** são estimativas a partir do yield actual × valor da posição — não são os dividendos efectivamente recebidos.
 - **Performance da carteira** (3m/YTD/1a) é a composição actual projectada no histórico de preços, não o retorno real da conta (TWR/MWR indisponível via API).

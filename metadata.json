@@ -35,8 +35,8 @@
     "name": "Nvidia",
     "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "cur": "€",
+    "exchange": "NASDAQ",
+    "cur": "$",
     "yf": "NVDA"
   },
   "MO": {
@@ -257,19 +257,19 @@
   },
   "MSF": {
     "name": "Microsoft",
-    "sector": "Outro",
+    "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "cur": "€",
-    "yf": "MSF"
+    "yf": "MSFT"
   },
   "MDO": {
     "name": "McDonald's",
-    "sector": "Outro",
+    "sector": "Consumer Staples",
     "flag": "🇺🇸",
-    "exchange": "",
+    "exchange": "Xetra",
     "cur": "€",
-    "yf": "MDO"
+    "yf": "MCD"
   },
   "CRDO": {
     "name": "Credo Technology Group Holding Ltd",

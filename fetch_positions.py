@@ -55,7 +55,11 @@ for p in portfolio:
         print(f"  UNKNOWN T212 ticker: {t212}")
         continue
     meta = METADATA.get(display, {})
+    if display in pos_map:
+        print(f"  ⚠️  {display} detido em DUAS listagens ({pos_map[display]['_t212']} e {t212}) "
+              f"— só a segunda é mostrada; criar um display ticker distinto no t212_map.json")
     pos_map[display] = {
+        "_t212":    t212,   # listagem T212 detida (removido antes de gravar)
         "ticker":   display,
         "name":     meta.get("name", display),
         "sector":   meta.get("sector", "Outro"),
@@ -93,12 +97,46 @@ if all_orders:
 else:
     print("  Sem ordens obtidas — orders.json não foi sobrescrito")
 
-# Build buy dates per ticker from filled buy orders
+# ── Moeda por LISTAGEM, confirmada pela T212 ────────────────────────────────
+# A T212 devolve averagePrice/currentPrice na moeda do instrumento detido.
+# O metadata.json é indexado pelo display ticker e pode corresponder a outra
+# listagem da mesma empresa (ex.: NVDA na Xetra em € vs NVDA_US_EQ em $).
+# Fonte: instrument.currency das ordens (API T212); fallback: sufixo do ticker.
+CUR_MAP = {"EUR": "€", "USD": "$", "GBX": "p", "GBP": "p", "CAD": "C$"}
+SUFFIX_LISTING = [  # (sufixo do ticker T212, moeda, bolsa)
+    ("_US_EQ", "$", "EUA"),
+    ("_PT_EQ", "€", "Euronext Lisboa"),
+    ("d_EQ",   "€", "Xetra"),
+    ("l_EQ",   "p", "LSE"),
+]
+orders_src = all_orders
+if not orders_src and os.path.exists("data/orders.json"):
+    with open("data/orders.json", encoding="utf-8") as f:
+        orders_src = json.load(f)
+listing_cur = {}
+for o in orders_src:
+    c = (o.get("instrument") or {}).get("currency")
+    if o.get("ticker") and c in CUR_MAP:
+        listing_cur[o["ticker"]] = CUR_MAP[c]
+
+for display, pos in pos_map.items():
+    t212 = pos["_t212"]
+    suffix = next(((c, e) for s, c, e in SUFFIX_LISTING if t212.endswith(s)), None)
+    cur = listing_cur.get(t212) or (suffix[0] if suffix else None)
+    if cur and cur != pos["cur"]:
+        print(f"  ⚠️  {display}: listagem detida {t212} cota em {cur}, mas metadata.json diz "
+              f"{pos['cur']} — a usar {cur} (actualizar 'cur'/'exchange' em metadata.json)")
+        pos["cur"] = cur
+        if suffix:
+            pos["exchange"] = suffix[1]
+
+# Build buy dates from filled buy orders — só da listagem actualmente detida
+# (compras numa listagem já vendida não pertencem a esta posição)
 buy_dates = {}  # display_ticker -> set of date strings
 for o in all_orders:
     t212 = o.get("ticker", "")
     display = T212_TO_DISPLAY.get(t212)
-    if not display or display not in pos_map:
+    if not display or display not in pos_map or pos_map[display]["_t212"] != t212:
         continue
     if o.get("status") != "FILLED" or o.get("side") != "BUY":
         continue
@@ -113,6 +151,7 @@ for display, pos in pos_map.items():
     if init:
         dates.add(init)
     pos["buyDates"] = sorted(dates)
+    pos.pop("_t212", None)
 
 # Preserve order from METADATA keys (consistent ordering)
 positions = [pos_map[t] for t in METADATA.keys() if t in pos_map]

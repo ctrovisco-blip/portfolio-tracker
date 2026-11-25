@@ -245,7 +245,7 @@ footer ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;ga
 <footer>
   <b>Metodologia e ressalvas</b>
   <ul>
-    <li>Fonte: API Trading212 (posições e ordens, 16/07/2026 10:56 UTC); fundamentais e séries de preços do pipeline do repositório.</li>
+    <li>Fonte: API Trading212 (posições e ordens, actualizadas a <span id="asof2"></span>); fundamentais e séries de preços do pipeline do repositório.</li>
     <li>Custo-base = valor actual − P/L da T212 (inclui efeito cambial). Dividendos são estimativas (yield actual × valor), não valores recebidos.</li>
     <li>Performance da carteira é a composição actual projectada no histórico (backtest), não TWR/MWR da conta.</li>
     <li>YTD/1 ano por título referem-se à listagem detida (ex.: MSF em EUR na Xetra inclui efeito cambial).</li>
@@ -266,6 +266,7 @@ const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 
 /* ── texto dinâmico ── */
 document.getElementById('asof').textContent = DATA.asofLong;
+document.getElementById('asof2').textContent = DATA.asofLong;
 document.getElementById('npos').textContent = P.length;
 document.getElementById('curnote').textContent = DATA.notes.currency;
 document.getElementById('concnote').textContent = DATA.notes.concentration;
