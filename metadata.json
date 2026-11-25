@@ -35,8 +35,8 @@
     "name": "Nvidia",
     "sector": "Tech & AI",
     "flag": "🇺🇸",
-    "exchange": "Xetra",
-    "cur": "€",
+    "exchange": "NASDAQ",
+    "cur": "$",
     "yf": "NVDA"
   },
   "MO": {
