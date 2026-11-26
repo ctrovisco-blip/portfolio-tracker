@@ -45,8 +45,8 @@
     "exchange": "Xetra",
     "qty": 29.963005,
     "avgPrice": 46.8972,
-    "curPrice": 42.844,
-    "ppl": -121.45,
+    "curPrice": 42.8,
+    "ppl": -122.76,
     "cur": "€",
     "buyDates": [
       "2026-05-28",
@@ -66,8 +66,8 @@
     "exchange": "NASDAQ",
     "qty": 7.0,
     "avgPrice": 151.6514,
-    "curPrice": 148.28,
-    "ppl": -20.88,
+    "curPrice": 151.24,
+    "ppl": 0.26,
     "cur": "$",
     "buyDates": [
       "2026-11-12",
@@ -102,8 +102,8 @@
     "exchange": "NYSE",
     "qty": 19.7513,
     "avgPrice": 61.2208,
-    "curPrice": 60.46,
-    "ppl": 45.36,
+    "curPrice": 60.2,
+    "ppl": 43.24,
     "cur": "$",
     "buyDates": [
       "2026-06-04",
@@ -123,8 +123,8 @@
     "exchange": "NYSE",
     "qty": 4.210928,
     "avgPrice": 141.6006,
-    "curPrice": 174.29,
-    "ppl": 153.72,
+    "curPrice": 173.24,
+    "ppl": 151.26,
     "cur": "$",
     "buyDates": [
       "2026-06-03",
@@ -205,7 +205,7 @@
     "qty": 88.132205,
     "avgPrice": 1021.8486,
     "curPrice": 1251.2,
-    "ppl": 268.71,
+    "ppl": 269.02,
     "cur": "p",
     "buyDates": [
       "2024-10-12",
@@ -244,8 +244,8 @@
     "exchange": "",
     "qty": 45.770627,
     "avgPrice": 26.5819,
-    "curPrice": 25.23,
-    "ppl": -9.26,
+    "curPrice": 25.21,
+    "ppl": -7.61,
     "cur": "$",
     "buyDates": [
       "2026-06-24",
@@ -296,8 +296,8 @@
     "exchange": "",
     "qty": 4.0,
     "avgPrice": 337.36,
-    "curPrice": 317.9,
-    "ppl": -45.67,
+    "curPrice": 318.35,
+    "ppl": -41.29,
     "cur": "$",
     "buyDates": [
       "2025-11-18",
@@ -314,8 +314,8 @@
     "exchange": "",
     "qty": 13.0,
     "avgPrice": 84.3354,
-    "curPrice": 83.25,
-    "ppl": 1.06,
+    "curPrice": 83.21,
+    "ppl": 2.91,
     "cur": "$",
     "buyDates": [
       "2026-11-06"
@@ -329,8 +329,8 @@
     "exchange": "",
     "qty": 7.0,
     "avgPrice": 151.1757,
-    "curPrice": 84.88,
-    "ppl": -413.95,
+    "curPrice": 88.27,
+    "ppl": -391.02,
     "cur": "$",
     "buyDates": [
       "2026-11-11",
@@ -345,8 +345,8 @@
     "exchange": "",
     "qty": 3.0,
     "avgPrice": 247.8367,
-    "curPrice": 189.39,
-    "ppl": -155.87,
+    "curPrice": 195.55,
+    "ppl": -137.78,
     "cur": "$",
     "buyDates": [
       "2026-11-12",
@@ -361,8 +361,8 @@
     "exchange": "",
     "qty": 2.0,
     "avgPrice": 140.63,
-    "curPrice": 124.62,
-    "ppl": -28.27,
+    "curPrice": 128.96,
+    "ppl": -19.82,
     "cur": "$",
     "buyDates": [
       "2026-06-12",
